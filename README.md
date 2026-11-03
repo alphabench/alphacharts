@@ -25,8 +25,8 @@
   <a href="https://github.com/alphabench/alphacharts/issues">Issues</a>
 </p>
 
-alphacharts is a financial charting library for the web. Series are drawn with WebGL2 and text with Canvas2D, so a
-chart stays smooth with millions of bars, many synced charts and live ticks. The core has no runtime dependencies and
+alphacharts is a financial charting library for the web. Series are drawn with WebGL2 (with a Canvas2D
+fallback) and text with Canvas2D, so a chart stays smooth with millions of bars, many synced charts and live ticks. The core has no runtime dependencies and
 ships no data and no UI framework: React, Vue and Svelte bindings are separate packages.
 
 It is for apps that show markets: candles, lines, areas, histograms, panes, a crosshair, markers, price lines,
@@ -68,9 +68,9 @@ npm install @alphacharts/indicators @alphacharts/drawings @alphacharts/alerts
 npm install @alphacharts/chart-types @alphacharts/orderflow @alphacharts/i18n
 ```
 
-Requirements: a browser with **WebGL2** for `@alphacharts/core` (without it `createChart` throws; there is no Canvas2D
-fallback yet), and a bundler or runtime that understands ES modules. `@alphacharts/plot` draws on Canvas2D and does
-not need WebGL.
+Requirements: a browser and a bundler or runtime that understands ES modules. `@alphacharts/core` draws series with
+WebGL2 when it is available and falls back to Canvas2D when it is not (see [Renderer](#renderer)). `@alphacharts/plot`
+draws on Canvas2D and does not need WebGL.
 
 ## Quick start
 
@@ -197,8 +197,23 @@ guide: [indicators](packages/indicators/README.md), [drawings](packages/drawings
   and `restoreState(state, { formatters, timeLabel })` refuses until you pass them back.
 - **Datafeeds.** `connectDatafeed(chart, series, feed, { symbol, resolution, onError })` loads the first page,
   prepends older pages as the view nears the left edge and applies live bars. Every failure reaches `onError`.
-- **WebGL contexts.** Each chart owns one. A removed chart's context is parked for the next chart (at most 8, released
-  after 10 s idle), which avoids the browser's "too many active WebGL contexts" warning on create/remove cycles.
+- **WebGL contexts.** A standalone chart owns one. A removed chart's context is parked for the next chart (at most 8,
+  released after 10 s idle), which avoids the browser's "too many active WebGL contexts" warning on create/remove
+  cycles. See [Renderer](#renderer) for what happens past 8 live charts.
+
+### Renderer
+
+`createChart(el, { renderer })` takes `"auto"` (the default), `"webgl"` or `"canvas2d"`.
+
+- `"auto"` uses WebGL2, and draws on Canvas2D instead when WebGL2 is unavailable or the page already holds 8 live
+  standalone charts (browsers evict the oldest WebGL context past about 16).
+- `"webgl"` throws if WebGL2 is unavailable. `"canvas2d"` never uses WebGL.
+- Every built-in series type and every type in `@alphacharts/chart-types` and `@alphacharts/orderflow` has a Canvas2D
+  renderer. A custom series type registered without `createRenderer2D` throws when it has to draw on Canvas2D.
+- A `Dashboard` draws all of its charts on one set of canvases and one WebGL context, so many charts in a grid do not
+  use up the context budget.
+- `chart.renderer` tells you which surface a chart ended up on.
+- The performance figures below were measured on the WebGL path. The Canvas2D path has not been benchmarked.
 
 ### The brand mark
 
@@ -287,9 +302,8 @@ changes without notice.
 
 ## Known limits
 
-- WebGL2 is required for the core; without it `createChart` throws. No Canvas2D fallback yet.
-- Each chart owns a WebGL context, and browsers cap live contexts (Chrome about 16), so a dashboard with more charts
-  than that needs a shared-context renderer (not built yet).
+- The Canvas2D fallback is not benchmarked, so do not assume WebGL-level performance on very large series. Use a
+  `Dashboard` when you need many charts at once.
 - Price scales are linear only (log, percent and indexed are not built yet).
 - A bar's high and low are drawn as given; the library does not check `high >= max(open, close)`.
 - A series' line has a gap where it has no bar on the shared timeline.

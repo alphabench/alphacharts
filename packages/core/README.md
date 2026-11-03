@@ -2,7 +2,7 @@
 
 The alphacharts engine: WebGL2 series (candles, line, area, histogram, ...), Canvas2D text, panes, price and time
 scales, crosshair, markers, price lines, synced charts and a datafeed driver. No runtime dependencies. WebGL2 is
-required.
+used when available, with a Canvas2D fallback (`renderer: "auto" | "webgl" | "canvas2d"`).
 
 ```
 npm install @alphacharts/core
