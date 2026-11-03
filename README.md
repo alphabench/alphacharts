@@ -11,7 +11,7 @@
   <a href="https://www.npmjs.com/package/@alphacharts/core"><img alt="npm" src="https://img.shields.io/npm/v/@alphacharts/core?label=npm&color=cb3837"></a>
   <a href="https://www.npmjs.com/package/@alphacharts/core"><img alt="downloads" src="https://img.shields.io/npm/dm/@alphacharts/core?label=downloads"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/github/license/alphabench/alphacharts?color=blue"></a>
-  <img alt="core size" src="https://img.shields.io/badge/core-42%20kB%20gzip-brightgreen">
+  <img alt="core size" src="https://img.shields.io/badge/core-42%20KiB%20gzip-brightgreen">
   <img alt="runtime dependencies" src="https://img.shields.io/badge/runtime%20dependencies-0-brightgreen">
   <img alt="types" src="https://img.shields.io/badge/types-TypeScript-3178c6">
 </p>
@@ -40,7 +40,7 @@ Version 0.1.0. The API may still change before 1.0; breaking changes are listed 
 - **Fast at scale.** Autoscale over any range is O(log n) and only the visible window is uploaded to the GPU; a 10M-bar
   pan/zoom sweep held a 120 Hz display's frame rate in the recorded run. See [Performance](#performance) for what was
   measured, and what was not.
-- **Small.** `@alphacharts/core` is about 42 kB gzip with every built-in series and no runtime dependencies. Everything
+- **Small.** `@alphacharts/core` is about 42 KiB gzip with every built-in series and no runtime dependencies. Everything
   else is opt-in, so a bundler keeps only what you import.
 - **Live data built in.** `series.update(bar)` for ticks, `series.prepend(bars)` for history paging, and
   `connectDatafeed` to drive a series from a datafeed.
@@ -246,7 +246,8 @@ createPlot(el, { watermark: { visible: false } });
 ## Performance
 
 Measured on one MacBook Pro, Chrome stable, a 120 Hz display (8.3 ms frame), 1600×900 at DPR 2, on 21 Oct 2026.
-`pnpm bench` re-measures; the numbers are one run, not a promise for your hardware.
+These are one run by the maintainers and no result file is committed for them: `pnpm bench` re-measures on your
+hardware, and the numbers are not a promise for it.
 
 | Scenario | bars | frame p95 | frames > 16.7 ms | alphacharts CPU p95 per frame |
 |---|---|---|---|---|
@@ -260,13 +261,14 @@ Measured on one MacBook Pro, Chrome stable, a 120 Hz display (8.3 ms frame), 160
 `setData` alone: 1M bars 81 ms and 10M bars 670 ms (columnar input); lightweight-charts took 1,960 ms for 1M bars
 (row objects, built before timing). Heap growth over a 600-frame sweep after warm-up: none.
 
-Bundle size (`pnpm size`, gzip): `@alphacharts/core` 42.2 kB, lightweight-charts 5.2.1 production ESM 59.0 kB.
+Bundle size (`pnpm size`, gzip): `@alphacharts/core` 42.2 KiB, lightweight-charts 5.2.1 production ESM 59.0 KiB.
 lightweight-charts does more than the core in some areas (localisation of every option, more series options, its
 plugin API), so read the size as a budget check, not a like-for-like win.
 
 Not measured: other hardware (mid-range, Windows, mobile), Safari, Firefox, GPU time (the timer-query extension is
-unavailable in Chrome on macOS). At 48 synced charts × 100k bars the sweep does miss frames; see
-`bench/results/perf.json`.
+unavailable in Chrome on macOS). The 48 synced charts × 100k bars scenario in `pnpm bench` does miss
+frames on the maintainers' machine. A like-for-like comparison with lightweight-charts and ECharts, with its raw
+results, lives in `bench/compare` (`pnpm bench:compare`).
 
 ### How it is fast
 
