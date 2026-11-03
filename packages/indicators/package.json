@@ -1,0 +1,94 @@
+{
+  "name": "@alphacharts/indicators",
+  "version": "0.1.0",
+  "description": "Technical studies for AlphaCharts: a typed study model, an incremental engine, a Web Worker runner and 210 studies.",
+  "keywords": [
+    "indicators",
+    "technical-analysis",
+    "ta-lib",
+    "rsi",
+    "macd",
+    "chart"
+  ],
+  "license": "MIT",
+  "author": "Alphabench",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphabench/alphacharts.git",
+    "directory": "packages/indicators"
+  },
+  "homepage": "https://github.com/alphabench/alphacharts#readme",
+  "bugs": {
+    "url": "https://github.com/alphabench/alphacharts/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./all": {
+        "types": "./dist/types/all.d.ts",
+        "default": "./dist/all.js"
+      },
+      "./studies": {
+        "types": "./dist/types/studies/index.d.ts",
+        "default": "./dist/studies.js"
+      },
+      "./worker": {
+        "types": "./dist/types/worker.d.ts",
+        "default": "./dist/worker.js"
+      }
+    }
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./all": {
+      "development": "./src/all.ts",
+      "types": "./dist/types/all.d.ts",
+      "default": "./dist/all.js"
+    },
+    "./studies": {
+      "development": "./src/studies/index.ts",
+      "types": "./dist/types/studies/index.d.ts",
+      "default": "./dist/studies.js"
+    },
+    "./worker": {
+      "development": "./src/worker.ts",
+      "types": "./dist/types/worker.d.ts",
+      "default": "./dist/worker.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "typecheck:dist": "tsc -p tsconfig.dist.json",
+    "test": "vitest run",
+    "fixtures": "python scripts/gen_fixtures.py"
+  },
+  "dependencies": {
+    "@alphacharts/wasm": "workspace:*"
+  },
+  "peerDependencies": {
+    "@alphacharts/core": "^0.1.0"
+  },
+  "devDependencies": {
+    "@alphacharts/core": "workspace:*",
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
+  }
+}

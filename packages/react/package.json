@@ -1,0 +1,85 @@
+{
+  "name": "@alphacharts/react",
+  "version": "0.1.0",
+  "description": "React bindings for AlphaCharts: Chart, Series, PriceLine, Dashboard, SyncGroup and hooks.",
+  "keywords": [
+    "react",
+    "chart",
+    "charting",
+    "candlestick",
+    "webgl"
+  ],
+  "license": "MIT",
+  "author": "Alphabench",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphabench/alphacharts.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/alphabench/alphacharts#readme",
+  "bugs": {
+    "url": "https://github.com/alphabench/alphacharts/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./plot": {
+        "types": "./dist/types/plot/index.d.ts",
+        "default": "./dist/plot.js"
+      }
+    }
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./plot": {
+      "development": "./src/plot/index.ts",
+      "types": "./dist/types/plot/index.d.ts",
+      "default": "./dist/plot.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "typecheck:dist": "tsc -p tsconfig.dist.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@alphacharts/core": "^0.1.0",
+    "react": ">=18",
+    "@alphacharts/plot": "^0.1.0"
+  },
+  "devDependencies": {
+    "@alphacharts/core": "workspace:*",
+    "@alphacharts/plot": "workspace:*",
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "jsdom": "27.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
+  },
+  "peerDependenciesMeta": {
+    "@alphacharts/plot": {
+      "optional": true
+    }
+  }
+}

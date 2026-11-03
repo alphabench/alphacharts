@@ -1,0 +1,13 @@
+[
+ {"id":"ht-dcperiod","study":"ht-dcperiod","inputs":{},"talib":{"fn":"HT_DCPERIOD","map":["period"]}},
+ {"id":"ht-dcphase","study":"ht-dcphase","inputs":{},"talib":{"fn":"HT_DCPHASE","map":["phase"]}},
+ {"id":"ht-phasor","study":"ht-phasor","inputs":{},"talib":{"fn":"HT_PHASOR","map":["inphase","quadrature"]}},
+ {"id":"ht-sine","study":"ht-sine","inputs":{},"talib":{"fn":"HT_SINE","map":["sine","leadsine"]}},
+ {"id":"ht-trendline","study":"ht-trendline","inputs":{},"talib":{"fn":"HT_TRENDLINE","map":["trendline"]}},
+ {"id":"ht-trendmode","study":"ht-trendmode","inputs":{},"talib":{"fn":"HT_TRENDMODE","map":["trendmode"],"int":true},"note":"TA-Lib returns the integer 0 (not absent) during warm-up; the study does the same."},
+ {"id":"ht-trendline-open","study":"ht-trendline","inputs":{"source":"open"},"talib":{"fn":"HT_TRENDLINE","map":["trendline"],"inputs":{"price":"open"}}},
+ {"id":"ht-dcphase-high","study":"ht-dcphase","inputs":{"source":"high"},"talib":{"fn":"HT_DCPHASE","map":["phase"],"inputs":{"price":"high"}}},
+ {"id":"mama","study":"mama","inputs":{},"talib":{"fn":"MAMA","map":["mama","fama"]}},
+ {"id":"mama-fast8-slow1","study":"mama","inputs":{"fastlimit":0.8,"slowlimit":0.1},"talib":{"fn":"MAMA","map":["mama","fama"],"args":{"fastlimit":0.8,"slowlimit":0.1}}},
+ {"id":"mama-open","study":"mama","inputs":{"fastlimit":0.3,"slowlimit":0.02,"source":"open"},"talib":{"fn":"MAMA","map":["mama","fama"],"args":{"fastlimit":0.3,"slowlimit":0.02},"inputs":{"price":"open"}}}
+]

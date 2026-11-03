@@ -1,0 +1,8 @@
+{
+  "name": "@alphacharts/example-shared",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@alphacharts/core": "workspace:*"
+  }
+}

@@ -1,0 +1,6 @@
+node_modules/
+dist/
+bench/results/
+bench/test-results/
+bench/playwright-report/
+.svelte-kit/

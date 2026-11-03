@@ -1,0 +1,58 @@
+{
+  "name": "@alphacharts/wasm",
+  "version": "0.1.0",
+  "description": "WebAssembly and JavaScript numeric kernels used by @alphacharts/indicators.",
+  "keywords": [
+    "wasm",
+    "webassembly",
+    "kernels",
+    "indicators"
+  ],
+  "license": "MIT",
+  "author": "Alphabench",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphabench/alphacharts.git",
+    "directory": "packages/wasm"
+  },
+  "homepage": "https://github.com/alphabench/alphacharts#readme",
+  "bugs": {
+    "url": "https://github.com/alphabench/alphacharts/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "build:wasm": "bash scripts/build.sh",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "bench": "node --expose-gc scripts/bench.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
+  }
+}

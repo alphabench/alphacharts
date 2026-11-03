@@ -1,0 +1,9 @@
+[
+ {"id":"sar","study":"sar","inputs":{},"talib":{"fn":"SAR","map":["sar"],"args":{"acceleration":0.02,"maximum":0.2}}},
+ {"id":"sar-04-3","study":"sar","inputs":{"start":0.04,"increment":0.04,"maximum":0.3},"talib":{"fn":"SAR","map":["sar"],"args":{"acceleration":0.04,"maximum":0.3}}},
+ {"id":"sar-start-gt-max","study":"sar","inputs":{"start":0.5,"increment":0.5,"maximum":0.2},"talib":{"fn":"SAR","map":["sar"],"args":{"acceleration":0.5,"maximum":0.2}}},
+ {"id":"sarext","study":"sarext","inputs":{},"talib":{"fn":"SAREXT","map":["sarext"]}},
+ {"id":"sarext-asym","study":"sarext","inputs":{"startvalue":0,"offsetonreverse":0.01,"accelerationinitlong":0.03,"accelerationlong":0.025,"accelerationmaxlong":0.25,"accelerationinitshort":0.01,"accelerationshort":0.015,"accelerationmaxshort":0.12},"talib":{"fn":"SAREXT","map":["sarext"],"args":{"startvalue":0,"offsetonreverse":0.01,"accelerationinitlong":0.03,"accelerationlong":0.025,"accelerationmaxlong":0.25,"accelerationinitshort":0.01,"accelerationshort":0.015,"accelerationmaxshort":0.12}}},
+ {"id":"sarext-startlong","study":"sarext","inputs":{"startvalue":95},"talib":{"fn":"SAREXT","map":["sarext"],"args":{"startvalue":95}}},
+ {"id":"sarext-startshort","study":"sarext","inputs":{"startvalue":-105,"accelerationmaxshort":0.1,"accelerationinitshort":0.2},"talib":{"fn":"SAREXT","map":["sarext"],"args":{"startvalue":-105,"accelerationmaxshort":0.1,"accelerationinitshort":0.2}}}
+]

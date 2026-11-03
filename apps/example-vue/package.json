@@ -1,0 +1,22 @@
+{
+  "name": "@alphacharts/example-vue",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@alphacharts/core": "workspace:*",
+    "@alphacharts/vue": "workspace:*",
+    "vue": "3.5.43"
+  },
+  "devDependencies": {
+    "@alphacharts/example-shared": "workspace:*",
+    "@vitejs/plugin-vue": "6.0.9",
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vue-tsc": "3.3.12"
+  }
+}

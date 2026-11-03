@@ -1,0 +1,525 @@
+[
+{
+"id": "sma30",
+"study": "sma",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "SMA",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"sma"
+]
+}
+},
+{
+"id": "sma5",
+"study": "sma",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "SMA",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"sma"
+]
+}
+},
+{
+"id": "ema30",
+"study": "ema",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "EMA",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"ema"
+]
+}
+},
+{
+"id": "ema10",
+"study": "ema",
+"inputs": {
+"length": 10
+},
+"talib": {
+"fn": "EMA",
+"args": {
+"timeperiod": 10
+},
+"map": [
+"ema"
+]
+}
+},
+{
+"id": "wma30",
+"study": "wma",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "WMA",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"wma"
+]
+}
+},
+{
+"id": "wma7",
+"study": "wma",
+"inputs": {
+"length": 7
+},
+"talib": {
+"fn": "WMA",
+"args": {
+"timeperiod": 7
+},
+"map": [
+"wma"
+]
+}
+},
+{
+"id": "dema30",
+"study": "dema",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "DEMA",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"dema"
+]
+}
+},
+{
+"id": "dema10",
+"study": "dema",
+"inputs": {
+"length": 10
+},
+"talib": {
+"fn": "DEMA",
+"args": {
+"timeperiod": 10
+},
+"map": [
+"dema"
+]
+}
+},
+{
+"id": "tema30",
+"study": "tema",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "TEMA",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"tema"
+]
+}
+},
+{
+"id": "tema6",
+"study": "tema",
+"inputs": {
+"length": 6
+},
+"talib": {
+"fn": "TEMA",
+"args": {
+"timeperiod": 6
+},
+"map": [
+"tema"
+]
+}
+},
+{
+"id": "trima30",
+"study": "trima",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "TRIMA",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"trima"
+]
+}
+},
+{
+"id": "trima21",
+"study": "trima",
+"inputs": {
+"length": 21
+},
+"talib": {
+"fn": "TRIMA",
+"args": {
+"timeperiod": 21
+},
+"map": [
+"trima"
+]
+}
+},
+{
+"id": "trima10",
+"study": "trima",
+"inputs": {
+"length": 10
+},
+"talib": {
+"fn": "TRIMA",
+"args": {
+"timeperiod": 10
+},
+"map": [
+"trima"
+]
+}
+},
+{
+"id": "kama30",
+"study": "kama",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "KAMA",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"kama"
+]
+}
+},
+{
+"id": "kama10",
+"study": "kama",
+"inputs": {
+"length": 10
+},
+"talib": {
+"fn": "KAMA",
+"args": {
+"timeperiod": 10
+},
+"map": [
+"kama"
+]
+}
+},
+{
+"id": "t3_5",
+"study": "t3",
+"inputs": {
+"length": 5,
+"vfactor": 0.7
+},
+"talib": {
+"fn": "T3",
+"args": {
+"timeperiod": 5,
+"vfactor": 0.7
+},
+"map": [
+"t3"
+]
+}
+},
+{
+"id": "t3_8",
+"study": "t3",
+"inputs": {
+"length": 8,
+"vfactor": 0.5
+},
+"talib": {
+"fn": "T3",
+"args": {
+"timeperiod": 8,
+"vfactor": 0.5
+},
+"map": [
+"t3"
+]
+}
+},
+{
+"id": "ma_sma",
+"study": "ma",
+"inputs": {
+"length": 12,
+"type": "sma"
+},
+"talib": {
+"fn": "MA",
+"args": {
+"timeperiod": 12,
+"matype": 0
+},
+"map": [
+"ma"
+]
+}
+},
+{
+"id": "ma_ema",
+"study": "ma",
+"inputs": {
+"length": 12,
+"type": "ema"
+},
+"talib": {
+"fn": "MA",
+"args": {
+"timeperiod": 12,
+"matype": 1
+},
+"map": [
+"ma"
+]
+}
+},
+{
+"id": "ma_wma",
+"study": "ma",
+"inputs": {
+"length": 12,
+"type": "wma"
+},
+"talib": {
+"fn": "MA",
+"args": {
+"timeperiod": 12,
+"matype": 2
+},
+"map": [
+"ma"
+]
+}
+},
+{
+"id": "ma_dema",
+"study": "ma",
+"inputs": {
+"length": 12,
+"type": "dema"
+},
+"talib": {
+"fn": "MA",
+"args": {
+"timeperiod": 12,
+"matype": 3
+},
+"map": [
+"ma"
+]
+}
+},
+{
+"id": "ma_tema",
+"study": "ma",
+"inputs": {
+"length": 12,
+"type": "tema"
+},
+"talib": {
+"fn": "MA",
+"args": {
+"timeperiod": 12,
+"matype": 4
+},
+"map": [
+"ma"
+]
+}
+},
+{
+"id": "ma_trima",
+"study": "ma",
+"inputs": {
+"length": 12,
+"type": "trima"
+},
+"talib": {
+"fn": "MA",
+"args": {
+"timeperiod": 12,
+"matype": 5
+},
+"map": [
+"ma"
+]
+}
+},
+{
+"id": "ma_kama",
+"study": "ma",
+"inputs": {
+"length": 12,
+"type": "kama"
+},
+"talib": {
+"fn": "MA",
+"args": {
+"timeperiod": 12,
+"matype": 6
+},
+"map": [
+"ma"
+]
+}
+},
+{
+"id": "ma_t3",
+"study": "ma",
+"inputs": {
+"length": 12,
+"type": "t3"
+},
+"talib": {
+"fn": "MA",
+"args": {
+"timeperiod": 12,
+"matype": 8
+},
+"map": [
+"ma"
+]
+}
+},
+{
+"id": "bbands_sma",
+"study": "bbands",
+"inputs": {
+"length": 20,
+"multUp": 2,
+"multDn": 1.5,
+"maType": "sma"
+},
+"talib": {
+"fn": "BBANDS",
+"args": {
+"timeperiod": 20,
+"nbdevup": 2,
+"nbdevdn": 1.5,
+"matype": 0
+},
+"map": [
+"upper",
+"middle",
+"lower"
+]
+}
+},
+{
+"id": "bbands_ema",
+"study": "bbands",
+"inputs": {
+"length": 20,
+"multUp": 2,
+"multDn": 1.5,
+"maType": "ema"
+},
+"talib": {
+"fn": "BBANDS",
+"args": {
+"timeperiod": 20,
+"nbdevup": 2,
+"nbdevdn": 1.5,
+"matype": 1
+},
+"map": [
+"upper",
+"middle",
+"lower"
+]
+}
+},
+{
+"id": "bbands5",
+"study": "bbands",
+"inputs": {
+"length": 5,
+"multUp": 2,
+"multDn": 2
+},
+"talib": {
+"fn": "BBANDS",
+"args": {
+"timeperiod": 5,
+"nbdevup": 2,
+"nbdevdn": 2,
+"matype": 0
+},
+"map": [
+"upper",
+"middle",
+"lower"
+]
+}
+},
+{
+"id": "midpoint14",
+"study": "midpoint",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "MIDPOINT",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"midpoint"
+]
+}
+},
+{
+"id": "midprice14",
+"study": "midprice",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "MIDPRICE",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"midprice"
+]
+}
+}
+]

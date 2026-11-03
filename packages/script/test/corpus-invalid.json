@@ -1,0 +1,691 @@
+[
+ [
+  "plot(ta.cmo(close, 9, \"Wilder\"))",
+  [
+   "1:23 argument \"method\" of ta.cmo must be one of \"sum\", \"wilder\", got \"Wilder\""
+  ]
+ ],
+ [
+  "plot(close, color=color.new(color.red, 120))",
+  [
+   "1:40 argument \"transp\" of color.new must be between 0 and 100, got 120"
+  ]
+ ],
+ [
+  "plot(ta.vwap()[0])",
+  [
+   "1:6 only a series can be indexed with [ ], this is a tuple of 3 values (destructure it: [a, b] = ...)"
+  ]
+ ],
+ [
+  "plot(ta.stoch())",
+  [
+   "1:6 argument \"series\" of plot must be a number series, got a tuple of 2 values (destructure it: [a, b] = ...)"
+  ]
+ ],
+ [
+  "x = 1 + input.int(3)\nplot(close)",
+  [
+   "1:9 input.* may only be the whole right-hand side of a top-level declaration: name = input.int(...)"
+  ]
+ ],
+ [
+  "plot(",
+  [
+   "1:6 unclosed bracket",
+   "1:6 expected an expression, found end of line"
+  ]
+ ],
+ [
+  "x = ",
+  [
+   "1:5 expected an expression, found end of line"
+  ]
+ ],
+ [
+  "x = 1 +",
+  [
+   "1:8 expected an expression, found end of line"
+  ]
+ ],
+ [
+  "plot(close",
+  [
+   "1:11 unclosed bracket",
+   "1:11 expected \")\" to close the call, found end of line"
+  ]
+ ],
+ [
+  "plot(close))",
+  [
+   "1:12 unexpected \")\"; expected end of line"
+  ]
+ ],
+ [
+  "plot(clos)",
+  [
+   "1:6 unknown name \"clos\""
+  ]
+ ],
+ [
+  "plot(close, 5)",
+  [
+   "1:13 argument \"title\" of plot must be a string, got int"
+  ]
+ ],
+ [
+  "plot()",
+  [
+   "1:1 plot needs the argument \"series\""
+  ]
+ ],
+ [
+  "plot(close, title=1)",
+  [
+   "1:19 argument \"title\" of plot must be a string, got int"
+  ]
+ ],
+ [
+  "plot(close, colour=color.red)",
+  [
+   "1:13 plot has no parameter \"colour\" (parameters: series, title, color, linewidth, style, offset, color_down)"
+  ]
+ ],
+ [
+  "x = na\nplot(close)",
+  [
+   "1:5 cannot infer the type of \"x\" from na; declare it, e.g. float x = na"
+  ]
+ ],
+ [
+  "x = close\nx = open\nplot(x)",
+  [
+   "2:1 \"x\" is already declared"
+  ]
+ ],
+ [
+  "close = 5\nplot(close)",
+  [
+   "1:1 \"close\" is a built-in name and cannot be redeclared"
+  ]
+ ],
+ [
+  "plot(close > open)",
+  [
+   "1:6 argument \"series\" of plot must be a number series, got series bool"
+  ]
+ ],
+ [
+  "plot(close and open)",
+  [
+   "1:6 \"and\" needs bool operands, got series float and series float"
+  ]
+ ],
+ [
+  "if close\n    x = 1\nplot(close)",
+  [
+   "1:4 the condition of if must be bool, got series float"
+  ]
+ ],
+ [
+  "if close > open\nx = 1\nplot(close)",
+  [
+   "2:1 expected an indented block"
+  ]
+ ],
+ [
+  "if close > open\n    x = 1\n  y = 2\nplot(close)",
+  [
+   "3:1 indentation does not match any outer block"
+  ]
+ ],
+ [
+  "x = 1 +\nplot(close)",
+  [
+   "1:8 expected an expression, found end of line"
+  ]
+ ],
+ [
+  "plot(ta.sma(close))",
+  [
+   "1:6 ta.sma needs the argument \"length\""
+  ]
+ ],
+ [
+  "plot(ta.sma(close, 0))",
+  [
+   "1:20 argument \"length\" of ta.sma must be between 1 and 5000, got 0"
+  ]
+ ],
+ [
+  "plot(ta.sma(close, 6000))",
+  [
+   "1:20 argument \"length\" of ta.sma must be between 1 and 5000, got 6000"
+  ]
+ ],
+ [
+  "plot(ta.sma(close, 1.5))",
+  [
+   "1:20 argument \"length\" of ta.sma must be an int, got float"
+  ]
+ ],
+ [
+  "plot(ta.sma(close, close))",
+  [
+   "1:20 argument \"length\" of ta.sma must be an int, got series float"
+  ]
+ ],
+ [
+  "plot(ta.nosuch(close, 5))",
+  [
+   "1:6 unknown function \"ta.nosuch\""
+  ]
+ ],
+ [
+  "plot(nosuch(close))",
+  [
+   "1:6 unknown function \"nosuch\""
+  ]
+ ],
+ [
+  "plot(math.max(close))",
+  [
+   "1:6 math.max needs the argument \"b\""
+  ]
+ ],
+ [
+  "plot(math.max(close, open, low))",
+  [
+   "1:28 math.max takes at most 2 arguments, got 3"
+  ]
+ ],
+ [
+  "len = input.int(14)\nlen = 3\nplot(close)",
+  [
+   "2:1 \"len\" is already declared"
+  ]
+ ],
+ [
+  "x = input.int(14) + 1\nplot(close)",
+  [
+   "1:5 input.* may only be the whole right-hand side of a top-level declaration: name = input.int(...)"
+  ]
+ ],
+ [
+  "plot(input.int(14))",
+  [
+   "1:6 input.* may only be the whole right-hand side of a top-level declaration: name = input.int(...)"
+  ]
+ ],
+ [
+  "x = input.string(\"a\")\nplot(close)",
+  [
+   "1:5 input.string needs the argument \"options\""
+  ]
+ ],
+ [
+  "x = input.string(\"a\", options=[\"b\"])\nplot(close)",
+  [
+   "1:18 the default \"a\" is not one of the options"
+  ]
+ ],
+ [
+  "x = input.int(5, minval=10)\nplot(close)",
+  [
+   "1:15 the default 5 is outside [10, inf]"
+  ]
+ ],
+ [
+  "x = input.source(5)\nplot(close)",
+  [
+   "1:18 the default of input.source must be one of close, open, high, low, hl2, hlc3, ohlc4, hlcc4"
+  ]
+ ],
+ [
+  "x = input.color(5)\nplot(close)",
+  [
+   "1:17 argument \"defval\" of input.color must be a color, got int"
+  ]
+ ],
+ [
+  "var x = 0\nif close > open\n    var y = 1\nplot(x)",
+  [
+   "3:5 'var' is only allowed at the top level of the script"
+  ]
+ ],
+ [
+  "for i = 1 to 10\n    plot(close)",
+  [
+   "2:5 plot() is only allowed as a statement at the top level of the script"
+  ]
+ ],
+ [
+  "if close > open\n    plot(close)",
+  [
+   "2:5 plot() is only allowed as a statement at the top level of the script"
+  ]
+ ],
+ [
+  "for i = 1 to 100000\n    x = 1\nplot(close)",
+  [
+   "1:1 this loop runs 100000 times; the limit is 10000 iterations per loop"
+  ]
+ ],
+ [
+  "for i = 1 to 10 by 0\n    x = 1\nplot(close)",
+  [
+   "1:20 the loop step cannot be 0"
+  ]
+ ],
+ [
+  "for i = 1.5 to 10\n    x = 1\nplot(close)",
+  [
+   "1:9 a loop bound must be an int, got float"
+  ]
+ ],
+ [
+  "for i = 1 to 3\n    i := 2\nplot(close)",
+  [
+   "2:5 cannot assign to \"i\": it is a loop counter"
+  ]
+ ],
+ [
+  "while close > 1\n    x = 1\nplot(close)",
+  [
+   "1:1 'while' is not supported: loops must be bounded, use 'for i = a to b'"
+  ]
+ ],
+ [
+  "fetch(\"x\")\nplot(close)",
+  [
+   "1:1 unknown function \"fetch\""
+  ]
+ ],
+ [
+  "x = window\nplot(close)",
+  [
+   "1:5 unknown name \"window\""
+  ]
+ ],
+ [
+  "x = __proto__\nplot(close)",
+  [
+   "1:5 '__proto__' is a reserved name"
+  ]
+ ],
+ [
+  "constructor = 1\nplot(close)",
+  [
+   "1:1 'constructor' is a reserved name"
+  ]
+ ],
+ [
+  "x = eval(\"1\")\nplot(close)",
+  [
+   "1:5 'eval' is not part of the language"
+  ]
+ ],
+ [
+  "x = 1\n\tplot(close)",
+  [
+   "2:1 tab characters are not allowed; indent with spaces",
+   "2:1 unexpected indent"
+  ]
+ ],
+ [
+  "plot(close) $",
+  [
+   "1:13 unexpected character \"$\""
+  ]
+ ],
+ [
+  "plot(\"abc)",
+  [
+   "1:6 unterminated string",
+   "1:11 unclosed bracket",
+   "1:11 expected \")\" to close the call, found end of line"
+  ]
+ ],
+ [
+  "x = #12\nplot(close)",
+  [
+   "1:5 invalid color \"#12\": use #RRGGBB or #RRGGBBAA"
+  ]
+ ],
+ [
+  "x = 12abc\nplot(close)",
+  [
+   "1:5 invalid number \"12abc\""
+  ]
+ ],
+ [
+  "x = close[1.5]\nplot(x)",
+  [
+   "1:11 the history offset must be an int, got float"
+  ]
+ ],
+ [
+  "x = close[-1]\nplot(x)",
+  [
+   "1:11 the history offset must be between 0 and 1000000, got -1"
+  ]
+ ],
+ [
+  "x = close[2000000]\nplot(x)",
+  [
+   "1:11 the history offset must be between 0 and 1000000, got 2000000"
+  ]
+ ],
+ [
+  "x = 5[1]\nplot(close)",
+  [
+   "1:5 only a series can be indexed with [ ], this is int"
+  ]
+ ],
+ [
+  "var x = 0\nx := 1\nplot(ta.sma(x, 3))",
+  [
+   "3:13 argument \"source\" of ta.sma depends on a variable that is declared var, assigned with :=, or is a block variable / loop counter. ta.sma runs over whole columns, so its inputs must be known before the bar is evaluated"
+  ]
+ ],
+ [
+  "var x = 0\nx := x + 1\nplot(ta.sma(x + 1, 3))",
+  [
+   "3:13 argument \"source\" of ta.sma depends on a variable that is declared var, assigned with :=, or is a block variable / loop counter. ta.sma runs over whole columns, so its inputs must be known before the bar is evaluated"
+  ]
+ ],
+ [
+  "x = 0\nfor k = 1 to 3\n    x := ta.sma(close, k)\nplot(x)",
+  [
+   "3:24 argument \"length\" of ta.sma must be a literal or an input, not a series value",
+   "3:10 cannot assign series float to int \"x\" (declare it float: e.g. x = 0.0)"
+  ]
+ ],
+ [
+  "[a, b] = ta.sma(close, 3)\nplot(a)",
+  [
+   "1:10 only calls that return several values can be destructured"
+  ]
+ ],
+ [
+  "[a, b] = ta.macd(close, 12, 26, 9)\nplot(a)",
+  [
+   "1:1 this call returns 3 values, 2 names given"
+  ]
+ ],
+ [
+  "a = ta.macd(close, 12, 26, 9)\nplot(a)",
+  [
+   "1:5 this call returns 3 values; destructure them: [a, b, ...] = ..."
+  ]
+ ],
+ [
+  "plot(1 < 2 < 3)",
+  [
+   "1:12 comparisons do not chain; combine them with 'and'"
+  ]
+ ],
+ [
+  "plot(close ? 1 : 2)",
+  [
+   "1:6 the condition of ?: must be bool, got series float"
+  ]
+ ],
+ [
+  "plot(close > open ? 1 : \"a\")",
+  [
+   "1:6 the branches of ?: have different types: int and string"
+  ]
+ ],
+ [
+  "plot(\"a\" + 1)",
+  [
+   "1:6 \"+\" needs numbers, got string and int"
+  ]
+ ],
+ [
+  "plot(not close)",
+  [
+   "1:6 \"not\" needs a bool, got series float"
+  ]
+ ],
+ [
+  "x = [1, 2]\nplot(close)",
+  [
+   "1:5 array values are only allowed as options=[...] of input.string"
+  ]
+ ],
+ [
+  "hline(close)",
+  [
+   "1:7 argument \"price\" of hline must be a literal or an input, not a series value"
+  ]
+ ],
+ [
+  "hline(50, linestyle=1)",
+  [
+   "1:21 argument \"linestyle\" of hline must be one of hline.style_*"
+  ]
+ ],
+ [
+  "p = plot(close)\nfill(p, p)",
+  [
+   "2:1 fill needs two different plots"
+  ]
+ ],
+ [
+  "fill(1, 2)",
+  [
+   "1:6 argument \"plot1\" of fill must be a plot handle: p = plot(...)",
+   "1:9 argument \"plot2\" of fill must be a plot handle: p = plot(...)"
+  ]
+ ],
+ [
+  "plotshape(close)",
+  [
+   "1:11 plotshape marks bars where a bool is true; for a number use location=location.absolute"
+  ]
+ ],
+ [
+  "plotshape(close > open, location=location.absolute)",
+  [
+   "1:11 location.absolute needs a number (the price to mark), not a bool"
+  ]
+ ],
+ [
+  "plotshape(close > open, style=1)",
+  [
+   "1:31 argument \"style\" of plotshape must be one of shape.*"
+  ]
+ ],
+ [
+  "indicator(\"a\")\nindicator(\"b\")\nplot(close)",
+  [
+   "2:1 indicator() may be called only once"
+  ]
+ ],
+ [
+  "if true\n    indicator(\"a\")\nplot(close)",
+  [
+   "2:5 indicator() is only allowed as a statement at the top level of the script"
+  ]
+ ],
+ [
+  "x = close\n    y = 2\nplot(x)",
+  [
+   "2:1 unexpected indent"
+  ]
+ ],
+ [
+  "plot(close, color=color.nosuch)",
+  [
+   "1:25 unknown name \"color.nosuch\""
+  ]
+ ],
+ [
+  "c = close > open ? color.red : color.green\nplot(close, color=c)",
+  [
+   "2:19 argument \"color\" of plot must be a literal or an input, not a series value",
+   "2:19 a color here must be a constant (color.red, #rrggbb, color.new(...)) or an input.color variable"
+  ]
+ ],
+ [
+  "x = true\nx += 1\nplot(close)",
+  [
+   "2:1 \"+=\" needs numbers, got series bool and int"
+  ]
+ ],
+ [
+  "x = 1\nx := 1.5\nplot(x)",
+  [
+   "2:6 cannot assign float to int \"x\" (declare it float: e.g. x = 0.0)"
+  ]
+ ],
+ [
+  "var float x = 0\nx := true\nplot(x)",
+  [
+   "2:6 cannot assign bool to float \"x\""
+  ]
+ ],
+ [
+  "int x = 1.5\nplot(close)",
+  [
+   "1:9 cannot assign float to int \"x\""
+  ]
+ ],
+ [
+  "bool x = 1\nplot(close)",
+  [
+   "1:10 cannot assign int to bool \"x\""
+  ]
+ ],
+ [
+  "plot(math.sin)",
+  [
+   "1:6 \"math.sin\" is a function; call it: math.sin(...)"
+  ]
+ ],
+ [
+  "plot(ta)",
+  [
+   "1:6 \"ta\" is a namespace; use ta.<name>"
+  ]
+ ],
+ [
+  "x = math.pi()\nplot(close)",
+  [
+   "1:5 unknown function \"math.pi\""
+  ]
+ ],
+ [
+  "plot(volume.x)",
+  [
+   "1:6 only namespace names can be followed by '.'"
+  ]
+ ],
+ [
+  "x = 1\nplot(x.y)",
+  [
+   "2:6 only namespace names can be followed by '.'"
+  ]
+ ],
+ [
+  "",
+  [
+   "1:1 the script draws nothing: add plot(...)"
+  ]
+ ],
+ [
+  "// nothing but a comment",
+  [
+   "1:1 the script draws nothing: add plot(...)"
+  ]
+ ],
+ [
+  "x = 1",
+  [
+   "1:1 the script draws nothing: add plot(...)"
+  ]
+ ],
+ [
+  "plot(close, linewidth=0)",
+  [
+   "1:23 argument \"linewidth\" of plot must be between 1 and 8, got 0"
+  ]
+ ],
+ [
+  "plot(close, style=plot.style_nosuch)",
+  [
+   "1:24 unknown name \"plot.style_nosuch\""
+  ]
+ ],
+ [
+  "plot(close, style=1)",
+  [
+   "1:19 argument \"style\" of plot must be one of plot.style_*"
+  ]
+ ],
+ [
+  "plot(close, offset=100000)",
+  [
+   "1:20 argument \"offset\" of plot must be between -5000 and 5000, got 100000"
+  ]
+ ],
+ [
+  "plot(close, title=close)",
+  [
+   "1:19 argument \"title\" of plot must be a string, got series float"
+  ]
+ ],
+ [
+  "x = 1\nplot(x[1])",
+  [
+   "2:6 only a series can be indexed with [ ], this is int"
+  ]
+ ],
+ [
+  "plot(close, close=1)",
+  [
+   "1:13 plot has no parameter \"close\" (parameters: series, title, color, linewidth, style, offset, color_down)"
+  ]
+ ],
+ [
+  "plot(close, title=\"a\", title=\"b\")",
+  [
+   "1:24 parameter \"title\" is given twice"
+  ]
+ ],
+ [
+  "plot(close, title=\"a\", 1)",
+  [
+   "1:24 positional arguments must come before named ones"
+  ]
+ ],
+ [
+  "plot(ta.rsi(close, length=200000))",
+  [
+   "1:27 argument \"length\" of ta.rsi must be between 1 and 5000, got 200000"
+  ]
+ ],
+ [
+  "a = 1\nb = 2 +\nc = (3\nplot(close)",
+  [
+   "4:12 unclosed bracket",
+   "2:8 expected an expression, found end of line",
+   "4:1 expected \")\", found \"plot\""
+  ]
+ ],
+ [
+  "import x\nplot(close)",
+  [
+   "1:1 'import' is not supported"
+  ]
+ ],
+ [
+  "plot(close)\nplot(close,",
+  [
+   "2:12 unclosed bracket",
+   "2:12 expected an expression, found end of line"
+  ]
+ ]
+]

@@ -1,0 +1,22 @@
+{
+  "name": "@alphacharts/example-svelte",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "dependencies": {
+    "@alphacharts/core": "workspace:*",
+    "@alphacharts/svelte": "workspace:*",
+    "svelte": "5.57.2"
+  },
+  "devDependencies": {
+    "@alphacharts/example-shared": "workspace:*",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "svelte-check": "4.7.6",
+    "typescript": "5.9.3",
+    "vite": "8.3.1"
+  }
+}

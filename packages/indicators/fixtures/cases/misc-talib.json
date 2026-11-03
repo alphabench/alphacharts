@@ -1,0 +1,871 @@
+[
+{
+"id": "ad",
+"study": "ad",
+"inputs": {},
+"talib": {
+"fn": "AD",
+"args": {},
+"map": [
+"ad"
+]
+}
+},
+{
+"id": "adosc",
+"study": "adosc",
+"inputs": {},
+"talib": {
+"fn": "ADOSC",
+"args": {
+"fastperiod": 3,
+"slowperiod": 10
+},
+"map": [
+"adosc"
+]
+}
+},
+{
+"id": "adosc2",
+"study": "adosc",
+"inputs": {
+"fast": 5,
+"slow": 20
+},
+"talib": {
+"fn": "ADOSC",
+"args": {
+"fastperiod": 5,
+"slowperiod": 20
+},
+"map": [
+"adosc"
+]
+}
+},
+{
+"id": "obv",
+"study": "obv",
+"inputs": {},
+"talib": {
+"fn": "OBV",
+"args": {},
+"map": [
+"obv"
+],
+"inputs": {
+"price": "close"
+}
+}
+},
+{
+"id": "atr14",
+"study": "atr",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "ATR",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"atr"
+]
+}
+},
+{
+"id": "natr14",
+"study": "natr",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "NATR",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"natr"
+]
+}
+},
+{
+"id": "atr5",
+"study": "atr",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "ATR",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"atr"
+]
+}
+},
+{
+"id": "natr5",
+"study": "natr",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "NATR",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"natr"
+]
+}
+},
+{
+"id": "trange",
+"study": "trange",
+"inputs": {},
+"talib": {
+"fn": "TRANGE",
+"args": {},
+"map": [
+"trange"
+]
+}
+},
+{
+"id": "avgprice",
+"study": "avgprice",
+"inputs": {},
+"talib": {
+"fn": "AVGPRICE",
+"args": {},
+"map": [
+"avgprice"
+]
+}
+},
+{
+"id": "medprice",
+"study": "medprice",
+"inputs": {},
+"talib": {
+"fn": "MEDPRICE",
+"args": {},
+"map": [
+"medprice"
+]
+}
+},
+{
+"id": "typprice",
+"study": "typprice",
+"inputs": {},
+"talib": {
+"fn": "TYPPRICE",
+"args": {},
+"map": [
+"typprice"
+]
+}
+},
+{
+"id": "wclprice",
+"study": "wclprice",
+"inputs": {},
+"talib": {
+"fn": "WCLPRICE",
+"args": {},
+"map": [
+"wclprice"
+]
+}
+},
+{
+"id": "linearreg14",
+"study": "linearreg",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "LINEARREG",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"linearreg"
+]
+}
+},
+{
+"id": "slope14",
+"study": "linearreg-slope",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "LINEARREG_SLOPE",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"linearreg-slope"
+]
+}
+},
+{
+"id": "icpt14",
+"study": "linearreg-intercept",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "LINEARREG_INTERCEPT",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"linearreg-intercept"
+]
+}
+},
+{
+"id": "angle14",
+"study": "linearreg-angle",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "LINEARREG_ANGLE",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"linearreg-angle"
+]
+},
+"abs": 1e-09
+},
+{
+"id": "tsf14",
+"study": "tsf",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "TSF",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"tsf"
+]
+}
+},
+{
+"id": "linearreg5",
+"study": "linearreg",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "LINEARREG",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"linearreg"
+]
+}
+},
+{
+"id": "slope5",
+"study": "linearreg-slope",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "LINEARREG_SLOPE",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"linearreg-slope"
+]
+},
+"abs": 1e-09
+},
+{
+"id": "icpt5",
+"study": "linearreg-intercept",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "LINEARREG_INTERCEPT",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"linearreg-intercept"
+]
+}
+},
+{
+"id": "angle5",
+"study": "linearreg-angle",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "LINEARREG_ANGLE",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"linearreg-angle"
+]
+},
+"abs": 1e-09
+},
+{
+"id": "tsf5",
+"study": "tsf",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "TSF",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"tsf"
+]
+}
+},
+{
+"id": "stddev5",
+"study": "stddev",
+"inputs": {
+"length": 5,
+"nbdev": 1
+},
+"talib": {
+"fn": "STDDEV",
+"args": {
+"timeperiod": 5,
+"nbdev": 1
+},
+"map": [
+"stddev"
+]
+}
+},
+{
+"id": "stddev20",
+"study": "stddev",
+"inputs": {
+"length": 20,
+"nbdev": 2
+},
+"talib": {
+"fn": "STDDEV",
+"args": {
+"timeperiod": 20,
+"nbdev": 2
+},
+"map": [
+"stddev"
+]
+}
+},
+{
+"id": "var5",
+"study": "var",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "VAR",
+"args": {
+"timeperiod": 5,
+"nbdev": 1
+},
+"map": [
+"var"
+]
+}
+},
+{
+"id": "var20",
+"study": "var",
+"inputs": {
+"length": 20
+},
+"talib": {
+"fn": "VAR",
+"args": {
+"timeperiod": 20,
+"nbdev": 1
+},
+"map": [
+"var"
+]
+}
+},
+{
+"id": "correl30",
+"study": "correl",
+"inputs": {
+"length": 30,
+"source": "high",
+"source2": "low"
+},
+"talib": {
+"fn": "CORREL",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"correl"
+],
+"inputs": {
+"price0": "high",
+"price1": "low"
+}
+}
+},
+{
+"id": "correlv",
+"study": "correl",
+"inputs": {
+"length": 10,
+"source": "close",
+"source2": "volume"
+},
+"talib": {
+"fn": "CORREL",
+"args": {
+"timeperiod": 10
+},
+"map": [
+"correl"
+],
+"inputs": {
+"price0": "close",
+"price1": "volume"
+}
+}
+},
+{
+"id": "beta5",
+"study": "beta",
+"inputs": {
+"length": 5,
+"source": "high",
+"source2": "low"
+},
+"talib": {
+"fn": "BETA",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"beta"
+],
+"inputs": {
+"price0": "high",
+"price1": "low"
+}
+}
+},
+{
+"id": "beta20",
+"study": "beta",
+"inputs": {
+"length": 20,
+"source": "close",
+"source2": "volume"
+},
+"talib": {
+"fn": "BETA",
+"args": {
+"timeperiod": 20
+},
+"map": [
+"beta"
+],
+"inputs": {
+"price0": "close",
+"price1": "volume"
+}
+}
+},
+{
+"id": "acos",
+"study": "acos",
+"inputs": {},
+"talib": {
+"fn": "ACOS",
+"args": {},
+"map": [
+"acos"
+]
+}
+},
+{
+"id": "asin",
+"study": "asin",
+"inputs": {},
+"talib": {
+"fn": "ASIN",
+"args": {},
+"map": [
+"asin"
+]
+}
+},
+{
+"id": "atan",
+"study": "atan",
+"inputs": {},
+"talib": {
+"fn": "ATAN",
+"args": {},
+"map": [
+"atan"
+]
+}
+},
+{
+"id": "ceil",
+"study": "ceil",
+"inputs": {},
+"talib": {
+"fn": "CEIL",
+"args": {},
+"map": [
+"ceil"
+]
+}
+},
+{
+"id": "cos",
+"study": "cos",
+"inputs": {},
+"talib": {
+"fn": "COS",
+"args": {},
+"map": [
+"cos"
+]
+}
+},
+{
+"id": "cosh",
+"study": "cosh",
+"inputs": {},
+"talib": {
+"fn": "COSH",
+"args": {},
+"map": [
+"cosh"
+]
+}
+},
+{
+"id": "exp",
+"study": "exp",
+"inputs": {},
+"talib": {
+"fn": "EXP",
+"args": {},
+"map": [
+"exp"
+]
+}
+},
+{
+"id": "floor",
+"study": "floor",
+"inputs": {},
+"talib": {
+"fn": "FLOOR",
+"args": {},
+"map": [
+"floor"
+]
+}
+},
+{
+"id": "ln",
+"study": "ln",
+"inputs": {},
+"talib": {
+"fn": "LN",
+"args": {},
+"map": [
+"ln"
+]
+}
+},
+{
+"id": "log10",
+"study": "log10",
+"inputs": {},
+"talib": {
+"fn": "LOG10",
+"args": {},
+"map": [
+"log10"
+]
+}
+},
+{
+"id": "sin",
+"study": "sin",
+"inputs": {},
+"talib": {
+"fn": "SIN",
+"args": {},
+"map": [
+"sin"
+]
+}
+},
+{
+"id": "sinh",
+"study": "sinh",
+"inputs": {},
+"talib": {
+"fn": "SINH",
+"args": {},
+"map": [
+"sinh"
+]
+}
+},
+{
+"id": "sqrt",
+"study": "sqrt",
+"inputs": {},
+"talib": {
+"fn": "SQRT",
+"args": {},
+"map": [
+"sqrt"
+]
+}
+},
+{
+"id": "tan",
+"study": "tan",
+"inputs": {},
+"talib": {
+"fn": "TAN",
+"args": {},
+"map": [
+"tan"
+]
+}
+},
+{
+"id": "tanh",
+"study": "tanh",
+"inputs": {},
+"talib": {
+"fn": "TANH",
+"args": {},
+"map": [
+"tanh"
+]
+}
+},
+{
+"id": "add",
+"study": "add",
+"inputs": {},
+"talib": {
+"fn": "ADD",
+"args": {},
+"map": [
+"add"
+],
+"inputs": {
+"price0": "high",
+"price1": "low"
+}
+}
+},
+{
+"id": "sub",
+"study": "sub",
+"inputs": {},
+"talib": {
+"fn": "SUB",
+"args": {},
+"map": [
+"sub"
+],
+"inputs": {
+"price0": "high",
+"price1": "low"
+}
+}
+},
+{
+"id": "mult",
+"study": "mult",
+"inputs": {},
+"talib": {
+"fn": "MULT",
+"args": {},
+"map": [
+"mult"
+],
+"inputs": {
+"price0": "high",
+"price1": "low"
+}
+}
+},
+{
+"id": "div",
+"study": "div",
+"inputs": {},
+"talib": {
+"fn": "DIV",
+"args": {},
+"map": [
+"div"
+],
+"inputs": {
+"price0": "high",
+"price1": "low"
+}
+}
+},
+{
+"id": "max30",
+"study": "max",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "MAX",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"max"
+]
+}
+},
+{
+"id": "min30",
+"study": "min",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "MIN",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"min"
+]
+}
+},
+{
+"id": "sum30",
+"study": "sum",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "SUM",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"sum"
+]
+}
+},
+{
+"id": "maxindex",
+"study": "maxindex",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "MAXINDEX",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"maxindex"
+],
+"int": true,
+"blank_until": 29
+}
+},
+{
+"id": "minindex",
+"study": "minindex",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "MININDEX",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"minindex"
+],
+"int": true,
+"blank_until": 29
+}
+},
+{
+"id": "minmax",
+"study": "minmax",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "MINMAX",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"min",
+"max"
+]
+}
+},
+{
+"id": "minmaxindex",
+"study": "minmaxindex",
+"inputs": {
+"length": 30
+},
+"talib": {
+"fn": "MINMAXINDEX",
+"args": {
+"timeperiod": 30
+},
+"map": [
+"minidx",
+"maxidx"
+],
+"int": true,
+"blank_until": 29
+}
+}
+]

@@ -1,0 +1,865 @@
+[
+{
+"id": "rsi14",
+"study": "rsi",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "RSI",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"rsi"
+]
+}
+},
+{
+"id": "rsi5",
+"study": "rsi",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "RSI",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"rsi"
+]
+}
+},
+{
+"id": "cmo9",
+"study": "cmo",
+"inputs": {
+"length": 9,
+"method": "wilder"
+},
+"talib": {
+"fn": "CMO",
+"args": {
+"timeperiod": 9
+},
+"map": [
+"cmo"
+]
+}
+},
+{
+"id": "cmo14",
+"study": "cmo",
+"inputs": {
+"length": 14,
+"method": "wilder"
+},
+"talib": {
+"fn": "CMO",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"cmo"
+]
+}
+},
+{
+"id": "mom10",
+"study": "mom",
+"inputs": {
+"length": 10
+},
+"talib": {
+"fn": "MOM",
+"args": {
+"timeperiod": 10
+},
+"map": [
+"mom"
+]
+}
+},
+{
+"id": "roc9",
+"study": "roc",
+"inputs": {
+"length": 9
+},
+"talib": {
+"fn": "ROC",
+"args": {
+"timeperiod": 9
+},
+"map": [
+"roc"
+]
+}
+},
+{
+"id": "rocp9",
+"study": "rocp",
+"inputs": {
+"length": 9
+},
+"talib": {
+"fn": "ROCP",
+"args": {
+"timeperiod": 9
+},
+"map": [
+"rocp"
+]
+}
+},
+{
+"id": "rocr9",
+"study": "rocr",
+"inputs": {
+"length": 9
+},
+"talib": {
+"fn": "ROCR",
+"args": {
+"timeperiod": 9
+},
+"map": [
+"rocr"
+]
+}
+},
+{
+"id": "rocr1009",
+"study": "rocr100",
+"inputs": {
+"length": 9
+},
+"talib": {
+"fn": "ROCR100",
+"args": {
+"timeperiod": 9
+},
+"map": [
+"rocr100"
+]
+}
+},
+{
+"id": "trix18",
+"study": "trix",
+"inputs": {
+"length": 18
+},
+"talib": {
+"fn": "TRIX",
+"args": {
+"timeperiod": 18
+},
+"map": [
+"trix"
+]
+}
+},
+{
+"id": "trix5",
+"study": "trix",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "TRIX",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"trix"
+]
+}
+},
+{
+"id": "apo_sma",
+"study": "apo",
+"inputs": {
+"fast": 12,
+"slow": 26,
+"maType": "sma"
+},
+"talib": {
+"fn": "APO",
+"args": {
+"fastperiod": 12,
+"slowperiod": 26,
+"matype": 0
+},
+"map": [
+"apo"
+]
+}
+},
+{
+"id": "ppo_sma",
+"study": "ppo",
+"inputs": {
+"fast": 12,
+"slow": 26,
+"maType": "sma"
+},
+"talib": {
+"fn": "PPO",
+"args": {
+"fastperiod": 12,
+"slowperiod": 26,
+"matype": 0
+},
+"map": [
+"ppo"
+]
+}
+},
+{
+"id": "apo_ema",
+"study": "apo",
+"inputs": {
+"fast": 12,
+"slow": 26,
+"maType": "ema"
+},
+"talib": {
+"fn": "APO",
+"args": {
+"fastperiod": 12,
+"slowperiod": 26,
+"matype": 1
+},
+"map": [
+"apo"
+]
+}
+},
+{
+"id": "ppo_ema",
+"study": "ppo",
+"inputs": {
+"fast": 12,
+"slow": 26,
+"maType": "ema"
+},
+"talib": {
+"fn": "PPO",
+"args": {
+"fastperiod": 12,
+"slowperiod": 26,
+"matype": 1
+},
+"map": [
+"ppo"
+]
+}
+},
+{
+"id": "apo_wma",
+"study": "apo",
+"inputs": {
+"fast": 12,
+"slow": 26,
+"maType": "wma"
+},
+"talib": {
+"fn": "APO",
+"args": {
+"fastperiod": 12,
+"slowperiod": 26,
+"matype": 2
+},
+"map": [
+"apo"
+]
+}
+},
+{
+"id": "ppo_wma",
+"study": "ppo",
+"inputs": {
+"fast": 12,
+"slow": 26,
+"maType": "wma"
+},
+"talib": {
+"fn": "PPO",
+"args": {
+"fastperiod": 12,
+"slowperiod": 26,
+"matype": 2
+},
+"map": [
+"ppo"
+]
+}
+},
+{
+"id": "macd",
+"study": "macd",
+"inputs": {},
+"talib": {
+"fn": "MACD",
+"args": {
+"fastperiod": 12,
+"slowperiod": 26,
+"signalperiod": 9
+},
+"map": [
+"macd",
+"signal",
+"histogram"
+]
+},
+"lead": true
+},
+{
+"id": "macd5",
+"study": "macd",
+"inputs": {
+"fast": 5,
+"slow": 13,
+"signal": 4
+},
+"talib": {
+"fn": "MACD",
+"args": {
+"fastperiod": 5,
+"slowperiod": 13,
+"signalperiod": 4
+},
+"map": [
+"macd",
+"signal",
+"histogram"
+]
+},
+"lead": true
+},
+{
+"id": "macdfix",
+"study": "macdfix",
+"inputs": {},
+"talib": {
+"fn": "MACDFIX",
+"args": {
+"signalperiod": 9
+},
+"map": [
+"macd",
+"signal",
+"histogram"
+]
+},
+"lead": true
+},
+{
+"id": "macdext",
+"study": "macdext",
+"inputs": {
+"fastType": "sma",
+"slowType": "ema",
+"signalType": "wma"
+},
+"talib": {
+"fn": "MACDEXT",
+"args": {
+"fastperiod": 12,
+"fastmatype": 0,
+"slowperiod": 26,
+"slowmatype": 1,
+"signalperiod": 9,
+"signalmatype": 2
+},
+"map": [
+"macd",
+"signal",
+"histogram"
+]
+},
+"lead": true
+},
+{
+"id": "macdext_ema",
+"study": "macdext",
+"inputs": {},
+"talib": {
+"fn": "MACDEXT",
+"args": {
+"fastperiod": 12,
+"fastmatype": 1,
+"slowperiod": 26,
+"slowmatype": 1,
+"signalperiod": 9,
+"signalmatype": 1
+},
+"map": [
+"macd",
+"signal",
+"histogram"
+]
+},
+"lead": true
+},
+{
+"id": "stoch533",
+"study": "stoch",
+"inputs": {
+"kLength": 5,
+"kSmooth": 3,
+"dLength": 3
+},
+"talib": {
+"fn": "STOCH",
+"args": {
+"fastk_period": 5,
+"slowk_period": 3,
+"slowk_matype": 0,
+"slowd_period": 3,
+"slowd_matype": 0
+},
+"map": [
+"k",
+"d"
+]
+},
+"lead": true
+},
+{
+"id": "stoch1413",
+"study": "stoch",
+"inputs": {
+"kLength": 14,
+"kSmooth": 1,
+"dLength": 3
+},
+"talib": {
+"fn": "STOCH",
+"args": {
+"fastk_period": 14,
+"slowk_period": 1,
+"slowk_matype": 0,
+"slowd_period": 3,
+"slowd_matype": 0
+},
+"map": [
+"k",
+"d"
+]
+},
+"lead": true
+},
+{
+"id": "stochf",
+"study": "stochf",
+"inputs": {},
+"talib": {
+"fn": "STOCHF",
+"args": {
+"fastk_period": 5,
+"fastd_period": 3,
+"fastd_matype": 0
+},
+"map": [
+"k",
+"d"
+]
+},
+"lead": true
+},
+{
+"id": "stochf_ema",
+"study": "stochf",
+"inputs": {
+"dType": "ema"
+},
+"talib": {
+"fn": "STOCHF",
+"args": {
+"fastk_period": 5,
+"fastd_period": 3,
+"fastd_matype": 1
+},
+"map": [
+"k",
+"d"
+]
+},
+"lead": true
+},
+{
+"id": "stochrsi",
+"study": "stochrsi",
+"inputs": {
+"rsiLength": 14,
+"stochLength": 5,
+"kSmooth": 3
+},
+"talib": {
+"fn": "STOCHRSI",
+"args": {
+"timeperiod": 14,
+"fastk_period": 5,
+"fastd_period": 3,
+"fastd_matype": 0
+},
+"map": [
+"raw",
+"k"
+]
+},
+"lead": true
+},
+{
+"id": "willr14",
+"study": "willr",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "WILLR",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"willr"
+]
+}
+},
+{
+"id": "cci14",
+"study": "cci",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "CCI",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"cci"
+]
+}
+},
+{
+"id": "cci20",
+"study": "cci",
+"inputs": {
+"length": 20
+},
+"talib": {
+"fn": "CCI",
+"args": {
+"timeperiod": 20
+},
+"map": [
+"cci"
+]
+}
+},
+{
+"id": "bop",
+"study": "bop",
+"inputs": {},
+"talib": {
+"fn": "BOP",
+"args": {},
+"map": [
+"bop"
+]
+}
+},
+{
+"id": "mfi14",
+"study": "mfi",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "MFI",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"mfi"
+]
+}
+},
+{
+"id": "ultosc",
+"study": "ultosc",
+"inputs": {},
+"talib": {
+"fn": "ULTOSC",
+"args": {
+"timeperiod1": 7,
+"timeperiod2": 14,
+"timeperiod3": 28
+},
+"map": [
+"ultosc"
+]
+}
+},
+{
+"id": "aroon14",
+"study": "aroon",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "AROON",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"down",
+"up"
+]
+}
+},
+{
+"id": "aroonosc14",
+"study": "aroonosc",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "AROONOSC",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"aroonosc"
+]
+}
+},
+{
+"id": "adx14",
+"study": "adx",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "ADX",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"adx"
+]
+}
+},
+{
+"id": "pdi14",
+"study": "adx",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "PLUS_DI",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"plusDi"
+]
+}
+},
+{
+"id": "mdi14",
+"study": "adx",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "MINUS_DI",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"minusDi"
+]
+}
+},
+{
+"id": "adxr14",
+"study": "adxr",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "ADXR",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"adxr"
+]
+}
+},
+{
+"id": "dx14",
+"study": "dx",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "DX",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"dx"
+]
+}
+},
+{
+"id": "pdm14",
+"study": "plus-dm",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "PLUS_DM",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"plusdm"
+]
+}
+},
+{
+"id": "mdm14",
+"study": "minus-dm",
+"inputs": {
+"length": 14
+},
+"talib": {
+"fn": "MINUS_DM",
+"args": {
+"timeperiod": 14
+},
+"map": [
+"minusdm"
+]
+}
+},
+{
+"id": "adx5",
+"study": "adx",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "ADX",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"adx"
+]
+}
+},
+{
+"id": "pdi5",
+"study": "adx",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "PLUS_DI",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"plusDi"
+]
+}
+},
+{
+"id": "mdi5",
+"study": "adx",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "MINUS_DI",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"minusDi"
+]
+}
+},
+{
+"id": "adxr5",
+"study": "adxr",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "ADXR",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"adxr"
+]
+}
+},
+{
+"id": "dx5",
+"study": "dx",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "DX",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"dx"
+]
+}
+},
+{
+"id": "pdm5",
+"study": "plus-dm",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "PLUS_DM",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"plusdm"
+]
+}
+},
+{
+"id": "mdm5",
+"study": "minus-dm",
+"inputs": {
+"length": 5
+},
+"talib": {
+"fn": "MINUS_DM",
+"args": {
+"timeperiod": 5
+},
+"map": [
+"minusdm"
+]
+}
+}
+]

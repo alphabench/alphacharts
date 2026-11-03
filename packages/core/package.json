@@ -1,0 +1,68 @@
+{
+  "name": "@alphacharts/core",
+  "version": "0.1.0",
+  "description": "WebGL2 financial charting engine: candles, lines, histograms, panes, scales, sync, datafeed. No runtime dependencies.",
+  "keywords": [
+    "chart",
+    "charting",
+    "webgl",
+    "webgl2",
+    "candlestick",
+    "trading",
+    "financial"
+  ],
+  "license": "MIT",
+  "author": "Alphabench",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphabench/alphacharts.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/alphabench/alphacharts#readme",
+  "bugs": {
+    "url": "https://github.com/alphabench/alphacharts/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./internal": {
+        "types": "./dist/types/internal.d.ts",
+        "default": "./dist/internal.js"
+      }
+    }
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./internal": {
+      "development": "./src/internal.ts",
+      "types": "./dist/types/internal.d.ts",
+      "default": "./dist/internal.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
+  }
+}

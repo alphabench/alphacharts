@@ -1,0 +1,58 @@
+{
+  "name": "@alphacharts/script",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./editor": {
+      "development": "./src/editor/index.ts",
+      "types": "./dist/types/editor/index.d.ts",
+      "default": "./dist/editor.js"
+    },
+    "./worker": {
+      "development": "./src/sandbox-worker.ts",
+      "types": "./dist/types/sandbox-worker.d.ts",
+      "default": "./dist/sandbox-worker.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "typecheck:dist": "tsc -p tsconfig.dist.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "6.20.3",
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/language": "6.12.4",
+    "@codemirror/lint": "6.9.7",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.13",
+    "@lezer/highlight": "1.2.5"
+  },
+  "peerDependencies": {
+    "@alphacharts/core": "workspace:*",
+    "@alphacharts/indicators": "workspace:*"
+  },
+  "devDependencies": {
+    "@alphacharts/core": "workspace:*",
+    "@alphacharts/indicators": "workspace:*",
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
+  }
+}

@@ -1,0 +1,201 @@
+// Annotations: text, anchored text, note, anchored note, callout, comment,
+// price label, price note, signpost, flag mark, arrow, arrow marker, arrow
+// mark up, arrow mark down.
+//
+// "Anchored" text and notes are positioned on the pane (props.fx / props.fy,
+// fractions of its size) and stay put while the chart pans; every other tool
+// here is fixed to time + price.
+
+import type { Pt } from "../geometry.js";
+import { withAlpha } from "../shapes.js";
+import type { Drawing, Shape, ToolCtx, ToolDef } from "../types.js";
+import { A, finiteAnchors, head, line, poly, px, pxs, text, tool } from "./util.js";
+
+const BOX = { border: null, pad: 5 } as const;
+
+function content(d: Drawing, fallback: string): string {
+  return d.style.text || fallback;
+}
+
+function screenPoint(d: Drawing, c: ToolCtx): Pt {
+  const fx = d.props.fx, fy = d.props.fy;
+  if (typeof fx !== "number" || typeof fy !== "number" || !Number.isFinite(fx) || !Number.isFinite(fy)) throw new TypeError(`drawings: ${d.tool} "${d.id}" needs numeric props fx and fy`);
+  return { x: fx * c.W, y: fy * c.H };
+}
+
+export const textTool = tool({
+  id: "text", label: "Text", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { text: "Text" } }),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const p = px(c, A(d, 0));
+    return [text(p.x, p.y, content(d, "Text"), { align: "left", base: "middle", textColor: d.style.color })];
+  },
+});
+
+export const anchoredText = tool({
+  id: "anchoredText", label: "Anchored text", family: "annotations", gesture: "single", anchors: 0, screen: true,
+  defaults: () => ({ style: { text: "Text" }, props: { fx: 0.5, fy: 0.5 } }),
+  shapes(d, c) {
+    const p = screenPoint(d, c);
+    return [text(p.x, p.y, content(d, "Text"), { align: "left", base: "middle", textColor: d.style.color })];
+  },
+});
+
+function noteShapes(d: Drawing, p: Pt): Shape[] {
+  return [
+    line(p, { x: p.x + 14, y: p.y - 14 }, { width: 1 }),
+    { k: "ellipse", cx: p.x, cy: p.y, rx: 3, ry: 3, fill: d.style.color, width: 1 },
+    text(p.x + 14, p.y - 14, content(d, "Note"), { align: "left", base: "bottom", bg: withAlpha(d.style.color, 0.9), textColor: "#ffffff", ...BOX }),
+  ];
+}
+
+export const note = tool({
+  id: "note", label: "Note", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { text: "Note" } }),
+  validate: finiteAnchors,
+  shapes: (d, c) => noteShapes(d, px(c, A(d, 0))),
+});
+
+export const anchoredNote = tool({
+  id: "anchoredNote", label: "Anchored note", family: "annotations", gesture: "single", anchors: 0, screen: true,
+  defaults: () => ({ style: { text: "Note" }, props: { fx: 0.5, fy: 0.5 } }),
+  shapes: (d, c) => noteShapes(d, screenPoint(d, c)),
+});
+
+export const callout = tool({
+  id: "callout", label: "Callout", family: "annotations", gesture: "drag", anchors: 2,
+  defaults: () => ({ style: { text: "Callout" } }),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const [target, boxAt] = pxs(c, d) as [Pt, Pt];
+    return [
+      line(boxAt, target, { width: 1 }),
+      { k: "ellipse", cx: target.x, cy: target.y, rx: 3, ry: 3, fill: d.style.color, width: 1 },
+      text(boxAt.x, boxAt.y, content(d, "Callout"), { align: "center", base: "middle", bg: withAlpha(d.style.color, 0.9), textColor: "#ffffff", ...BOX }),
+    ];
+  },
+});
+
+export const comment = tool({
+  id: "comment", label: "Comment", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { text: "Comment" } }),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const p = px(c, A(d, 0));
+    return [
+      poly([p, { x: p.x - 6, y: p.y - 14 }, { x: p.x + 6, y: p.y - 14 }], { close: true, fill: withAlpha(d.style.color, 0.9), width: 0, hit: false }),
+      text(p.x, p.y - 14, content(d, "Comment"), { align: "center", base: "bottom", bg: withAlpha(d.style.color, 0.9), textColor: "#ffffff", ...BOX }),
+    ];
+  },
+});
+
+export const priceLabel = tool({
+  id: "priceLabel", label: "Price label", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({}),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const p = px(c, A(d, 0));
+    const label = `${d.style.text ? d.style.text + " " : ""}${c.fmt(A(d, 0).price)}`;
+    return [
+      poly([p, { x: p.x + 8, y: p.y - 9 }, { x: p.x + 8, y: p.y + 9 }], { close: true, fill: d.style.color, width: 0, hit: false }),
+      text(p.x + 8, p.y, label, { align: "left", base: "middle", bg: d.style.color, textColor: "#ffffff", ...BOX }),
+    ];
+  },
+});
+
+export const priceNote = tool({
+  id: "priceNote", label: "Price note", family: "annotations", gesture: "drag", anchors: 2,
+  defaults: () => ({}),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const a = px(c, A(d, 0)), b = px(c, A(d, 1));
+    const label = `${d.style.text ? d.style.text + " " : ""}${c.fmt(A(d, 0).price)}`;
+    return [
+      line(a, { x: b.x, y: a.y }, { dash: "dashed", width: 1 }),
+      line({ x: b.x, y: a.y }, b, { width: 1 }),
+      { k: "ellipse", cx: a.x, cy: a.y, rx: 3, ry: 3, fill: d.style.color, width: 1 },
+      text(b.x, b.y, label, { align: "center", base: "middle", bg: d.style.color, textColor: "#ffffff", ...BOX }),
+    ];
+  },
+});
+
+export const signpost = tool({
+  id: "signpost", label: "Signpost", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { text: "Sign" } }),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const p = px(c, A(d, 0));
+    const top = { x: p.x, y: p.y - 44 };
+    return [
+      line(p, top),
+      { k: "ellipse", cx: p.x, cy: p.y, rx: 3, ry: 3, fill: d.style.color, width: 1 },
+      text(top.x, top.y, content(d, "Sign"), { align: "left", base: "bottom", bg: d.style.color, textColor: "#ffffff", ...BOX }),
+    ];
+  },
+});
+
+export const flagMark = tool({
+  id: "flagMark", label: "Flag mark", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({}),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const p = px(c, A(d, 0));
+    return [
+      line(p, { x: p.x, y: p.y - 28 }),
+      poly([{ x: p.x, y: p.y - 28 }, { x: p.x + 16, y: p.y - 22 }, { x: p.x, y: p.y - 16 }], { close: true, fill: d.style.color }),
+    ];
+  },
+});
+
+export const arrow = tool({
+  id: "arrow", label: "Arrow", family: "annotations", gesture: "drag", anchors: 2,
+  defaults: () => ({}),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const [a, b] = pxs(c, d) as [Pt, Pt];
+    return [line(a, b), head(a, b, 6 + d.style.width * 2, d.style.color)];
+  },
+});
+
+export const arrowMarker = tool({
+  id: "arrowMarker", label: "Arrow marker", family: "annotations", gesture: "drag", anchors: 2,
+  defaults: () => ({ style: { fill: "#2962ff" } }),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const [a, b] = pxs(c, d) as [Pt, Pt];
+    const L = Math.hypot(b.x - a.x, b.y - a.y);
+    if (L === 0) return [line(a, b)];
+    const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L, nx = -uy, ny = ux;
+    const hl = Math.min(L * 0.45, 20), sw = 4, hw = 10;
+    const at = (along: number, across: number): Pt => ({ x: a.x + ux * along + nx * across, y: a.y + uy * along + ny * across });
+    return [poly([at(0, sw), at(L - hl, sw), at(L - hl, hw), at(L, 0), at(L - hl, -hw), at(L - hl, -sw), at(0, -sw)], { close: true, fill: d.style.fill ?? d.style.color })];
+  },
+});
+
+function markShape(d: Drawing, p: Pt, dirUp: boolean): Shape[] {
+  const s = dirUp ? 1 : -1; // tip is the anchor; the body extends away from the tip
+  const pts: Pt[] = [
+    p, { x: p.x - 9, y: p.y + s * 11 }, { x: p.x - 4, y: p.y + s * 11 }, { x: p.x - 4, y: p.y + s * 28 },
+    { x: p.x + 4, y: p.y + s * 28 }, { x: p.x + 4, y: p.y + s * 11 }, { x: p.x + 9, y: p.y + s * 11 },
+  ];
+  return [poly(pts, { close: true, fill: d.style.color, width: 1 })];
+}
+
+export const arrowMarkUp = tool({
+  id: "arrowMarkUp", label: "Arrow mark up", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { color: "#26a69a" } }),
+  validate: finiteAnchors,
+  shapes: (d, c) => markShape(d, px(c, A(d, 0)), true),
+});
+
+export const arrowMarkDown = tool({
+  id: "arrowMarkDown", label: "Arrow mark down", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { color: "#ef5350" } }),
+  validate: finiteAnchors,
+  shapes: (d, c) => markShape(d, px(c, A(d, 0)), false),
+});
+
+export const annotationTools: ToolDef[] = [
+  textTool, anchoredText, note, anchoredNote, callout, comment, priceLabel, priceNote, signpost, flagMark, arrow, arrowMarker, arrowMarkUp, arrowMarkDown,
+];

@@ -1,0 +1,87 @@
+{
+  "name": "@alphacharts/svelte",
+  "version": "0.1.0",
+  "description": "Svelte 5 bindings for AlphaCharts: chart, series, price line, dashboard and sync group components.",
+  "keywords": [
+    "svelte",
+    "chart",
+    "charting",
+    "candlestick",
+    "webgl"
+  ],
+  "license": "MIT",
+  "author": "Alphabench",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphabench/alphacharts.git",
+    "directory": "packages/svelte"
+  },
+  "homepage": "https://github.com/alphabench/alphacharts#readme",
+  "bugs": {
+    "url": "https://github.com/alphabench/alphacharts/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./plot": {
+        "types": "./dist/plot/index.d.ts",
+        "svelte": "./dist/plot/index.js",
+        "default": "./dist/plot/index.js"
+      }
+    }
+  },
+  "type": "module",
+  "sideEffects": false,
+  "svelte": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./plot": {
+      "development": "./src/plot/index.ts",
+      "types": "./dist/plot/index.d.ts",
+      "svelte": "./dist/plot/index.js",
+      "default": "./dist/plot/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "svelte-package --input src --output dist",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@alphacharts/core": "^0.1.0",
+    "svelte": ">=5",
+    "@alphacharts/plot": "^0.1.0"
+  },
+  "devDependencies": {
+    "@alphacharts/core": "workspace:*",
+    "@alphacharts/plot": "workspace:*",
+    "@sveltejs/package": "3.0.0",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "jsdom": "27.4.0",
+    "svelte": "5.57.2",
+    "svelte-check": "4.7.6",
+    "typescript": "5.9.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.2"
+  },
+  "peerDependenciesMeta": {
+    "@alphacharts/plot": {
+      "optional": true
+    }
+  }
+}

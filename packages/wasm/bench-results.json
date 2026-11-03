@@ -1,0 +1,350 @@
+{
+  "date": "2026-10-21",
+  "machine": {
+    "cpu": "Apple M4",
+    "arch": "arm64",
+    "platform": "darwin",
+    "release": "25.5.0",
+    "memoryGiB": 24
+  },
+  "loadAvgAtEnd": [
+    18.9,
+    18.5,
+    13.4
+  ],
+  "node": "v22.14.0",
+  "v8": "12.4.254.21-node.22",
+  "runs": 7,
+  "method": "median of runs after 2 warm-ups; fresh outputs each run; wasm time includes copy-in and copy-out",
+  "winThreshold": 1.05,
+  "wins": [
+    "sum p=20",
+    "sumState p=20",
+    "mean p=20",
+    "variance p=20",
+    "stdev p=20",
+    "variance p=100",
+    "highest p=3",
+    "highest p=8",
+    "highest p=14",
+    "highest p=200",
+    "lowest p=14",
+    "highestBars p=14",
+    "lowestBars p=200",
+    "linreg p=20",
+    "linreg p=100",
+    "lodRows k=3",
+    "lodRows k=6",
+    "volumeProfileSplit bins=100"
+  ],
+  "results": [
+    {
+      "kernel": "sum p=20",
+      "n": 1000000,
+      "jsMs": 6.86,
+      "wasmMs": 4.88,
+      "speedup": 1.41
+    },
+    {
+      "kernel": "sumState p=20",
+      "n": 1000000,
+      "jsMs": 9.2,
+      "wasmMs": 5.19,
+      "speedup": 1.77
+    },
+    {
+      "kernel": "mean p=20",
+      "n": 1000000,
+      "jsMs": 5.97,
+      "wasmMs": 4.63,
+      "speedup": 1.29
+    },
+    {
+      "kernel": "variance p=20",
+      "n": 1000000,
+      "jsMs": 35.22,
+      "wasmMs": 8.96,
+      "speedup": 3.93
+    },
+    {
+      "kernel": "stdev p=20",
+      "n": 1000000,
+      "jsMs": 38.19,
+      "wasmMs": 9.82,
+      "speedup": 3.89
+    },
+    {
+      "kernel": "variance p=100",
+      "n": 1000000,
+      "jsMs": 234.95,
+      "wasmMs": 48.13,
+      "speedup": 4.88
+    },
+    {
+      "kernel": "ema p=20",
+      "n": 1000000,
+      "jsMs": 4.73,
+      "wasmMs": 5.75,
+      "speedup": 0.82
+    },
+    {
+      "kernel": "rma p=14",
+      "n": 1000000,
+      "jsMs": 4.44,
+      "wasmMs": 5.8,
+      "speedup": 0.77
+    },
+    {
+      "kernel": "wma p=20",
+      "n": 1000000,
+      "jsMs": 3.81,
+      "wasmMs": 4.65,
+      "speedup": 0.82
+    },
+    {
+      "kernel": "highest p=3",
+      "n": 1000000,
+      "jsMs": 15.77,
+      "wasmMs": 2.54,
+      "speedup": 6.21
+    },
+    {
+      "kernel": "highest p=8",
+      "n": 1000000,
+      "jsMs": 24.94,
+      "wasmMs": 3.75,
+      "speedup": 6.65
+    },
+    {
+      "kernel": "highest p=14",
+      "n": 1000000,
+      "jsMs": 27.86,
+      "wasmMs": 4.64,
+      "speedup": 6
+    },
+    {
+      "kernel": "highest p=200",
+      "n": 1000000,
+      "jsMs": 19.01,
+      "wasmMs": 7.82,
+      "speedup": 2.43
+    },
+    {
+      "kernel": "lowest p=14",
+      "n": 1000000,
+      "jsMs": 23.26,
+      "wasmMs": 4.24,
+      "speedup": 5.49
+    },
+    {
+      "kernel": "highestBars p=14",
+      "n": 1000000,
+      "jsMs": 22.31,
+      "wasmMs": 7.06,
+      "speedup": 3.16
+    },
+    {
+      "kernel": "lowestBars p=200",
+      "n": 1000000,
+      "jsMs": 17.91,
+      "wasmMs": 8.62,
+      "speedup": 2.08
+    },
+    {
+      "kernel": "linreg p=20",
+      "n": 1000000,
+      "jsMs": 43.52,
+      "wasmMs": 12.78,
+      "speedup": 3.41
+    },
+    {
+      "kernel": "linreg p=100",
+      "n": 1000000,
+      "jsMs": 155.4,
+      "wasmMs": 35.9,
+      "speedup": 4.33
+    },
+    {
+      "kernel": "lodRows k=3",
+      "n": 1000000,
+      "jsMs": 18.59,
+      "wasmMs": 2.3,
+      "speedup": 8.08
+    },
+    {
+      "kernel": "lodRows k=6",
+      "n": 1000000,
+      "jsMs": 12.93,
+      "wasmMs": 1.68,
+      "speedup": 7.7
+    },
+    {
+      "kernel": "volumeProfile bins=100",
+      "n": 1000000,
+      "jsMs": 6.67,
+      "wasmMs": 6.85,
+      "speedup": 0.97
+    },
+    {
+      "kernel": "volumeProfileSplit bins=100",
+      "n": 1000000,
+      "jsMs": 10.49,
+      "wasmMs": 5.06,
+      "speedup": 2.07
+    },
+    {
+      "kernel": "sum p=20",
+      "n": 10000000,
+      "jsMs": 57.41,
+      "wasmMs": 31.58,
+      "speedup": 1.82
+    },
+    {
+      "kernel": "sumState p=20",
+      "n": 10000000,
+      "jsMs": 73.94,
+      "wasmMs": 34.62,
+      "speedup": 2.14
+    },
+    {
+      "kernel": "mean p=20",
+      "n": 10000000,
+      "jsMs": 40.57,
+      "wasmMs": 33.09,
+      "speedup": 1.23
+    },
+    {
+      "kernel": "variance p=20",
+      "n": 10000000,
+      "jsMs": 298.21,
+      "wasmMs": 69.95,
+      "speedup": 4.26
+    },
+    {
+      "kernel": "stdev p=20",
+      "n": 10000000,
+      "jsMs": 346.23,
+      "wasmMs": 96.25,
+      "speedup": 3.6
+    },
+    {
+      "kernel": "variance p=100",
+      "n": 10000000,
+      "jsMs": 2005.17,
+      "wasmMs": 393.68,
+      "speedup": 5.09
+    },
+    {
+      "kernel": "ema p=20",
+      "n": 10000000,
+      "jsMs": 45.77,
+      "wasmMs": 51.96,
+      "speedup": 0.88
+    },
+    {
+      "kernel": "rma p=14",
+      "n": 10000000,
+      "jsMs": 46.69,
+      "wasmMs": 47.35,
+      "speedup": 0.99
+    },
+    {
+      "kernel": "wma p=20",
+      "n": 10000000,
+      "jsMs": 37.52,
+      "wasmMs": 40.77,
+      "speedup": 0.92
+    },
+    {
+      "kernel": "highest p=3",
+      "n": 10000000,
+      "jsMs": 139.7,
+      "wasmMs": 18.28,
+      "speedup": 7.64
+    },
+    {
+      "kernel": "highest p=8",
+      "n": 10000000,
+      "jsMs": 243.06,
+      "wasmMs": 26.04,
+      "speedup": 9.33
+    },
+    {
+      "kernel": "highest p=14",
+      "n": 10000000,
+      "jsMs": 266.58,
+      "wasmMs": 61.9,
+      "speedup": 4.31
+    },
+    {
+      "kernel": "highest p=200",
+      "n": 10000000,
+      "jsMs": 229.35,
+      "wasmMs": 92.94,
+      "speedup": 2.47
+    },
+    {
+      "kernel": "lowest p=14",
+      "n": 10000000,
+      "jsMs": 558.7,
+      "wasmMs": 48.63,
+      "speedup": 11.49
+    },
+    {
+      "kernel": "highestBars p=14",
+      "n": 10000000,
+      "jsMs": 313.74,
+      "wasmMs": 100.61,
+      "speedup": 3.12
+    },
+    {
+      "kernel": "lowestBars p=200",
+      "n": 10000000,
+      "jsMs": 202.06,
+      "wasmMs": 95.25,
+      "speedup": 2.12
+    },
+    {
+      "kernel": "linreg p=20",
+      "n": 10000000,
+      "jsMs": 616.78,
+      "wasmMs": 223.75,
+      "speedup": 2.76
+    },
+    {
+      "kernel": "linreg p=100",
+      "n": 10000000,
+      "jsMs": 1685.2,
+      "wasmMs": 360.73,
+      "speedup": 4.67
+    },
+    {
+      "kernel": "lodRows k=3",
+      "n": 10000000,
+      "jsMs": 354.01,
+      "wasmMs": 63.14,
+      "speedup": 5.61
+    },
+    {
+      "kernel": "lodRows k=6",
+      "n": 10000000,
+      "jsMs": 137.72,
+      "wasmMs": 40.15,
+      "speedup": 3.43
+    },
+    {
+      "kernel": "volumeProfile bins=100",
+      "n": 10000000,
+      "jsMs": 93.44,
+      "wasmMs": 66.96,
+      "speedup": 1.4
+    },
+    {
+      "kernel": "volumeProfileSplit bins=100",
+      "n": 10000000,
+      "jsMs": 274.44,
+      "wasmMs": 99.07,
+      "speedup": 2.77
+    }
+  ]
+}

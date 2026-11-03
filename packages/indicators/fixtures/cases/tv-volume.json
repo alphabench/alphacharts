@@ -1,0 +1,4 @@
+[
+ {"id":"volume-ma20","study":"volume","inputs":{"maLength":20},"talib":{"fn":"SMA","args":{"timeperiod":20},"inputs":{"price":"volume"},"map":["ma"]}},
+ {"id":"volume-osc-5-10","study":"volume-osc","inputs":{"short":5,"long":10},"talib":{"fn":"PPO","args":{"fastperiod":5,"slowperiod":10,"matype":1},"inputs":{"price":"volume"},"map":["osc"]}}
+]

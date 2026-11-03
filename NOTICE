@@ -1,0 +1,11 @@
+AlphaCharts
+Copyright (c) 2026 Alphabench. MIT licence (see LICENSE).
+
+packages/indicators/fixtures/talib contains reference outputs generated with TA-Lib
+(https://ta-lib.org), which is distributed under the BSD licence:
+
+  Copyright (c) 1999-2024, Mario Fortier. All rights reserved.
+  Redistribution and use in source and binary forms, with or without modification, are permitted
+  provided that the conditions of the BSD licence are met (https://ta-lib.org/license/).
+
+The fixtures are test data and are not published to npm.

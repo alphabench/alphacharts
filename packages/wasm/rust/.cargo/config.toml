@@ -1,0 +1,12 @@
+# The kernels use 128-bit SIMD only where lanes are independent (see lib.rs).
+# The JS loader probes WebAssembly.validate() for SIMD before instantiating.
+[build]
+target = "wasm32-unknown-unknown"
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+  "-C", "target-feature=+simd128",
+  # Kernels use no stack to speak of; a small stack keeps the module's initial memory at two pages.
+  "-C", "link-arg=-zstack-size=65536",
+  "-C", "link-arg=--export=__heap_base",
+]
