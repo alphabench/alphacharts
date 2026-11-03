@@ -11,6 +11,8 @@
     "dev": "pnpm -C apps/playground dev",
     "size": "node scripts/size.mjs",
     "bench": "pnpm -C bench bench",
+    "bench:compare": "pnpm -C bench compare",
+    "bench:compare-report": "node scripts/compare-report.mjs",
     "visual": "pnpm -C bench visual"
   },
   "devDependencies": {

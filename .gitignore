@@ -1,6 +1,8 @@
 node_modules/
 dist/
-bench/results/
+bench/results/*
+!bench/results/compare.json
+!bench/results/compare-shots/
 bench/test-results/
 bench/playwright-report/
 .svelte-kit/

@@ -153,15 +153,27 @@ importers:
 
   bench:
     devDependencies:
+      '@alphacharts/core':
+        specifier: workspace:*
+        version: link:../packages/core
       '@axe-core/playwright':
         specifier: 4.11.0
         version: 4.11.0(playwright-core@1.64.1)
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
+      echarts:
+        specifier: 6.1.0
+        version: 6.1.0
+      lightweight-charts:
+        specifier: 5.2.1
+        version: 5.2.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+      vite:
+        specifier: 8.3.1
+        version: 8.3.1
 
   packages/alerts:
     devDependencies:
@@ -1016,6 +1028,9 @@ packages:
   dom-accessibility-api@0.5.16:
     resolution: {integrity: sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==}
 
+  echarts@6.1.0:
+    resolution: {integrity: sha512-q0yaFPggC9FUdsWH4blavRWFmxdrIodbkoKNAjJudAI6CA9gNPxHtV2RcZNEepZVlk4yvBYkOkbk6HIVpIyHZA==}
+
   editorconfig@3.0.2:
     resolution: {integrity: sha512-T0ix8GhtxyKVfUFEcvdNDt3YGqlwkFHbD4/5bgFUDgFmxhI/cSRAeJ87/Sz//Cq8Eam6JX/e23RkoFO71P7aAA==}
     engines: {node: '>=20'}
@@ -1417,6 +1432,9 @@ packages:
     resolution: {integrity: sha512-BcDSDW+SIGWVOns1Zm6Yg91q9AEj7eaID0QDY9oIqJD1A8dscNwMcl9Sms2DeuWCNov1X0/oXanHGYQBSLwZsg==}
     engines: {node: ^22.14.0 || >=24.0.0}
 
+  tslib@2.3.0:
+    resolution: {integrity: sha512-N82ooyxVNm6h1riLCoyS9e3fuJ3AMG2zIZs2Gd1ATcSFjSA23Q0fzjjZeh0jbJvWVDZ0cJT8yaNNaaXHzueNjg==}
+
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
@@ -1595,6 +1613,9 @@ packages:
 
   zimmerframe@1.1.5:
     resolution: {integrity: sha512-msJxIvYDYcoNL+PJsu+7qmpDWsYmAxTY+2TNYXXF0hzBzBk0BMecOqDOG/EckUoKCuKwObfbugIl8QpqHDXeFA==}
+
+  zrender@6.1.0:
+    resolution: {integrity: sha512-oEGMDB6pOP2S6OwRR4PdVv610zrjnA3Bh+JnSG12fYJlBKjtNAoEb5fSUoCOOINlH96I2fU38/A2UpRKs67xYQ==}
 
 snapshots:
 
@@ -2090,6 +2111,11 @@ snapshots:
 
   dom-accessibility-api@0.5.16: {}
 
+  echarts@6.1.0:
+    dependencies:
+      tslib: 2.3.0
+      zrender: 6.1.0
+
   editorconfig@3.0.2:
     dependencies:
       '@one-ini/wasm': 0.2.1
@@ -2487,6 +2513,8 @@ snapshots:
       punycode: 2.3.1
     optional: true
 
+  tslib@2.3.0: {}
+
   typescript@5.9.3: {}
 
   undici@8.12.3:
@@ -2608,3 +2636,7 @@ snapshots:
   xmlchars@2.2.0: {}
 
   zimmerframe@1.1.5: {}
+
+  zrender@6.1.0:
+    dependencies:
+      tslib: 2.3.0

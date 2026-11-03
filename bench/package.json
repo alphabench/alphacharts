@@ -5,11 +5,17 @@
   "scripts": {
     "bench": "playwright test --config playwright.config.ts --project perf",
     "visual": "playwright test --config playwright.config.ts --project visual --project visual-webkit --project visual-firefox",
-    "shot": "node shot.mjs"
+    "shot": "node shot.mjs",
+    "compare": "AC_COMPARE=1 playwright test --config playwright.config.ts --project compare",
+    "typecheck": "tsc -p compare/tsconfig.json"
   },
   "devDependencies": {
+    "@alphacharts/core": "workspace:*",
     "@axe-core/playwright": "4.11.0",
     "@playwright/test": "1.64.1",
-    "typescript": "5.9.3"
+    "echarts": "6.1.0",
+    "lightweight-charts": "5.2.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.1"
   }
 }

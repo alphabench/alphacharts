@@ -17,12 +17,23 @@ const EXAMPLES = [
   { name: "example-svelte", port: Number(process.env.AC_PORT_SVELTE ?? 5209), env: "AC_PORT_SVELTE" },
 ];
 
+// The comparison harness (compare/, `pnpm bench:compare`) runs alone: its own built
+// page is the only server, so nothing else competes for the machine.
+const COMPARE = process.env.AC_COMPARE === "1";
+const COMPARE_PORT = Number(process.env.AC_PORT_COMPARE ?? 5210);
+const compareServer = {
+  command: "pnpm exec vite build --config compare/vite.config.ts && pnpm exec vite preview --config compare/vite.config.ts --host 127.0.0.1",
+  url: `http://127.0.0.1:${COMPARE_PORT}/`,
+  reuseExistingServer: false, // always the page built from the tree as it is now
+  timeout: 300_000,
+};
+
 export default defineConfig({
   testDir: "tests",
   timeout: 600_000,
   workers: 1,
   reporter: [["list"]],
-  webServer: [
+  webServer: COMPARE ? [compareServer] : [
     {
       command: "pnpm -C ../apps/playground dev --host 127.0.0.1",
       url: `http://127.0.0.1:${PORT}/`,
@@ -34,15 +45,17 @@ export default defineConfig({
       reuseExistingServer: true,
     })),
   ],
-  use: { baseURL: `http://127.0.0.1:${PORT}/` },
+  use: { baseURL: COMPARE ? `http://127.0.0.1:${COMPARE_PORT}/` : `http://127.0.0.1:${PORT}/` },
   projects: [
     { name: "perf", testMatch: /perf\.spec\.ts/, use: { ...chrome, viewport: { width: 1600, height: 900 }, deviceScaleFactor: 2 } },
+    // alphacharts vs lightweight-charts vs ECharts (compare/): same headed Chrome and viewport as perf.
+    { name: "compare", testMatch: /compare\.spec\.ts/, use: { ...chrome, viewport: { width: 1600, height: 900 }, deviceScaleFactor: 2 } },
     // Every spec but the perf sweeps; each engine keeps its own snapshot baselines.
     // Headless for pictures: a headed window parked off-screen gets synthetic
     // pointer events while a screenshot is captured, which clears or moves the
     // crosshair at random. Headless Chrome still renders on the GPU (ANGLE/Metal).
-    { name: "visual", testIgnore: /perf\.spec\.ts/, use: { ...chrome, headless: true } },
-    { name: "visual-webkit", testIgnore: /perf\.spec\.ts/, use: { browserName: "webkit" } },
-    { name: "visual-firefox", testIgnore: /perf\.spec\.ts/, use: { browserName: "firefox" } },
+    { name: "visual", testIgnore: /(perf|compare)\.spec\.ts/, use: { ...chrome, headless: true } },
+    { name: "visual-webkit", testIgnore: /(perf|compare)\.spec\.ts/, use: { browserName: "webkit" } },
+    { name: "visual-firefox", testIgnore: /(perf|compare)\.spec\.ts/, use: { browserName: "firefox" } },
   ],
 });

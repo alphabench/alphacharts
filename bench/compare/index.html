@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>alphacharts comparison harness</title>
+    <style>
+      /* The chart owns the whole viewport: every library gets the same box. */
+      html, body { margin: 0; height: 100%; background: #0f1115; overflow: hidden; }
+      #chart { position: fixed; inset: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="chart"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
