@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/alerts",
   "version": "0.1.0",
-  "description": "Price alert evaluator and chart plugin for AlphaCharts.",
+  "description": "Price alert evaluator and chart plugin for alphacharts.",
   "keywords": [
     "alerts",
     "price-alerts",

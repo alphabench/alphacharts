@@ -1,6 +1,6 @@
 # @alphacharts/svelte
 
-Svelte 5 (runes) bindings for AlphaCharts: `Chart`, `Series`, `PriceLine`, `Dashboard`, `DashboardCell`,
+Svelte 5 (runes) bindings for alphacharts: `Chart`, `Series`, `PriceLine`, `Dashboard`, `DashboardCell`,
 `SyncGroup` and the hooks `useChart`, `useCrosshair`, `useDashboard`, `useVisibleRange`. The `/plot` entry has
 the plot component (needs `@alphacharts/plot`).
 

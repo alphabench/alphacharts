@@ -1,6 +1,6 @@
 # @alphacharts/react
 
-React bindings for AlphaCharts: `<Chart>`, `<Series>`, `<PriceLine>`, `<Dashboard>`, `<DashboardCell>`,
+React bindings for alphacharts: `<Chart>`, `<Series>`, `<PriceLine>`, `<Dashboard>`, `<DashboardCell>`,
 `<SyncGroup>` and the hooks `useChart`, `useCrosshair`, `useDashboard`, `useVisibleRange`. The `/plot` entry has
 `<Plot>` (needs `@alphacharts/plot`). React 18 or newer.
 

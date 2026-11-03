@@ -1,6 +1,6 @@
 # @alphacharts/indicators
 
-Technical studies for AlphaCharts: a typed study model, an incremental engine over the core's
+Technical studies for alphacharts: a typed study model, an incremental engine over the core's
 columnar data, a Web Worker runner, chart integration through the core plugin API, and
 210 studies (TA-Lib's catalogue plus TradingView's built-ins).
 

@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/chart-types",
   "version": "0.1.0",
-  "description": "Extra series types for AlphaCharts: baseline, step, columns, hi-lo, dots, bricks, Kagi, point and figure; Heikin-Ashi, Renko, range and line-break transforms.",
+  "description": "Extra series types for alphacharts: baseline, step, columns, hi-lo, dots, bricks, Kagi, point and figure; Heikin-Ashi, Renko, range and line-break transforms.",
   "keywords": [
     "chart",
     "renko",

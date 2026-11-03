@@ -1,6 +1,6 @@
 # @alphacharts/script
 
-A small Pine-like indicator language for AlphaCharts. A script compiles to a study definition for
+A small Pine-like indicator language for alphacharts. A script compiles to a study definition for
 `@alphacharts/indicators`, so its numbers come from the same incremental engine and kernels as the built-in
 studies (a script that is `ta.sma(close, 20)` is bit-identical to the `sma` study). User code runs only in a
 dedicated Web Worker.

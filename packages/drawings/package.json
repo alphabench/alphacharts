@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/drawings",
   "version": "0.1.0",
-  "description": "Chart drawing tools for AlphaCharts: 82 tools, undo/redo, magnet and templates.",
+  "description": "Chart drawing tools for alphacharts: 82 tools, undo/redo, magnet and templates.",
   "keywords": [
     "drawings",
     "trendline",

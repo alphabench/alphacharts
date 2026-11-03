@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/i18n",
   "version": "0.1.0",
-  "description": "Message catalogues, ICU plurals, locale formatting and text direction for AlphaCharts.",
+  "description": "Message catalogues, ICU plurals, locale formatting and text direction for alphacharts.",
   "keywords": [
     "i18n",
     "localization",

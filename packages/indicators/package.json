@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/indicators",
   "version": "0.1.0",
-  "description": "Technical studies for AlphaCharts: a typed study model, an incremental engine, a Web Worker runner and 210 studies.",
+  "description": "Technical studies for alphacharts: a typed study model, an incremental engine, a Web Worker runner and 210 studies.",
   "keywords": [
     "indicators",
     "technical-analysis",

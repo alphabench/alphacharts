@@ -1,6 +1,6 @@
 # @alphacharts/vue
 
-Vue 3 bindings for AlphaCharts: `AcChart`, `AcSeries`, `AcPriceLine`, `AcDashboard`, `AcDashboardCell`,
+Vue 3 bindings for alphacharts: `AcChart`, `AcSeries`, `AcPriceLine`, `AcDashboard`, `AcDashboardCell`,
 `AcSyncGroup` and the composables `useChart`, `useCrosshair`, `useDashboard`, `useVisibleRange`. The `/plot`
 entry has the plot component (needs `@alphacharts/plot`). Vue 3.4 or newer.
 

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. AlphaCharts is a pnpm workspace; a current Node LTS and pnpm 10.
+Thanks for helping. alphacharts is a pnpm workspace; a current Node LTS and pnpm 10.
 
 ```
 pnpm install

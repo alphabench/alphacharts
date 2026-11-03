@@ -80,7 +80,7 @@ export function generate(plan: Plan, source: string, limits: Limits = DEFAULT_LI
     columns,
     plots,
     build: (g, p) => new Builder(g, p, plan, limits).build(),
-    reference: "AlphaCharts script",
+    reference: "alphacharts script",
   };
   return { def, colorInputs };
 }

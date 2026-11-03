@@ -1,7 +1,7 @@
 // Frame-time benchmarks. Each scenario drives the view from requestAnimationFrame
 // for a fixed number of frames and records:
 //   - rAF interval per frame (what the user sees; includes GPU back-pressure),
-//   - CPU ms inside AlphaCharts' render (ours only),
+//   - CPU ms inside alphacharts' render (ours only),
 //   - JS heap growth across the steady-state frames (after a forced GC).
 // The same pan/zoom sweep runs on lightweight-charts as the baseline.
 // Results: bench/results/perf.json and a table on stdout.
@@ -139,7 +139,7 @@ const pct = (a: number[]) => {
 };
 
 /**
- * The gate for AlphaCharts scenarios: at most 1% of frames miss a vsync at the
+ * The gate for alphacharts scenarios: at most 1% of frames miss a vsync at the
  * display's own refresh (120 Hz here, so this is stricter than "under 16.7 ms").
  */
 function gate(r: Result): void {
@@ -169,12 +169,12 @@ async function sweep(page: Page, scenario: string, lib: "ours" | "lwc", bars: nu
   return res;
 }
 
-test("pan/zoom sweep, 1M bars — AlphaCharts", async ({ page }) => {
+test("pan/zoom sweep, 1M bars — alphacharts", async ({ page }) => {
   await open(page, "ex=big&n=1000000");
   gate(await sweep(page, "sweep", "ours", 1_000_000));
 });
 
-test("pan/zoom sweep, 10M bars — AlphaCharts", async ({ page }) => {
+test("pan/zoom sweep, 10M bars — alphacharts", async ({ page }) => {
   await open(page, "ex=big&n=10000000");
   gate(await sweep(page, "sweep", "ours", 10_000_000));
 });
@@ -193,7 +193,7 @@ test("pan/zoom sweep, 10M bars — lightweight-charts 5.2.1", async ({ page }) =
   }
 });
 
-test("100 Hz ticks while panning, 1M bars — AlphaCharts", async ({ page }) => {
+test("100 Hz ticks while panning, 1M bars — alphacharts", async ({ page }) => {
   await open(page, "ex=live&n=1000000&auto=0");
   // Ticks from a 10 ms timer run alongside the rAF sweep.
   await page.evaluate(() => {
@@ -241,11 +241,11 @@ test("16 synced charts × 100k bars, standalone (16 contexts) — reported", asy
   }
 });
 
-test("16 synced charts × 100k bars, Dashboard — AlphaCharts", async ({ page }) => {
+test("16 synced charts × 100k bars, Dashboard — alphacharts", async ({ page }) => {
   await synced(page, "webgl", 16, true);
 });
 
-test("48 synced charts × 100k bars, Dashboard — AlphaCharts", async ({ page }) => {
+test("48 synced charts × 100k bars, Dashboard — alphacharts", async ({ page }) => {
   await synced(page, "webgl", 48, true);
 });
 

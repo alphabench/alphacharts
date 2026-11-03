@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/orderflow",
   "version": "0.1.0",
-  "description": "Order-flow studies for AlphaCharts: trade store, footprint, volume profile, TPO and cumulative volume delta.",
+  "description": "Order-flow studies for alphacharts: trade store, footprint, volume profile, TPO and cumulative volume delta.",
   "keywords": [
     "orderflow",
     "footprint",

@@ -1,6 +1,6 @@
 # @alphacharts/core
 
-The AlphaCharts engine: WebGL2 series (candles, line, area, histogram, ...), Canvas2D text, panes, price and time
+The alphacharts engine: WebGL2 series (candles, line, area, histogram, ...), Canvas2D text, panes, price and time
 scales, crosshair, markers, price lines, synced charts and a datafeed driver. No runtime dependencies. WebGL2 is
 required.
 
@@ -12,7 +12,7 @@ npm install @alphacharts/core
 import { createChart } from "@alphacharts/core";
 
 const chart = createChart(el, { theme: "dark", timeZone: "UTC" });
-const candles = chart.addSeries("candles", { minMove: 0.05 });
+const candles = chart.addSeries("candles", { priceFormat: { type: "price", minMove: 0.05 } });
 candles.setData(bars);   // [{ time, open, high, low, close }], time in UTC ms
 candles.update(bar);     // live: same time replaces, later time appends
 chart.createPriceLine(candles, { price: 100, title: "target" });

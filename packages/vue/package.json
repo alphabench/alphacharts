@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/vue",
   "version": "0.1.0",
-  "description": "Vue 3 bindings for AlphaCharts: AcChart, AcSeries, AcPriceLine, AcDashboard, AcSyncGroup and composables.",
+  "description": "Vue 3 bindings for alphacharts: AcChart, AcSeries, AcPriceLine, AcDashboard, AcSyncGroup and composables.",
   "keywords": [
     "vue",
     "chart",

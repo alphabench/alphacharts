@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/react",
   "version": "0.1.0",
-  "description": "React bindings for AlphaCharts: Chart, Series, PriceLine, Dashboard, SyncGroup and hooks.",
+  "description": "React bindings for alphacharts: Chart, Series, PriceLine, Dashboard, SyncGroup and hooks.",
   "keywords": [
     "react",
     "chart",

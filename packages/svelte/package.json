@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/svelte",
   "version": "0.1.0",
-  "description": "Svelte 5 bindings for AlphaCharts: chart, series, price line, dashboard and sync group components.",
+  "description": "Svelte 5 bindings for alphacharts: chart, series, price line, dashboard and sync group components.",
   "keywords": [
     "svelte",
     "chart",

@@ -1,6 +1,6 @@
 # @alphacharts/i18n
 
-Messages, locale formatting and text direction for AlphaCharts and the UI shell
+Messages, locale formatting and text direction for alphacharts and the UI shell
 built on it. Zero runtime dependencies (uses `Intl`).
 
 ## Use
