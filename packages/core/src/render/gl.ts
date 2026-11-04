@@ -1,6 +1,8 @@
 // WebGL2 plumbing shared by every series renderer: program compilation and a
 // per-context program cache (so many series of one type share one program).
 
+import { emitFault } from "../fault.js";
+
 export const GLSL_COMMON = /* glsl */ `#version 300 es
 precision highp float;
 precision highp int;
@@ -44,7 +46,9 @@ export class GLContext {
     gl.attachShader(p, shader(gl, gl.FRAGMENT_SHADER, fs, key));
     gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS) && !gl.isContextLost()) {
-      throw new Error(`alphacharts: link failed for ${key}: ${gl.getProgramInfoLog(p)}`);
+      const error = new Error(`alphacharts: link failed for ${key}: ${gl.getProgramInfoLog(p)}`);
+      emitFault({ source: "shader", error, renderer: "webgl" });
+      throw error;
     }
     const prog: Program = {
       program: p,
@@ -66,7 +70,9 @@ function shader(gl: WebGL2RenderingContext, type: number, src: string, key: stri
   gl.shaderSource(s, src);
   gl.compileShader(s);
   if (!gl.getShaderParameter(s, gl.COMPILE_STATUS) && !gl.isContextLost()) {
-    throw new Error(`alphacharts: ${type === gl.VERTEX_SHADER ? "vertex" : "fragment"} shader ${key}: ${gl.getShaderInfoLog(s)}`);
+    const error = new Error(`alphacharts: ${type === gl.VERTEX_SHADER ? "vertex" : "fragment"} shader ${key}: ${gl.getShaderInfoLog(s)}`);
+    emitFault({ source: "shader", error, renderer: "webgl" });
+    throw error;
   }
   return s;
 }

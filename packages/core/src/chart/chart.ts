@@ -10,6 +10,7 @@
 // autoscale each price scale over the visible bars, measure the axes. If that
 // changed anything, the layers that depend on it are promoted to dirty.
 
+import { emitFault } from "../fault.js";
 import { COL_H, COL_L, COL_V, DataModel, type DataChange } from "../data/model.js";
 import type { Timeline } from "../data/timeline.js";
 import { TimeZone } from "../data/tz.js";
@@ -270,68 +271,73 @@ export class Chart implements Renderable {
    * standalone chart creates its own.
    */
   constructor(container: HTMLElement, options: ChartOptionsInput = {}, layers?: (root: HTMLElement, events: SurfaceEvents) => Layers) {
-    this.opts = {
-      theme: resolveTheme(options.theme, DARK),
-      timeZone: options.timeZone ?? "UTC",
-      locale: options.locale,
-      timeScale: { ...DEFAULT_TIME_SCALE, ...options.timeScale },
-      crosshair: { mode: "magnet", visible: true, priceLabel: true, ...options.crosshair },
-      grid: { vertLines: true, horzLines: true, ...options.grid },
-      timeFormat: options.timeFormat,
-      timeVisible: options.timeVisible ?? "auto",
-      timeLabel: options.timeLabel,
-      rightPriceScale: { ...DEFAULT_PRICE_SCALE, ...options.rightPriceScale, position: "right" },
-      leftPriceScale: { ...DEFAULT_PRICE_SCALE, ...options.leftPriceScale, position: "left" },
-      interaction: { pan: true, zoom: true, kinetic: true, keyboard: true, ...options.interaction },
-      watermark: { ...DEFAULT_WATERMARK, ...options.watermark },
-      messages: options.messages ?? defaultMessages,
-      ariaLabel: options.ariaLabel ?? (options.messages ?? defaultMessages)("chart.ariaLabel"),
-      renderer: options.renderer ?? "auto",
-      sessions: options.sessions ?? null,
-      resolution: options.resolution ?? null,
-      countdown: options.countdown ?? true,
-      keymap: { ...DEFAULT_KEYMAP, ...options.keymap },
-      a11yTable: options.a11yTable ?? true,
-    };
-    this.ariaLabelFixed = options.ariaLabel !== undefined;
-    this.autoTheme = options.theme === "auto";
-    this.sessions = this.opts.sessions ? new Sessions(this.opts.sessions) : null;
-    this.resampler = this.opts.resolution ? new Resampler(parseResolution(this.opts.resolution), this.opts.sessions ? { sessions: this.opts.sessions } : { timeZone: this.opts.timeZone }) : null;
-    checkPriceScaleOptions(this.opts.rightPriceScale);
-    checkPriceScaleOptions(this.opts.leftPriceScale);
-    checkWatermarkOptions(this.opts.watermark);
-    this.tz =new TimeZone(this.opts.timeZone);
-    this.fmt = new TimeFormatter(this.opts.locale, this.tz, this.opts.timeFormat);
-    this.time = new TimeScale(this.opts.timeScale);
+    try {
+      this.opts = {
+        theme: resolveTheme(options.theme, DARK),
+        timeZone: options.timeZone ?? "UTC",
+        locale: options.locale,
+        timeScale: { ...DEFAULT_TIME_SCALE, ...options.timeScale },
+        crosshair: { mode: "magnet", visible: true, priceLabel: true, ...options.crosshair },
+        grid: { vertLines: true, horzLines: true, ...options.grid },
+        timeFormat: options.timeFormat,
+        timeVisible: options.timeVisible ?? "auto",
+        timeLabel: options.timeLabel,
+        rightPriceScale: { ...DEFAULT_PRICE_SCALE, ...options.rightPriceScale, position: "right" },
+        leftPriceScale: { ...DEFAULT_PRICE_SCALE, ...options.leftPriceScale, position: "left" },
+        interaction: { pan: true, zoom: true, kinetic: true, keyboard: true, ...options.interaction },
+        watermark: { ...DEFAULT_WATERMARK, ...options.watermark },
+        messages: options.messages ?? defaultMessages,
+        ariaLabel: options.ariaLabel ?? (options.messages ?? defaultMessages)("chart.ariaLabel"),
+        renderer: options.renderer ?? "auto",
+        sessions: options.sessions ?? null,
+        resolution: options.resolution ?? null,
+        countdown: options.countdown ?? true,
+        keymap: { ...DEFAULT_KEYMAP, ...options.keymap },
+        a11yTable: options.a11yTable ?? true,
+      };
+      this.ariaLabelFixed = options.ariaLabel !== undefined;
+      this.autoTheme = options.theme === "auto";
+      this.sessions = this.opts.sessions ? new Sessions(this.opts.sessions) : null;
+      this.resampler = this.opts.resolution ? new Resampler(parseResolution(this.opts.resolution), this.opts.sessions ? { sessions: this.opts.sessions } : { timeZone: this.opts.timeZone }) : null;
+      checkPriceScaleOptions(this.opts.rightPriceScale);
+      checkPriceScaleOptions(this.opts.leftPriceScale);
+      checkWatermarkOptions(this.opts.watermark);
+      this.tz =new TimeZone(this.opts.timeZone);
+      this.fmt = new TimeFormatter(this.opts.locale, this.tz, this.opts.timeFormat);
+      this.time = new TimeScale(this.opts.timeScale);
 
-    const root = document.createElement("div");
-    root.style.cssText = "position:relative;width:100%;height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;outline:none";
-    root.tabIndex = 0;
-    root.setAttribute("role", "application");
-    root.setAttribute("aria-roledescription", "chart");
-    root.setAttribute("aria-label", this.opts.ariaLabel);
-    this.live = document.createElement("div");
-    this.live.setAttribute("aria-live", "polite");
-    this.live.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap";
-    root.appendChild(this.live);
-    container.appendChild(root);
-    this.element = root;
+      const root = document.createElement("div");
+      root.style.cssText = "position:relative;width:100%;height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;outline:none";
+      root.tabIndex = 0;
+      root.setAttribute("role", "application");
+      root.setAttribute("aria-roledescription", "chart");
+      root.setAttribute("aria-label", this.opts.ariaLabel);
+      this.live = document.createElement("div");
+      this.live.setAttribute("aria-live", "polite");
+      this.live.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap";
+      root.appendChild(this.live);
+      container.appendChild(root);
+      this.element = root;
 
-    const events: SurfaceEvents = {
-      // GL objects are gone; renderers are rebuilt from the CPU stores on restore.
-      lost: () => this.dropRenderers(),
-      restored: () => this.invalidate(LAYER_ALL),
-    };
-    this.layers = layers ? layers(root, events) : new OwnLayers(root, this.opts.renderer, events);
+      const events: SurfaceEvents = {
+        // GL objects are gone; renderers are rebuilt from the CPU stores on restore.
+        lost: () => this.dropRenderers(),
+        restored: () => this.invalidate(LAYER_ALL),
+      };
+      this.layers = layers ? layers(root, events) : new OwnLayers(root, this.opts.renderer, events);
 
-    this.model.onChange(this.onData);
-    this.interaction = new Interaction(this, root, root);
-    this.resizeObs = new ResizeObserver(() => this.measure());
-    this.resizeObs.observe(root);
-    this.watchDpr();
-    this.watchSystem();
-    this.syncCountdown();
-    this.measure();
+      this.model.onChange(this.onData);
+      this.interaction = new Interaction(this, root, root);
+      this.resizeObs = new ResizeObserver(() => this.measure());
+      this.resizeObs.observe(root);
+      this.watchDpr();
+      this.watchSystem();
+      this.syncCountdown();
+      this.measure();
+    } catch (error) {
+      emitFault({ source: "ctor", error });
+      throw error;
+    }
   }
 
   // ---- public API ---------------------------------------------------------------

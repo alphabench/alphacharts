@@ -33,7 +33,7 @@ It is for apps that show markets: candles, lines, areas, histograms, panes, a cr
 drawing tools, technical studies, alerts and order-flow charts. Next to the real-time engine there is a declarative
 plot layer (bars, heatmaps, treemaps, scatter, small multiples) for the analytical charts around a trading screen.
 
-Version 0.1.0. The API may still change before 1.0; breaking changes are listed in the [changelog](CHANGELOG.md).
+Version 0.1.x (`@alphacharts/core` 0.1.1; the other packages 0.1.0). The API may still change before 1.0; breaking changes are listed in the [changelog](CHANGELOG.md).
 
 ## Highlights
 
@@ -66,6 +66,7 @@ npm install @alphacharts/react       # or @alphacharts/vue, @alphacharts/svelte
 npm install @alphacharts/plot        # declarative bars, heatmaps, treemaps, scatter, ...
 npm install @alphacharts/indicators @alphacharts/drawings @alphacharts/alerts
 npm install @alphacharts/chart-types @alphacharts/orderflow @alphacharts/i18n
+npm install @alphacharts/report      # optional, off by default: anonymous crash reports (see below)
 ```
 
 Requirements: a browser and a bundler or runtime that understands ES modules. `@alphacharts/core` draws series with
@@ -241,6 +242,7 @@ createPlot(el, { watermark: { visible: false } });
 | [`@alphacharts/chart-types`](packages/chart-types) | Baseline, step, columns, hi-lo, dots, bricks, Kagi, P&F; Heikin-Ashi, Renko, range, line break, tick, volume and dollar bars |
 | [`@alphacharts/orderflow`](packages/orderflow) | Trade store, footprint, volume profile, TPO, cumulative volume delta |
 | [`@alphacharts/i18n`](packages/i18n) | Message catalogues (en, hi), ICU plurals, locale formatting, text direction |
+| [`@alphacharts/report`](packages/report) | Opt-in anonymous crash reports; off unless you call `enableCrashReporting` |
 | [`@alphacharts/wasm`](packages/wasm) | Optional WebAssembly kernels for the indicators engine |
 
 ## Performance
@@ -301,6 +303,16 @@ results, lives in `bench/compare` (`pnpm bench:compare`).
 
 `@alphacharts/core/internal` exposes rendering internals for the sibling series packages. It is not public API and
 changes without notice.
+
+## Crash reporting (optional)
+
+Off by default and not part of `@alphacharts/core`: nothing is collected or sent unless you install
+[`@alphacharts/report`](packages/report) and call `enableCrashReporting({ endpoint, key })` with the capture endpoint (a
+full URL, used exactly as given: no path is appended) and public key of your own PostHog project. There is no default
+server: without both it throws. It sends one event per distinct fault, at most 5 per page load: error class name, source
+(`draw-loop`, `ctor`, `context-lost`, `shader`, `plot`, `drawings`, `alerts`, `feed`), renderer
+kind, WebGL2 available, context lost, browser family and major version, OS family, core and report library versions, and a random id new on every page load. Never error messages, stack frames, file names, ids, symbols,
+prices, data, GPU strings or anything stored. Exact fields are listed in [the package README](packages/report/README.md).
 
 ## Known limits
 

@@ -3,6 +3,8 @@
 // ticks or a dashboard of synced charts never render more than once per
 // display refresh.
 
+import { emitFault } from "../fault.js";
+
 export const LAYER_BG = 1;
 export const LAYER_GL = 2;
 export const LAYER_OVERLAY = 4;
@@ -39,5 +41,8 @@ function frame(now: number): void {
       failure ??= { error };
     }
   }
-  if (failure) throw failure.error;
+  if (failure) {
+    emitFault({ source: "draw-loop", error: failure.error });
+    throw failure.error;
+  }
 }

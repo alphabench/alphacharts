@@ -20,4 +20,7 @@ pnpm dev             # playground on http://127.0.0.1:5199
 - `pnpm size` and `pnpm bench` need the playground installed and a quiet machine.
 - Rebuilding `kernels.wasm` needs Rust (`pnpm -C packages/wasm build:wasm`); regenerating TA-Lib fixtures needs
   Python (see `packages/indicators/README.md`).
+- `@alphacharts/report` is opt-in and sends anonymous crash fields. Any new field must be added to the allow-list in
+  `packages/report/src/index.ts`, its test snapshot and both READMEs; never send a message, id, symbol, price or data.
+  `@alphacharts/core` stays free of reporting code beyond the fault emitter in `src/fault.ts`, exposed only through `/internal`.
 - By contributing you agree your work is released under the MIT licence.

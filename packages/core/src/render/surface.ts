@@ -3,6 +3,7 @@
 // evict the oldest past ~16). A surface may be shared by the charts of one
 // Dashboard; each chart draws into its own cell at (ox, oy).
 
+import { emitFault } from "../fault.js";
 import { GLContext } from "./gl.js";
 
 export type SurfaceKind = "webgl" | "canvas2d";
@@ -188,11 +189,13 @@ class GLSurface implements Surface {
     e.preventDefault();
     this.glctx?.lost();
     this.glctx = null;
+    emitFault({ source: "context-lost", error: undefined, renderer: "webgl" });
     this.events.lost();
   };
 
   private readonly onRestored = (): void => {
     this.glctx = new GLContext(this.gl);
+    emitFault({ source: "context-restored", error: undefined, renderer: "webgl" });
     this.events.restored();
   };
 }

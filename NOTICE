@@ -9,3 +9,5 @@ packages/indicators/fixtures/talib contains reference outputs generated with TA-
   provided that the conditions of the BSD licence are met (https://ta-lib.org/license/).
 
 The fixtures are test data and are not published to npm.
+
+@alphacharts/report collects nothing by default and has no default server. When a host enables it with its own endpoint and key, it sends anonymous crash fields (listed in packages/report/README.md) to that endpoint.
