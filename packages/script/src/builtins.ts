@@ -36,6 +36,7 @@ export const BUILTIN_SERIES: Readonly<Record<string, { ty: Ty; needs: "value" | 
   volume: { ty: FLOAT_S, needs: "ohlcv" },
   time: { ty: FLOAT_S, needs: "value" },
   bar_index: { ty: INT_S, needs: "value" },
+  bars_per_year: { ty: FLOAT_S, needs: "value" },
 });
 
 export const COLORS: Readonly<Record<string, string>> = {
@@ -134,7 +135,9 @@ add("na", [S("x")], BOOL_S, "special");
 add("math.sum", [S("source"), LEN], FLOAT_S, "kernel");
 
 // ta.* kernels on the graph
-for (const k of ["sma", "ema", "wma", "rma", "highest", "lowest", "stdev", "variance", "sum"]) add(`ta.${k}`, [S("source"), LEN], FLOAT_S, "kernel");
+for (const k of ["sma", "ema", "wma", "rma", "highest", "lowest", "sum"]) add(`ta.${k}`, [S("source"), LEN], FLOAT_S, "kernel");
+// deviation and variance: population (divide by n) unless sample=true (divide by n - 1, the estimator Sharpe and volatility use; n >= 2)
+for (const k of ["stdev", "variance"]) add(`ta.${k}`, [S("source"), LEN, { name: "sample", kind: "bool", opt: true }], FLOAT_S, "kernel");
 // bars since the extreme: a whole number (or na until the window is full), so it types int and can be an offset or an int variable's value
 for (const k of ["highestbars", "lowestbars"]) add(`ta.${k}`, [S("source"), LEN], INT_S, "kernel");
 // a line through one point is undefined: the least length is 2

@@ -19,9 +19,9 @@ export const rsi = defineStudy({
     const ch = g.change(g.src(p.source), 1);
     const au = g.rma(g.map(ch, (d) => (d > 0 ? d : d === d ? 0 : Number.NaN)), p.length);
     const ad = g.rma(g.map(ch, (d) => (d < 0 ? -d : d === d ? 0 : Number.NaN)), p.length);
-    return [g.map2(au, ad, (u, d) => (u + d === 0 ? 0 : (100 * u) / (u + d)))];
+    return [g.map2(au, ad, (u, d) => (u + d === 0 ? 100 : (100 * u) / (u + d)))];
   },
-  reference: "TA-Lib RSI (Wilder smoothing, seeded with the mean of the first `length` changes)",
+  reference: "TA-Lib RSI arithmetic (Wilder smoothing, seeded with the mean of the first `length` changes). A flat opening (average gain and loss both 0, RS = 0/0) is 100, the convention of charting packages; TA-Lib reports 0 there",
 });
 
 export const cmo = defineStudy({
@@ -215,12 +215,12 @@ export const stochrsi = defineStudy({
     const ch = g.change(g.src(p.source), 1);
     const au = g.rma(g.map(ch, (d) => (d > 0 ? d : d === d ? 0 : Number.NaN)), p.rsiLength);
     const ad = g.rma(g.map(ch, (d) => (d < 0 ? -d : d === d ? 0 : Number.NaN)), p.rsiLength);
-    const r = g.map2(au, ad, (u, d) => (u + d === 0 ? 0 : (100 * u) / (u + d)));
+    const r = g.map2(au, ad, (u, d) => (u + d === 0 ? 100 : (100 * u) / (u + d)));
     const raw = rawStoch(g, r, r, r, p.stochLength);
     const k = g.sma(raw, p.kSmooth);
     return [raw, k, g.sma(k, p.dSmooth)];
   },
-  reference: "TA-Lib STOCHRSI: `raw` = fastk, `k` = fastd with period kSmooth; `d` is TradingView's second smoothing",
+  reference: "TA-Lib STOCHRSI: `raw` = fastk, `k` = fastd with period kSmooth; `d` is TradingView's second smoothing. The RSI inside is this package's (a flat opening is 100, see rsi)",
 });
 
 export const willr = defineStudy({

@@ -8,7 +8,8 @@
 
 import type { FeedAlign, FeedField } from "@alphacharts/indicators";
 
-export type { FeedField };
+export { describeJoin } from "@alphacharts/indicators";
+export type { FeedField, JoinReason, JoinReport } from "@alphacharts/indicators";
 
 /** One `outside(symbol, field, timeframe)` call: `symbol` / `timeframe` are null when the script left them out (this chart's). */
 export interface Dependency {

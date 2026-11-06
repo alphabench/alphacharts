@@ -91,7 +91,7 @@ Load when:
 
 ## Outside series
 
-Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, beta-adjusted price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, daily returns and N-day statistics (Sharpe, volatility) on an intraday chart, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.
+Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, market-neutral price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, daily returns and N-day statistics (Sharpe, volatility) on an intraday chart, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.
 
 Name: `alphacharts-outside-series`  
 Path: [outside-series/SKILL.md](outside-series/SKILL.md)  

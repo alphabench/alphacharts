@@ -116,6 +116,7 @@ class Builder {
   private S: Float64Array;
   private readonly ctx = { steps: 0 };
   private tr: Col | null = null;
+  private bpy: Col | null = null;
   /**
    * Where expressions are being built: the chart's graph, or an outside series' own graph (`key`) while a window or
    * history of its values is built on its own bars.
@@ -302,6 +303,7 @@ class Builder {
       case "volume": return g.volume;
       case "time": return g.time;
       case "bar_index": return g.calc((i) => i);
+      case "bars_per_year": return this.fx.key === null ? (this.bpy ??= g.barsPerYear()) : g.barsPerYear();
       default: return g.src(name as "close");
     }
   }
@@ -363,8 +365,12 @@ class Builder {
       case "ta.lowest": out = [g.lowest(this.colOf(b[0]!), len(1))]; break;
       case "ta.highestbars": out = [g.highestBars(this.colOf(b[0]!), len(1))]; break;
       case "ta.lowestbars": out = [g.lowestBars(this.colOf(b[0]!), len(1))]; break;
-      case "ta.stdev": out = [g.stdev(this.colOf(b[0]!), len(1))]; break;
-      case "ta.variance": out = [g.variance(this.colOf(b[0]!), len(1))]; break;
+      case "ta.stdev": case "ta.variance": {
+        const sample = !!b[2] && truthy(this.ev(b[2], "col")(0));
+        const n = sample ? this.num(b[1], `the length of ${sig.name} with sample=true`, 2, lim) : len(1);
+        out = [sig.name === "ta.stdev" ? g.stdev(this.colOf(b[0]!), n, sample) : g.variance(this.colOf(b[0]!), n, sample)];
+        break;
+      }
       case "ta.sum": case "math.sum": out = [g.sum(this.colOf(b[0]!), len(1))]; break;
       case "ta.linreg": {
         const n = this.num(b[1], "the length of ta.linreg", 2, lim);

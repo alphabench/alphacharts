@@ -2,7 +2,7 @@
 
 Technical studies for alphacharts: a typed study model, an incremental engine over the core's
 columnar data, a Web Worker runner, chart integration through the core plugin API, and
-210 studies (TA-Lib's catalogue plus TradingView's built-ins).
+211 studies (TA-Lib's catalogue plus TradingView's built-ins).
 
 ## Use
 
@@ -59,7 +59,7 @@ Subpaths: `.` (engine, runner, plugin), `./studies` (every study as a named expo
 ## Verification
 
 Run `pnpm -C packages/indicators test`.
-- **TA-Lib** (`test/talib.test.ts`): fixtures generated offline by `scripts/gen_fixtures.py` (TA-Lib 0.8.2 in a
+- **TA-Lib** (`test/talib.test.ts`; `atr` and `natr` are not here, see below): fixtures generated offline by `scripts/gen_fixtures.py` (TA-Lib 0.8.2 in a
   Python venv, see below) from `fixtures/cases/*.json` on a seeded 400-bar OHLCV set (`fixtures/dataset.json`;
   3,000 bars of mixed candle shapes for the patterns). Compared at 1e-9 relative (+1e-12 absolute floor), NaN positions
   must be identical; patterns are integers compared exactly. Case flags: `lead` (our study has valid values earlier
@@ -71,6 +71,7 @@ Run `pnpm -C packages/indicators test`.
 - Runner protocol, worker/inline parity and cancellation: `test/runner.test.ts`. Browser: `bench/tests/indicators.spec.ts`.
 
 Where a study is not TA-Lib's arithmetic it says so in its `reference` field. Known differences:
+`atr`/`natr` (and every ATR band: keltner, supertrend, chande-kroll-stop, median) are Wilder's: bar 0's true range is high - low and the first value is at bar `length - 1`, TA-Lib's skips bar 0 and starts one bar later (hand case and an independent loop in `test/atr.test.ts`; `trange` stays TA-Lib's); `rsi` (and `stochrsi`) report 100 where RS is 0/0, the first `length` changes all zero (TA-Lib: 0; charting packages: 100, `test/rsi-flat.test.ts`);
 MACD/APO/PPO seed like TA-Lib (fast EMA at the slow EMA's first bar), TradingView seeds at bar 0 (gap < 1e-9 after
 ~150 bars); `cmo` defaults to TradingView's window-sum form (`method: "wilder"` is TA-Lib's); the linear regression
 studies are TA-Lib's (checked against numpy polyfit); `ht-trendmode` reports TA-Lib's 0 inside its warm-up;
@@ -79,17 +80,17 @@ Not checked against TradingView itself (no access): the TradingView-only studies
 `reference` field; pivot formulas, Klinger, Schaff, the Relative Volatility form and Fractals tie rules were written
 from memory of TradingView's scripts and are verified only by the hand-computed tests.
 
-## Studies (210)
+## Studies (211)
 
 - **Overlap (TA-Lib + MAs, bands, SAR)** (17): `sma`, `ema`, `wma`, `dema`, `tema`, `trima`, `kama`, `t3`, `ma`, `bbands`, `bbpb`, `bbw`, `midpoint`, `midprice`, `mama`, `sar`, `sarext`
 - **Momentum (TA-Lib)** (30): `rsi`, `cmo`, `mom`, `roc`, `rocp`, `rocr`, `rocr100`, `trix`, `apo`, `ppo`, `macd`, `macdfix`, `macdext`, `stoch`, `stochf`, `stochrsi`, `willr`, `cci`, `bop`, `mfi`, `ultosc`, `aroon`, `aroonosc`, `adx`, `adxr`, `dx`, `plus-di`, `minus-di`, `plus-dm`, `minus-dm`
 - **Volume (TA-Lib)** (3): `ad`, `adosc`, `obv`
-- **Volatility (TA-Lib)** (3): `trange`, `atr`, `natr`
+- **Volatility** (3): `trange` (TA-Lib's), `atr`, `natr` (Wilder's, not TA-Lib's)
 - **Price transforms (TA-Lib)** (4): `avgprice`, `medprice`, `typprice`, `wclprice`
 - **Statistics (TA-Lib)** (9): `linearreg`, `linearreg-slope`, `linearreg-intercept`, `linearreg-angle`, `tsf`, `stddev`, `var`, `correl`, `beta`
 - **Math transforms and operators (TA-Lib)** (26): `acos`, `asin`, `atan`, `ceil`, `cos`, `cosh`, `exp`, `floor`, `ln`, `log10`, `sin`, `sinh`, `sqrt`, `tan`, `tanh`, `add`, `sub`, `mult`, `div`, `max`, `min`, `sum`, `maxindex`, `minindex`, `minmax`, `minmaxindex`
 - **Cycle / Hilbert (TA-Lib)** (6): `ht-dcperiod`, `ht-dcphase`, `ht-phasor`, `ht-sine`, `ht-trendline`, `ht-trendmode`
-- **TradingView-only** (51): `smma`, `vwma`, `hma`, `alma`, `lsma`, `mcginley`, `ma-ribbon`, `ma-cross`, `envelopes`, `keltner`, `donchian`, `price-channel`, `chande-kroll-stop`, `linreg-channel`, `median`, `ichimoku`, `supertrend`, `alligator`, `fractals`, `zigzag`, `fisher`, `kst`, `tsi`, `vortex`, `coppock`, `connors-rsi`, `choppiness`, `rvi-vigor`, `rvi-volatility`, `smi-ergodic`, `rank-corr`, `bull-bear-power`, `awesome`, `accelerator`, `mass-index`, `dpo`, `schaff-tc`, `stoch-tv`, `volume`, `volume-osc`, `pvt`, `net-volume`, `elder-force`, `eom`, `chaikin-mf`, `klinger`, `vwap`, `anchored-vwap`, `pivot-points`, `hist-vol`, `adr`
+- **TradingView-only** (52): `smma`, `vwma`, `hma`, `alma`, `lsma`, `mcginley`, `ma-ribbon`, `ma-cross`, `envelopes`, `keltner`, `donchian`, `price-channel`, `chande-kroll-stop`, `linreg-channel`, `median`, `ichimoku`, `supertrend`, `alligator`, `fractals`, `zigzag`, `fisher`, `kst`, `tsi`, `vortex`, `coppock`, `connors-rsi`, `choppiness`, `rvi-vigor`, `rvi-volatility`, `smi-ergodic`, `rank-corr`, `bull-bear-power`, `awesome`, `accelerator`, `mass-index`, `dpo`, `schaff-tc`, `stoch-tv`, `volume`, `volume-osc`, `pvt`, `net-volume`, `elder-force`, `eom`, `chaikin-mf`, `klinger`, `vwap` (Session VWAP), `anchored-vwap`, `pivot-points`, `hist-vol`, `adr`, `bars-per-year`
 - **Candlestick patterns (TA-Lib CDL*)** (61): `cdl-<name>` for every TA-Lib pattern, e.g. `cdl-2crows`, `cdl-3blackcrows`, `cdl-3inside`, `cdl-3linestrike`, `cdl-3outside`, ...
 
 ## Regenerating the TA-Lib fixtures

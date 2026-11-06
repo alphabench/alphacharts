@@ -36,12 +36,15 @@ an independent plain-JavaScript calculation on seeded bars, so the arithmetic is
 Conventions every recipe follows:
 
 - Simple return `close / close[1] - 1`; log return `math.log(close / close[1])`. Bar 0 has no return (`na`).
-- Rolling statistics use the kernels. `ta.stdev` and `ta.variance` divide by n (population). For the sample deviation
-  multiply by `math.sqrt(n / (n - 1))`.
+- Rolling statistics use the kernels. `ta.stdev` and `ta.variance` divide by n (population); their `sample` argument set to `true` divides by n - 1.
+  Sharpe and realised volatility estimate from a sample of returns, so they use the sample deviation (the usual estimator). Bollinger and the
+  z-score use the population deviation: the z-score standardises the window it is measured in (mean 0, deviation 1).
 - A rolling window containing `na` is `na`, so a statistic of returns first appears at bar `length`.
-- Annualise by the square root of the bars per year (`math.sqrt`). One convention everywhere: 252 trading days a year,
-  so bars per year = bars per session * 252. Daily bars: 252. A 5-minute NSE chart (75 bars a session): 75 * 252 = 18,900.
-  Set the `Bars per year` input to that value for the chart's bar size and say which you used.
+- Annualise by `math.sqrt(bars_per_year)`; never type the number or make it an input (18,900 is right for a 5-minute NSE chart and 8.66 times
+  too high on a daily one). `bars_per_year` reads the chart's own bars: the median bars per session over the last 60 finished
+  sessions times 252 (5-minute NSE 75 * 252 = 18,900; 5-minute MCX 179 * 252 = 45,108), 252 for daily bars without weekend bars, 365 with them, 52.14
+  weekly. It is constant within a session, uses nothing after its bar, and is `na` until the first session has finished (daily: six bars). A
+  session is a UTC day, right for NSE, BSE, MCX, US and London. `ta.bars_per_year(source, utcOffsetMinutes)` cuts the day elsewhere.
 - A period the trader names in days or sessions ("60-day volatility") is counted in bars by the script. On daily bars the
   length is that number; on an intraday chart it is the number of days times the bars per session, when that fits the
   length limits, and the reply says the conversion. Never let the number of days stand as a number of bars.
@@ -59,7 +62,7 @@ Conventions every recipe follows:
 | Z-score of returns | z in standard deviations | zero deviation gives `na` |
 | Realised volatility | percent, annualised | log returns |
 | HV ratio | short over long volatility | annualisation cancels |
-| Rolling Sharpe | annualised, zero risk-free rate | simple returns, on the chart's own bars |
+| Rolling Sharpe | annualised, zero risk-free rate | simple returns, sample deviation, on the chart's own bars |
 | Rolling Sharpe, daily form | annualised, zero risk-free rate | daily returns of any chart, `outside(timeframe = "1d")` |
 | HV ratio, daily form | short over long volatility in days | any chart, `outside(timeframe = "1d")` |
 | Beta and correlation on own lag | slope and Pearson r of `r` on `r[lag]` | `lag` input |
@@ -73,7 +76,7 @@ Conventions every recipe follows:
 | Cumulative volume delta | running sum of signed volume | approximation, see below |
 | Session VWAP | VWAP restarting at each exchange-clock day | `time` is milliseconds |
 | Previous session's VWAP | the finished session's VWAP, held as a level | not `vwap[1]` |
-| Gap from the previous close | percent from the last bar of the previous session to the session's first open, held all day | session-day rule; no daily series |
+| Gap from the previous close | percent from the previous day's official (daily series) close to the session's first open, held all day | session-day rule; daily close on intraday, `close[1]` on daily |
 | Swing highs and lows | last and previous swing level, held | known `right` bars late |
 | VWAP anchored at the last swing low | VWAP from the swing low's bar | uses the swing recipe |
 | Kalman-style filter | recursive estimate of the close | `var` state |
@@ -83,11 +86,11 @@ Conventions every recipe follows:
 1. Find the recipe; copy it; rename the title and keep the plot titles meaningful.
 2. Change inputs, not formulas. If the formula must change, keep the pure/state split of script-language.
 3. Choose overlay from the units: price-unit outputs overlay, the rest in a pane.
-4. State what the number is and its assumptions in the reply (population deviation, annualisation base, approximation).
+4. State what the number is and its assumptions in the reply (sample or population deviation, bars per year and where it came from, approximation).
 
 ## 5. Examples
 
-**Z-score of returns.** How far this bar's return is from its mean, in standard deviations.
+**Z-score of returns.** How far this bar's return is from its mean, in standard deviations of the window (population `ta.stdev`: it standardises the bars it is measured in).
 
 <!-- skill: file: recipes/zscore-returns.acs -->
 ```alphacharts
@@ -100,15 +103,14 @@ hline(2, "Plus 2", color.gray, hline.style_dashed)
 hline(-2, "Minus 2", color.gray, hline.style_dashed)
 ```
 
-**Realised volatility.** Standard deviation of log returns, annualised, in percent.
+**Realised volatility.** Sample standard deviation of log returns, annualised by `bars_per_year`, in percent.
 
 <!-- skill: file: recipes/realised-vol.acs -->
 ```alphacharts
 indicator("Realised volatility (annualised, percent)")
 len = input.int(20, "Length", minval=2, maxval=500)
-ann = input.int(252, "Bars per year", minval=1, maxval=1000000)
 r = math.log(close / close[1])
-hv = ta.stdev(r, len) * math.sqrt(ann) * 100
+hv = ta.stdev(r, len, true) * math.sqrt(bars_per_year) * 100
 plot(hv, "HV", color.purple)
 ```
 
@@ -120,7 +122,7 @@ indicator("HV ratio (short over long)")
 fast = input.int(10, "Short length", minval=2, maxval=500)
 slow = input.int(50, "Long length", minval=2, maxval=500)
 r = math.log(close / close[1])
-ratio = ta.stdev(r, fast) / ta.stdev(r, slow)
+ratio = ta.stdev(r, fast, true) / ta.stdev(r, slow, true)
 plot(ratio, "Ratio", color.orange)
 hline(1, "Equal", color.gray, hline.style_dashed)
 ```
@@ -132,25 +134,23 @@ per bar from `r`.
 ```alphacharts
 indicator("Rolling Sharpe (zero risk-free rate)")
 len = input.int(60, "Length", minval=2, maxval=1000)
-ann = input.int(252, "Bars per year", minval=1, maxval=1000000)
 r = close / close[1] - 1
-sharpe = ta.sma(r, len) / ta.stdev(r, len) * math.sqrt(ann)
+sharpe = ta.sma(r, len) / ta.stdev(r, len, true) * math.sqrt(bars_per_year)
 plot(sharpe, "Sharpe", color.teal)
 hline(0, "Zero", color.gray)
 ```
 
 **Rolling Sharpe, daily form.** For "daily returns" or a number of days on an intraday chart: the returns and the window are
-over daily bars, so `len` is a number of days and `ann` is 252. A day is visible only once it has finished, so the last value
+over daily bars, so `len` is a number of days and the days per year come from the daily series itself (`ta.bars_per_year` of it). A day is visible only once it has finished, so the last value
 is that of the last finished day. On a daily chart use the recipe above on `close`.
 
 <!-- skill: file: recipes/rolling-sharpe-daily.acs -->
 ```alphacharts
 indicator("Rolling Sharpe of daily returns")
 len = input.int(10, "Days", minval=3, maxval=250)
-ann = input.int(252, "Days per year", minval=1, maxval=400)
 d = outside(timeframe = "1d")
 r = d / d[1] - 1
-plot(ta.sma(r, len) / ta.stdev(r, len) * math.sqrt(ann), "Sharpe", color.blue)
+plot(ta.sma(r, len) / ta.stdev(r, len, true) * math.sqrt(ta.bars_per_year(d)), "Sharpe", color.blue)
 hline(0, "Zero", color.gray, hline.style_dashed)
 ```
 
@@ -164,7 +164,7 @@ fast = input.int(10, "Short days", minval=2, maxval=250)
 slow = input.int(30, "Long days", minval=2, maxval=250)
 d = outside(timeframe = "1d")
 r = math.log(d / d[1])
-ratio = ta.stdev(r, fast) / ta.stdev(r, slow)
+ratio = ta.stdev(r, fast, true) / ta.stdev(r, slow, true)
 plot(ratio, "Ratio", color.orange)
 hline(1, "Equal", color.gray, hline.style_dashed)
 ```
@@ -403,9 +403,8 @@ plot(prevClose, "Previous close", color.blue)
 during the range and then stay level until the next session, which is what "extend the high and low" means on a chart. The session's
 first bar is the bar where the day number changes, and the range is measured from that bar's own `time`, so no session start is typed in:
 it is right on NSE (09:15), MCX (09:00) and anywhere else a preset is applied. Never write a session start such as 555 (09:15): on an
-exchange that opens at another time the range silently covers the wrong bars. It works at any bar size that divides the range; on
-daily bars the first bar alone is in it. The first session loaded is usually partial and draws nothing, because its first bar is not
-a session start.
+exchange that opens at another time the range silently covers the wrong bars. A bar counts only when it ends inside the range (its open plus the bar length, read as the least gap between neighbouring bars, is not after the range's end), because a bar that
+reaches past it holds prices from outside. So a bar longer than the range draws nothing: a 30-minute range on an hourly chart would be the first hour's high and low. The first session loaded is partial and draws nothing.
 
 <!-- skill: file: recipes/opening-range.acs -->
 ```alphacharts
@@ -414,6 +413,7 @@ off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, max
 span = input.int(30, "Range length, minutes", minval=1, maxval=600)
 day = math.floor((time + off * 60000) / 86400000)
 fresh = day != day[1]
+step = ta.lowest(time - time[1], 10)
 var float sessionStart = na
 var float orHigh = na
 var float orLow = na
@@ -421,18 +421,19 @@ if fresh
     sessionStart := time
     orHigh := na
     orLow := na
-if time - sessionStart < span * 60000
+if time - sessionStart + step <= span * 60000
     orHigh := na(orHigh) ? high : math.max(orHigh, high)
     orLow := na(orLow) ? low : math.min(orLow, low)
 plot(orHigh, "Opening range high", color.green)
 plot(orLow, "Opening range low", color.red)
 ```
 
-**Gap from the previous close to today's open.** The session's first open against the close of the bar before it, in percent, held for
-the whole session. Both come from the chart's own bars at the bar where the day number changes (the same rule as the previous session's
-levels), so it is right on every bar size and on a daily chart, where each bar is a session. Today's open is never taken from a daily
-series: `outside(timeframe = "1d", field = "open")` is yesterday's open, because only finished days are visible (outside-series). The first
-session loaded has no previous close and draws nothing. "Highlight a gap over 1%" is the `bgcolor` where the size of the gap passes the input.
+**Gap from the previous close to today's open.** The session's first open against the previous day's official close, in percent, held for
+the whole session. On an intraday chart `close[1]` at the session's first bar is the last continuous trade of the previous session, which can
+differ from the exchange's close (NSE's close is a weighted average of the last half hour). The daily series' close is the official one,
+what the broker's daily candle and a quoted percent change use, so on an intraday chart the gap reads `outside(timeframe = "1d", field = "close")`
+(at a session's first bar, the finished previous day). On a chart of daily bars that series is the chart's own bar, so the recipe reads `close[1]`
+there, already official; `bars_per_year` tells the two apart (400 or more is intraday). Today's open is never from a daily series (`outside(timeframe = "1d", field = "open")` is yesterday's): it is the open of the chart's first bar of the session. The first session loaded draws nothing, and until a day has finished `bars_per_year` is `na`. "Highlight a gap over 1%" is the `bgcolor` where the gap passes the input.
 
 <!-- skill: file: recipes/gap.acs -->
 ```alphacharts
@@ -441,10 +442,12 @@ off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, max
 minGap = input.float(1.0, "Smallest gap to highlight, percent", minval=0.0, maxval=50.0)
 day = math.floor((time + off * 60000) / 86400000)
 fresh = day != day[1]
+official = outside(timeframe = "1d", field = "close")
+before = bars_per_year >= 400 ? official : bars_per_year < 400 ? close[1] : na
 var float prevClose = na
 var float todayOpen = na
 if fresh
-    prevClose := close[1]
+    prevClose := before
     todayOpen := open
 gap = 100 * (todayOpen / prevClose - 1)
 plot(gap, "Gap, percent", color.blue)
@@ -497,9 +500,9 @@ recipe's level against price by making it `overlay=true` only when it is in pric
 
 ## 8. Common mistakes
 
-- Dividing by the sample deviation by hand and the population one again.
+- Dividing by the sample deviation by hand and the population one again. Ask the kernel: the `sample` argument.
 - Using `ta.sma` on a `var` accumulator (refused) instead of keeping a second accumulator.
-- Annualising with the wrong bars-per-year for the interval (bars per session * 252; plain 252 is for daily bars), or counting "days" as bars.
+- Annualising with a typed bars-per-year (right for one bar size, wrong on another), or counting "days" as bars. Use `bars_per_year`.
 - Writing `close / close[1] - 1` on a 5-minute chart for "daily returns" and saying the reply is on daily bars: that is a 5-minute return. Daily returns come from `outside(timeframe = "1d")` (the daily forms above).
 - One `len` input shared by two different parameters.
 - Detecting a new day by a fall in the time of day: it never fires on daily bars.

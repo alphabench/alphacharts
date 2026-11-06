@@ -95,7 +95,8 @@ quant-recipes holds finished formulas to adapt.
 ## 7. Constraints and correctness
 
 - Every number comes from the bars. The bars of a window that is not yet full are `na` and draw as gaps, not zero.
-- `ta.stdev` and `ta.variance` divide by n (population).
+- `ta.stdev` and `ta.variance` divide by n (population); a third argument, `sample`, set to `true` divides by n - 1. Sharpe and annualised volatility use the sample form.
+- Annualise with `bars_per_year`, a built-in series read from the chart's own bars; never a typed number of bars per year.
 - A window plus an average of it needs window + average bars of history: a 20-bar z-score of returns averaged over 50 bars first has a value at bar 70. A script that needs more bars than are loaded draws nothing at all. Say how many bars it needs, and keep a request that is long (a 4,500-bar window) shorter than the history the chart can load.
 - `time` is UTC milliseconds.
 - A script is at most 200,000 characters, 64 plots and 512 computed columns.

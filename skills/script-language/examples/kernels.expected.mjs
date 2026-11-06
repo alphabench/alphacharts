@@ -8,7 +8,7 @@ export function expected(bars, { n }) {
   const win = (a, i) => a.slice(i - n + 1, i + 1);
   const mean = (w) => w.reduce((s, x) => s + x, 0) / w.length;
   const col = () => new Array(N).fill(NA);
-  const o = Object.fromEntries(["bb basis", "bb upper", "bb lower", "sma", "ema", "rma", "wma", "stdev", "variance", "sum", "math.sum", "highest", "lowest", "highestbars", "lowestbars", "change 2", "linreg", "tr", "atr"].map((k) => [k, col()]));
+  const o = Object.fromEntries(["bb basis", "bb upper", "bb lower", "sma", "ema", "rma", "wma", "stdev", "variance", "stdev sample", "variance sample", "sum", "math.sum", "highest", "lowest", "highestbars", "lowestbars", "change 2", "linreg", "tr", "atr"].map((k) => [k, col()]));
   for (let i = 0; i < N; i++) {
     o.tr[i] = i === 0 ? NA : // bar 0 has no previous close, so no true range
        Math.max(h[i] - l[i], Math.abs(h[i] - c[i - 1]), Math.abs(l[i] - c[i - 1]));
@@ -22,6 +22,9 @@ export function expected(bars, { n }) {
     o["bb lower"][i] = m - 2 * Math.sqrt(variance);
     o.variance[i] = variance;
     o.stdev[i] = Math.sqrt(variance);
+    const sampleVariance = w.reduce((s, x) => s + (x - m) ** 2, 0) / (n - 1); // sample: divisor n - 1
+    o["variance sample"][i] = sampleVariance;
+    o["stdev sample"][i] = Math.sqrt(sampleVariance);
     o.sum[i] = w.reduce((s, x) => s + x, 0);
     o["math.sum"][i] = o.sum[i];
     o.highest[i] = Math.max(...win(h, i));
@@ -42,9 +45,10 @@ export function expected(bars, { n }) {
     o.ema[i] = o.ema[i - 1] + (2 / (n + 1)) * (c[i] - o.ema[i - 1]);
     o.rma[i] = (o.rma[i - 1] * (n - 1) + c[i]) / n;
   }
-  // atr: mean of the true ranges of bars 1..n (bar 0 has no previous close), then Wilder smoothing
-  const trs = o.tr.slice();
-  o.atr[n] = mean(trs.slice(1, n + 1));
-  for (let i = n + 1; i < N; i++) o.atr[i] = (o.atr[i - 1] * (n - 1) + trs[i]) / n;
+  // atr is Wilder's: the true range of bar 0 is high - low, the first value (bar n - 1) the mean of the true ranges of bars 0..n-1,
+  // then (prev * (n - 1) + tr) / n. (ta.tr above is na on bar 0, as Pine's is; ta.atr does not use that.)
+  const trs = c.map((_, i) => (i === 0 ? h[0] - l[0] : o.tr[i]));
+  o.atr[n - 1] = mean(trs.slice(0, n));
+  for (let i = n; i < N; i++) o.atr[i] = (o.atr[i - 1] * (n - 1) + trs[i]) / n;
   return o;
 }

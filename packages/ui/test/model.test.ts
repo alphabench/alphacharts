@@ -121,8 +121,8 @@ describe("persistence", () => {
 
 describe("study catalogue", () => {
   const cat = buildCatalogue(ALL_STUDIES, (f) => f);
-  it("holds all 210 studies and finds by name, id and family", () => {
-    expect(cat.length).toBe(210);
+  it("holds all 211 studies and finds by name, id and family", () => {
+    expect(cat.length).toBe(211);
     expect(searchCatalogue(cat, "rsi").some((e) => e.def.id === "rsi")).toBe(true);
     expect(searchCatalogue(cat, "bollinger").length).toBeGreaterThan(0);
     expect(searchCatalogue(cat, "", "pattern").every((e) => e.def.family === "pattern")).toBe(true);

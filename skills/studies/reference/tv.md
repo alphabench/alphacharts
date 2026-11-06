@@ -44,6 +44,7 @@ Line: `ta.name(parameters) -> outputs · placement · needs · title`. Legend in
 - `ta.vortex(length:int=14[2..5000])` -> [viPlus, viMinus] · own pane · needs ohlc · Vortex Indicator
 - `ta.adr(length:int=14[1..5000])` -> series · own pane · needs ohlc · Average Day Range
 - `ta.anchored_vwap(source:series=hlc3, anchorTime:float=0[0..1000000000000000], bandMult:float=1[0..100])` -> [vwap, upper, lower] · overlay · needs volume · Anchored VWAP
+- `ta.bars_per_year(source:series=close, utcOffsetMinutes:int=0[-720..840])` -> series · own pane · Bars per year
 - `ta.chaikin_mf(length:int=20[1..5000])` -> series · own pane · needs volume · Chaikin Money Flow
 - `ta.elder_force(length:int=13[1..5000])` -> series · own pane · needs volume · Elder's Force Index
 - `ta.eom(length:int=14[1..5000], divisor:int=10000[1..1000000000])` -> series · own pane · needs volume · Ease of Movement
@@ -54,4 +55,4 @@ Line: `ta.name(parameters) -> outputs · placement · needs · title`. Legend in
 - `ta.pvt()` -> series · own pane · needs volume · Price Volume Trend
 - `ta.volume(maLength:int=20[1..5000])` -> [volume, up, down, ma] · own pane · needs volume · Volume
 - `ta.volume_osc(short:int=5[1..5000], long:int=10[1..5000])` -> series · own pane · needs volume · Volume Oscillator
-- `ta.vwap(source:series=hlc3, anchor:select=session{session|week|month|year}, bandMult:float=1[0..100], utcOffsetMinutes:int=0[-720..840])` -> [vwap, upper, lower] · overlay · needs volume · VWAP
+- `ta.vwap(source:series=hlc3, anchor:select=session{session|week|month|year}, bandMult:float=1[0..100], utcOffsetMinutes:int=0[-720..840])` -> [vwap, upper, lower] · overlay · needs volume · Session VWAP

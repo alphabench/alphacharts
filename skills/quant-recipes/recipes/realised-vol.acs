@@ -1,6 +1,5 @@
 indicator("Realised volatility (annualised, percent)")
 len = input.int(20, "Length", minval=2, maxval=500)
-ann = input.int(252, "Bars per year", minval=1, maxval=1000000)
 r = math.log(close / close[1])
-hv = ta.stdev(r, len) * math.sqrt(ann) * 100
+hv = ta.stdev(r, len, true) * math.sqrt(bars_per_year) * 100
 plot(hv, "HV", color.purple)

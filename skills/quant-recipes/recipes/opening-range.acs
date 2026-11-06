@@ -3,6 +3,7 @@ off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, max
 span = input.int(30, "Range length, minutes", minval=1, maxval=600)
 day = math.floor((time + off * 60000) / 86400000)
 fresh = day != day[1]
+step = ta.lowest(time - time[1], 10)
 var float sessionStart = na
 var float orHigh = na
 var float orLow = na
@@ -10,7 +11,7 @@ if fresh
     sessionStart := time
     orHigh := na
     orLow := na
-if time - sessionStart < span * 60000
+if time - sessionStart + step <= span * 60000
     orHigh := na(orHigh) ? high : math.max(orHigh, high)
     orLow := na(orLow) ? low : math.min(orLow, low)
 plot(orHigh, "Opening range high", color.green)

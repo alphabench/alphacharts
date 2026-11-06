@@ -6,7 +6,7 @@ Signatures are the checker's own table: `name(parameter:kind...)`. `?` marks an 
 
 ## Series
 
-`close` (float series), `open` (float series, needs ohlc), `high` (float series, needs ohlc), `low` (float series, needs ohlc), `hl2` (float series, needs ohlc), `hlc3` (float series, needs ohlc), `ohlc4` (float series, needs ohlc), `hlcc4` (float series, needs ohlc), `volume` (float series, needs volume), `time` (float series), `bar_index` (int series), `ta.tr` (float series, needs ohlc).
+`close` (float series), `open` (float series, needs ohlc), `high` (float series, needs ohlc), `low` (float series, needs ohlc), `hl2` (float series, needs ohlc), `hlc3` (float series, needs ohlc), `ohlc4` (float series, needs ohlc), `hlcc4` (float series, needs ohlc), `volume` (float series, needs volume), `time` (float series), `bar_index` (int series), `bars_per_year` (float series), `ta.tr` (float series, needs ohlc).
 
 ## Math and helpers
 
@@ -44,9 +44,9 @@ Signatures are the checker's own table: `name(parameter:kind...)`. `?` marks an 
 - `ta.rma(source:series, length:int[1..5000])` -> series float
 - `ta.highest(source:series, length:int[1..5000])` -> series float
 - `ta.lowest(source:series, length:int[1..5000])` -> series float
-- `ta.stdev(source:series, length:int[1..5000])` -> series float
-- `ta.variance(source:series, length:int[1..5000])` -> series float
 - `ta.sum(source:series, length:int[1..5000])` -> series float
+- `ta.stdev(source:series, length:int[1..5000], sample?:bool)` -> series float
+- `ta.variance(source:series, length:int[1..5000], sample?:bool)` -> series float
 - `ta.highestbars(source:series, length:int[1..5000])` -> series int
 - `ta.lowestbars(source:series, length:int[1..5000])` -> series int
 - `ta.linreg(source:series, length:int[2..5000])` -> series float

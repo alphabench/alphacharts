@@ -174,3 +174,74 @@ export function joinFeed(feed: Feed, field: FeedField, times: ArrayLike<number>)
   for (let i = 0; i < times.length; i++) out[i] = feed.value(field, feed.lookup(times[i]!));
   return out;
 }
+
+export type JoinReason =
+  /** Every chart bar sees a feed bar. */
+  | "complete"
+  /** Some chart bars see a feed bar and some do not (holes in the feed, or the feed starts later or ends earlier). */
+  | "partial"
+  /** The join finds nothing: the chart has no bars, or the feed has none. */
+  | "empty"
+  /** Same-length join and the feed's bar times never equal the chart's: the two sit on different clocks (offsetMs). */
+  | "different-clock"
+  /** Longer-timeframe join and no feed bar has finished by any chart bar (the feed starts after the chart ends, or is too short). */
+  | "no-finished-bar";
+
+export interface JoinReport {
+  align: FeedAlign;
+  chartBars: number;
+  /** Chart bars that see a feed bar. A chart bar that sees none is blank (NaN) in everything read from the feed. */
+  matched: number;
+  reason: JoinReason;
+  /**
+   * For "different-clock": how far the feed's bars sit from the chart's, in ms, in (-spanMs/2, spanMs/2]: the first feed bar's
+   * time minus the first chart bar's, modulo the bar length. NSE hourly bars open at 09:15 and MCX's at 09:00, so a chart on one
+   * reading the other gives +900000 or -900000. Otherwise null.
+   */
+  offsetMs: number | null;
+  /** One sentence a host can show where it would otherwise show "blank". */
+  message: string;
+}
+
+/**
+ * Why a join gives what it gives, for a host to explain a blank outside series: how many chart bars `cfg` joins to a bar of `feedTimes`
+ * and, when none, the reason. A pure function of the two time columns and the config handed to `setFeed`; it reads no value.
+ */
+export function describeJoin(chartTimes: ArrayLike<number>, feedTimes: ArrayLike<number>, cfg: FeedConfig): JoinReport {
+  checkConfig(cfg, "outside series");
+  const n = chartTimes.length, m = feedTimes.length;
+  const base = { align: cfg.align, chartBars: n };
+  if (n === 0 || m === 0) {
+    return { ...base, matched: 0, reason: "empty", offsetMs: null, message: n === 0 ? "The chart has no bars." : "The outside series has no bars." };
+  }
+  let matched = 0, j = 0;
+  for (let i = 0; i < n; i++) {
+    const t = chartTimes[i]!;
+    if (cfg.align === "same") {
+      while (j < m && feedTimes[j]! < t) j++;
+      if (j < m && feedTimes[j] === t) matched++;
+    } else {
+      const limit = t - cfg.spanMs;
+      while (j < m && feedTimes[j]! <= limit) j++;
+      if (j > 0) matched++;
+    }
+  }
+  if (matched === n) return { ...base, matched, reason: "complete", offsetMs: null, message: "Every chart bar sees a bar of the outside series." };
+  if (matched > 0) {
+    return { ...base, matched, reason: "partial", offsetMs: null, message: `${n - matched} of ${n} chart bars have no bar of the outside series and are blank (a missing bar is never filled).` };
+  }
+  if (cfg.align === "closed") {
+    return { ...base, matched, reason: "no-finished-bar", offsetMs: null, message: "No bar of the outside series has finished by any chart bar, so every value is blank." };
+  }
+  let off = (feedTimes[0]! - chartTimes[0]!) % cfg.spanMs;
+  if (off > cfg.spanMs / 2) off -= cfg.spanMs;
+  else if (off <= -cfg.spanMs / 2) off += cfg.spanMs;
+  const min = Math.round(Math.abs(off) / 60_000);
+  const how = off === 0
+    ? "its bars never fall at the same time as the chart's (the two do not trade at the same times)"
+    : `its bars open ${min} minute${min === 1 ? "" : "s"} ${off > 0 ? "after" : "before"} the chart's`;
+  return {
+    ...base, matched, reason: "different-clock", offsetMs: off,
+    message: `No chart bar has a bar of the outside series at exactly its time, so every value is blank: ${how}. A series on the chart's own timeframe joins only at equal times; read a longer timeframe (for example 1d) or a series on the same clock.`,
+  };
+}

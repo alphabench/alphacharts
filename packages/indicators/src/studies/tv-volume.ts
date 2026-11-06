@@ -192,10 +192,10 @@ export const klinger = defineStudy({
 // ---- VWAP -------------------------------------------------------------------------
 
 export const vwap = defineStudy({
-  id: "vwap", name: "VWAP", family: "tv", needs: "ohlcv", pane: "overlay",
+  id: "vwap", name: "Session VWAP", family: "tv", needs: "ohlcv", pane: "overlay",
   inputs: [select("anchor", "session", ["session", "week", "month", "year"]), source("hlc3"), float("bandMult", 1, 0, 100, 0.1, "Band multiplier"), OFFSET],
   columns: ["vwap", "upper", "lower"],
-  plots: [line("vwap", COLORS.blue, { title: "VWAP" }), band("bands", "upper", "lower", COLORS.green, "rgba(8,153,129,0.1)", "VWAP bands")],
+  plots: [line("vwap", COLORS.blue, { title: "Session VWAP" }), band("bands", "upper", "lower", COLORS.green, "rgba(8,153,129,0.1)", "Session VWAP bands")],
   label: (p) => `${p.anchor}`,
   build: (g, p) => {
     const key = periodKey(g, p.anchor === "session" ? "day" : p.anchor, p.utcOffsetMinutes);
@@ -206,7 +206,7 @@ export const vwap = defineStudy({
     const cpv2 = cum(g, (i) => src.v[i]! * src.v[i]! * vol.v[i]!, fresh);
     return vwapOutputs(g, cpv, cv, cpv2, p.bandMult);
   },
-  reference: "Pine ta.vwap(hlc3, anchor, stdev_mult 1): cumulative sum(src*volume) / sum(volume) restarting at each session/week/month/year; bands = vwap +/- mult * sqrt(sum(volume*src^2)/sum(volume) - vwap^2). Session = calendar day in the exchange time zone.",
+  reference: "Pine ta.vwap(hlc3, anchor, stdev_mult 1): cumulative sum(src*volume) / sum(volume) restarting at each session/week/month/year; bands = vwap +/- mult * sqrt(sum(volume*src^2)/sum(volume) - vwap^2). Session = calendar day in the exchange time zone. It restarts at each session, which is what a trader means by VWAP intraday; it is never a running average over the whole chart (use anchored-vwap for a start you choose).",
 });
 
 export const anchoredVwap = defineStudy({
@@ -328,4 +328,16 @@ export const adr = defineStudy({
   label: (p) => `${p.length}`,
   build: (g, p) => [g.sma(g.sub(g.high, g.low), p.length)],
   reference: "TradingView Average Day Range: ta.sma(high - low, 14) on the chart's bars",
+});
+
+// ---- bars per year ---------------------------------------------------------------
+
+export const barsPerYear = defineStudy({
+  id: "bars-per-year", name: "Bars per year", family: "tv", needs: "value", pane: "new",
+  inputs: [source(), OFFSET], columns: ["barsPerYear"],
+  plots: [line("barsPerYear", COLORS.gray, { title: "Bars per year" })],
+  label: (p) => `${p.utcOffsetMinutes}`,
+  // `source` is not read: it only says whose bars are counted (a script passes an outside series to count that series' bars)
+  build: (g, p) => [g.barsPerYear(p.utcOffsetMinutes)],
+  reference: "Annualisation made causal: intraday = median bars per exchange-clock day over the last 60 finished days x 252; bars of a day or longer = 252 for a daily series without weekends, else 365 days / median spacing. Constant within a day; absent before the first day has finished. Use it for sqrt(bars per year) in Sharpe and annualised volatility instead of a typed number",
 });

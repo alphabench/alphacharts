@@ -4,9 +4,8 @@
 // semantics); each `reference` names the definition implemented.
 //
 // Two conventions that differ from TA-Lib and matter for exact values:
-// - Pine's `ta.atr` is `ta.rma(ta.tr(true), n)`: the first bar's true range is
-//   high - low, so the average is seeded one bar earlier than TA-Lib's ATR.
-//   `atrTv` below is that definition (the shared `g.atr` is TA-Lib's).
+// - ATR is Wilder's (Pine's `ta.atr` is `ta.rma(ta.tr(true), n)`): the first
+//   bar's true range is high - low, so it is seeded one bar earlier than TA-Lib's ATR. `g.atr`.
 // - `offset` on a plot is a pure display shift; every column holds the
 //   undisplaced value of the bar it was computed on.
 //
@@ -23,23 +22,6 @@ const rgba = (hex: string, a: number) => {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
 };
-
-/** Pine's `ta.tr(true)`: the first bar's range is high - low. */
-function trTv(g: Graph): Node {
-  const { high, low, close } = g;
-  return g.node((s, a, b) => {
-    const h = high.v, l = low.v, c = close.v, v = s.v;
-    for (let i = a; i < b; i++) {
-      const r = h[i]! - l[i]!;
-      if (i === 0) { v[i] = r; continue; }
-      const pc = c[i - 1]!, u = Math.abs(h[i]! - pc), d = Math.abs(l[i]! - pc);
-      v[i] = r > u ? (r > d ? r : d) : u > d ? u : d;
-    }
-  });
-}
-
-/** Pine's `ta.atr(n)`. */
-const atrTv = (g: Graph, n: number): Node => g.rma(trTv(g), n);
 
 /**
  * Least-squares line over the last p bars against x = 0..p-1 (oldest..newest): `value` at the newest bar, `slope`
@@ -219,7 +201,7 @@ export const keltner = defineStudy({
   build: (g, p) => {
     const x = g.src(p.source);
     const m = p.useEma ? g.ema(x, p.length) : g.sma(x, p.length);
-    const r = g.map(atrTv(g, p.atrLength), (v) => v * p.mult);
+    const r = g.map(g.atr(p.atrLength), (v) => v * p.mult);
     return [m, g.add(m, r), g.sub(m, r)];
   },
   reference: "TradingView Keltner Channels (ATR band style): basis = ema|sma(src, n), bands = basis +- mult * ta.atr(atrLength)",
@@ -255,7 +237,7 @@ export const chandeKrollStop = defineStudy({
   plots: [line("stopShort", COLORS.red, { title: "Stop short" }), line("stopLong", COLORS.green, { title: "Stop long" })],
   label: (p) => `${p.p}, ${p.x}, ${p.q}`,
   build: (g, p) => {
-    const a = g.map(atrTv(g, p.p), (v) => v * p.x);
+    const a = g.map(g.atr(p.p), (v) => v * p.x);
     const firstHigh = g.sub(g.highest(g.high, p.p), a), firstLow = g.add(g.lowest(g.low, p.p), a);
     return [g.highest(firstHigh, p.q), g.lowest(firstLow, p.q)];
   },
@@ -306,7 +288,7 @@ export const median = defineStudy({
         v[i] = n % 2 === 1 ? w[(n - 1) / 2]! : (w[n / 2 - 1]! + w[n / 2]!) / 2;
       }
     });
-    const r = g.map(atrTv(g, p.atrLength), (v) => v * p.mult);
+    const r = g.map(g.atr(p.atrLength), (v) => v * p.mult);
     return [med, g.add(med, r), g.sub(med, r)];
   },
   reference: "TradingView Median: rolling median of src (hl2) over n bars with an ATR band, median +- mult * ta.atr(atrLength). The band construction follows the task's definition; an even n takes the mean of the two middle values.",
@@ -348,7 +330,7 @@ export const supertrend = defineStudy({
   label: (p) => `${p.factor}, ${p.atrLength}`,
   build: (g, p) => {
     const { high, low, close } = g;
-    const atr = atrTv(g, p.atrLength);
+    const atr = g.atr(p.atrLength);
     const lb = g.col(), ub = g.col(), dr = g.col(), st = g.col();
     const main = g.node((s, a, b) => {
       const h = high.v, l = low.v, c = close.v, at = atr.v, lo = lb.v, up = ub.v, d = dr.v, t = st.v;

@@ -196,7 +196,7 @@ export const en = {
   "indicator.sma": "Simple moving average",
   "indicator.ema": "Exponential moving average",
   "indicator.wma": "Weighted moving average",
-  "indicator.vwap": "Volume-weighted average price",
+  "indicator.vwap": "Session volume-weighted average price",
   "indicator.bollinger": "Bollinger bands",
   "indicator.keltner": "Keltner channels",
   "indicator.donchian": "Donchian channels",

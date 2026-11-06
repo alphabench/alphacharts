@@ -44,7 +44,7 @@ Version 0.1.x (`@alphacharts/core` 0.1.1; the other packages 0.1.0). The API may
   else is opt-in, so a bundler keeps only what you import.
 - **Live data built in.** `series.update(bar)` for ticks, `series.prepend(bars)` for history paging, and
   `connectDatafeed` to drive a series from a datafeed.
-- **A whole workbench.** 82 drawing tools, 210 technical studies (run in a Web Worker), alerts, Heikin-Ashi, Renko,
+- **A whole workbench.** 82 drawing tools, 211 technical studies (run in a Web Worker), alerts, Heikin-Ashi, Renko,
   Kagi and point-and-figure, footprint, volume profile and TPO.
 - **Frameworks.** Components and hooks for React, Vue 3 and Svelte 5, or use the plain TypeScript API.
 - **Typed and strict.** Written in TypeScript. Bad input throws an error that names the problem.
@@ -236,7 +236,7 @@ createPlot(el, { watermark: { visible: false } });
 | [`@alphacharts/react`](packages/react) | `<Chart>`, `<Series>`, `<PriceLine>`, `<Dashboard>`, `<SyncGroup>`, hooks; `/plot` has `<Plot>` |
 | [`@alphacharts/vue`](packages/vue) | `<AcChart>`, `<AcSeries>`, `<AcPriceLine>`, `<AcDashboard>`, `<AcSyncGroup>`, composables |
 | [`@alphacharts/svelte`](packages/svelte) | Svelte 5 components (runes), same surface |
-| [`@alphacharts/indicators`](packages/indicators) | 210 studies (TA-Lib's catalogue plus TradingView's built-ins), an incremental engine and a Web Worker runner |
+| [`@alphacharts/indicators`](packages/indicators) | 211 studies (TA-Lib's catalogue plus TradingView's built-ins), an incremental engine and a Web Worker runner |
 | [`@alphacharts/drawings`](packages/drawings) | 82 drawing tools, undo and redo, magnet, templates |
 | [`@alphacharts/alerts`](packages/alerts) | An alert evaluator (pure, runs without a chart) and a chart plugin |
 | [`@alphacharts/chart-types`](packages/chart-types) | Baseline, step, columns, hi-lo, dots, bricks, Kagi, P&F; Heikin-Ashi, Renko, range, line break, tick, volume and dollar bars |

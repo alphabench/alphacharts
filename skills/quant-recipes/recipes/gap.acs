@@ -3,10 +3,12 @@ off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, max
 minGap = input.float(1.0, "Smallest gap to highlight, percent", minval=0.0, maxval=50.0)
 day = math.floor((time + off * 60000) / 86400000)
 fresh = day != day[1]
+official = outside(timeframe = "1d", field = "close")
+before = bars_per_year >= 400 ? official : bars_per_year < 400 ? close[1] : na
 var float prevClose = na
 var float todayOpen = na
 if fresh
-    prevClose := close[1]
+    prevClose := before
     todayOpen := open
 gap = 100 * (todayOpen / prevClose - 1)
 plot(gap, "Gap, percent", color.blue)

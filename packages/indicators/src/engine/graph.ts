@@ -355,14 +355,19 @@ export class Graph {
   /**
    * Population variance over p bars (TA-Lib VAR): mean-centred two-pass over the
    * window, because running sums of squares lose ~1e-8 relative on price series.
+   * `sample` divides by p - 1 instead (the unbiased estimator; the one a Sharpe or volatility estimate from a sample uses): the
+   * population value scaled by p / (p - 1), undefined for p = 1.
    */
-  variance(x: Col, p: number): Node {
+  variance(x: Col, p: number, sample = false): Node {
     checkPeriod(p);
+    if (sample && p < 2) throw new RangeError(`sample variance needs a period of at least 2, got ${p}`);
     const m = this.sma(x, p);
+    const k = sample ? p / (p - 1) : 1;
     return this.node((s, a, b) => {
       const xv = x.v, mv = m.v, v = s.v;
       if (eligible(xv, a, b)) {
         v.set(kernels()!.variance(xv.subarray(0, b), p));
+        if (sample) for (let i = 0; i < b; i++) v[i] = v[i]! * k;
         return;
       }
       for (let i = a; i < b; i++) {
@@ -370,12 +375,12 @@ export class Graph {
         if (mean !== mean) { v[i] = NaN_; continue; }
         let t = 0;
         for (let j = i - p + 1; j <= i; j++) { const d = xv[j]! - mean; t += d * d; }
-        v[i] = t / p;
+        v[i] = sample ? t / (p - 1) : t / p;
       }
     });
   }
 
-  stdev(x: Col, p: number): Node { return this.map(this.variance(x, p), Math.sqrt); }
+  stdev(x: Col, p: number, sample = false): Node { return this.map(this.variance(x, p, sample), Math.sqrt); }
 
   /**
    * Least-squares line over the last p bars against x = 0..p-1 (oldest..newest).
@@ -439,7 +444,84 @@ export class Graph {
     });
   }
 
-  atr(p: number): Node { return this.rma(this.tr(), p); }
+  /** True range with the first bar's range as high - low (Wilder; Pine's `ta.tr(true)`). */
+  trFirst(): Node {
+    const { high, low, close } = this;
+    return this.node((s, a, b) => {
+      const h = high.v, l = low.v, c = close.v, v = s.v;
+      for (let i = a; i < b; i++) {
+        const r = h[i]! - l[i]!;
+        if (i === 0) { v[i] = r; continue; }
+        const pc = c[i - 1]!, u = Math.abs(h[i]! - pc), d = Math.abs(l[i]! - pc);
+        v[i] = r > u ? (r > d ? r : d) : u > d ? u : d;
+      }
+    });
+  }
+
+  /**
+   * Average true range as Wilder defined it: the first true range is high - low, the seed is the
+   * mean of true ranges 0..p-1 (first value at bar p-1), then Wilder's smoothing. Not TA-Lib's ATR (TA-Lib skips the first
+   * true range, so it starts one bar later and differs by a different seed).
+   */
+  atr(p: number): Node { return this.rma(this.trFirst(), p); }
+
+  /**
+   * Bars per year, read from the bars of this graph and from nothing after the bar it is written on (a causal annualisation). Intraday bars: the median number of bars per exchange-clock day over the
+   * last {@link BPY_SESSIONS} finished days, times 252 sessions (nights and weekends add no bars). A day or longer between bars: 252 a
+   * year for daily bars that leave weekends out, otherwise calendar time (365 days over the median spacing: weekly 52.14,
+   * monthly 12.17), the median over the last {@link BPY_COARSE} bars. Constant within a day, so a finished bar's value never changes
+   * when later bars arrive or the last bar is revised; absent before the first day has finished (and, for a day or
+   * longer, before six bars). The day is cut at `offsetMin` minutes east of UTC: 0 suits every session inside one UTC day
+   * (NSE, BSE, MCX, NYSE, LSE).
+   */
+  barsPerYear(offsetMin = 0): Node {
+    const t = this.time, off = offsetMin * 60_000;
+    const cnt = this.col();
+    return this.node((s, a, b) => {
+      const tv = t.v, cv = cnt.v, v = s.v;
+      for (let i = a; i < b; i++) {
+        const same = i > 0 && Math.floor((tv[i]! + off) / DAY_MS) === Math.floor((tv[i - 1]! + off) / DAY_MS);
+        cv[i] = same ? cv[i - 1]! + 1 : 1;
+        v[i] = same ? v[i - 1]! : i === 0 ? NaN_ : periodsPerYear(tv, cv, i);
+      }
+    });
+  }
+}
+
+const DAY_MS = 86_400_000;
+const TRADING_DAYS = 252;
+/** Finished days whose bar counts the median is taken over (barsPerYear). */
+export const BPY_SESSIONS = 60;
+/** Bars the spacing and the weekend test are read from when bars are a day or longer (barsPerYear). */
+export const BPY_COARSE = 120;
+/** WEEKEND_SHARE: two adjacent weekdays holding at most this share of the bars means weekends are left out. */
+const WEEKEND_SHARE = 0.05;
+
+function median(xs: number[]): number {
+  xs.sort((p, q) => p - q);
+  const m = xs.length >> 1;
+  return xs.length % 2 === 0 ? (xs[m - 1]! + xs[m]!) / 2 : xs[m]!;
+}
+
+/** Periods per year at bar i > 0, which starts a new day; `cv[j]` is the number of bars of the day that ends at bar j. */
+function periodsPerYear(tv: Float64Array, cv: Float64Array, i: number): number {
+  const counts: number[] = [];
+  for (let j = i - 1; j >= 0 && counts.length < BPY_SESSIONS; j -= cv[j]!) counts.push(cv[j]!);
+  const perDay = median(counts);
+  if (perDay >= 2) return perDay * TRADING_DAYS;
+  const lo = Math.max(0, i - BPY_COARSE + 1), n = i - lo + 1;
+  if (n < 6) return NaN_;
+  const gaps: number[] = [];
+  for (let k = lo + 1; k <= i; k++) if (tv[k]! > tv[k - 1]!) gaps.push(tv[k]! - tv[k - 1]!);
+  if (gaps.length === 0) return NaN_;
+  const spacing = median(gaps);
+  if (spacing >= DAY_MS && spacing < 1.5 * DAY_MS) {
+    const week = [0, 0, 0, 0, 0, 0, 0];
+    for (let k = lo; k <= i; k++) week[((Math.floor(tv[k]! / DAY_MS) % 7) + 7) % 7]!++;
+    const quiet = Math.min(...week.map((c, d) => c + week[(d + 1) % 7]!));
+    if (quiet <= Math.max(WEEKEND_SHARE * n, n >= 7 ? 1 : 0)) return (TRADING_DAYS * DAY_MS) / spacing;
+  }
+  return (365 * DAY_MS) / spacing;
 }
 
 export function checkPeriod(p: number): void {

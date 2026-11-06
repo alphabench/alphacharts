@@ -73,7 +73,10 @@ One generated file per family, each line `ta.<id>(parameters) -> outputs · plac
 - Volatility (volatility, tv, statistic): `ta.atr ta.natr ta.trange ta.adr ta.hist_vol ta.stddev ta.var
   ta.rvi_volatility ta.mass_index`. For a plain rolling deviation use the kernels `ta.stdev` and `ta.variance`.
 - Volume (volume, tv): `ta.volume ta.obv ta.ad ta.adosc ta.mfi ta.chaikin_mf ta.elder_force ta.eom ta.klinger
-  ta.net_volume ta.pvt ta.volume_osc ta.vwap ta.anchored_vwap`.
+  ta.net_volume ta.pvt ta.volume_osc ta.vwap ta.anchored_vwap`. `ta.vwap` is the **Session VWAP**: it restarts at each session (day, or week,
+  month, year by `anchor`), which is what VWAP means on an intraday chart; it is never one running average over the whole chart. For a start
+  you choose use `ta.anchored_vwap`.
+- Annualisation (tv): `ta.bars_per_year(source, utcOffsetMinutes)` is the built-in series `bars_per_year`; give it an outside series to count that series' bars.
 - Price transforms (price): `ta.avgprice ta.medprice ta.typprice ta.wclprice`.
 - Statistics (statistic): `ta.linearreg ta.linearreg_angle ta.linearreg_slope ta.linearreg_intercept ta.tsf ta.correl
   ta.beta`.
@@ -178,6 +181,10 @@ cannot take a `var` variable as its source (script-language). Styling is in [plo
 - Kernels and studies of the same name are the same computation; the reference shows the callable signature.
 - Studies mirror TA-Lib or TradingView definitions (the registry's `reference` field says which); a study's warm-up is
   longer than its main length when it smooths (ADX needs about twice its length).
+- Where a study is not TA-Lib's number, its `reference` says so. Three that matter for a quant: `ta.atr`, `ta.natr` and every ATR band
+  (`ta.keltner`, `ta.supertrend`, `ta.chande_kroll_stop`, `ta.median`) are Wilder's ATR: the true range of bar 0 is high -
+  low and the first value is at bar `length - 1` (TA-Lib skips bar 0, starts a bar later and differs by a different seed). the RSI reports 100, not
+  TA-Lib's 0, while the first `length` changes are all zero (RS is 0/0; charting packages say 100). `ta.vwap` is session VWAP.
 
 ## 8. Common mistakes
 

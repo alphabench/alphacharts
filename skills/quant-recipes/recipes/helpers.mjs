@@ -9,6 +9,8 @@ export const simpleReturns = (close) => Array.from(close, (c, i) => (i === 0 ? N
 export const logReturns = (close) => Array.from(close, (c, i) => (i === 0 ? NA : Math.log(c / close[i - 1])));
 
 export const mean = (w) => w.reduce((a, b) => a + b, 0) / w.length;
+/** Sample standard deviation (divisor n - 1), written from the definition, with its hand-worked check, and bars per year from the stated rule. */
+export { sampleSd, barsPerYear } from "../../outside-series/recipes/helpers.mjs";
 /** Population standard deviation (divisor n), the one ta.stdev uses. */
 export const popSd = (w) => {
   const m = mean(w);

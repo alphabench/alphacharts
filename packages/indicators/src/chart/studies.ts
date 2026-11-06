@@ -87,11 +87,6 @@ export class Study {
   private shades: { plot: Extract<PlotDef, { kind: "bgcolor" }>; col: number; prim: BarShading; anchor: AnySeries }[] = [];
   /** Outside series the host gave this study, by key. */
   private feeds = new Map<string, Feed>();
-  /**
-   * Longer-timeframe series ("closed" join) whose forming bar is not shown on any chart bar: the last row sent to a runner,
-   * and the newest revision of it not sent yet. A revision is sent when the next row opens (its final state), not per tick.
-   */
-  private feedSent = new Map<string, { time: number; held?: FeedBar }>();
   private sameScale = true;
   private styles: Record<string, PlotStyle> = {};
   private shown = true;
@@ -268,7 +263,6 @@ export class Study {
     let f = this.feeds.get(key);
     if (!f) this.feeds.set(key, (f = new Feed()));
     f.load(bars, cfg, `outside series ${key}`);
-    this.feedSent.delete(key);
     this.recompute();
     this.host.changed();
   }
@@ -295,16 +289,8 @@ export class Study {
     }
     const runner = this.ownRunner ?? this.host.runner;
     if (runner?.canRun(this.def)) {
-      if (f.align === "closed") {
-        const sent = this.feedSent.get(key);
-        if (sent && sent.time === bar.time) {
-          sent.held = bar; // the forming bar again: no chart bar sees it yet
-          return;
-        }
-        // a new row: the one before is final now
-        if (sent?.held) runner.feedBar?.(this.def, key, sent.held);
-        this.feedSent.set(key, { time: bar.time });
-      }
+      // every revision goes to the runner, the forming bar's too: a chart bar that opens as the longer bar finishes must see its final
+      // values, not those of its first tick (the runner answers a revision no chart bar sees as idle, at the cost of one message)
       runner.feedBar?.(this.def, key, bar);
       return;
     }

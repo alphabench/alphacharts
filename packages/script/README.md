@@ -65,19 +65,19 @@ plotshape(ta.crossover(close, up), "Break", shape.triangleup, location.belowbar,
   are string literals (`na` or left out: the chart's own), `field` one of open, high, low, close, volume. The package names nothing and fetches nothing:
   `compile().plan.dependencies` lists each `{symbol, field, timeframe}` without running anything, `feedsOf(...)` groups them by series, and the host
   loads each and passes it with `handle.setSeries(key, bars)` (bars in the series' own time) and `handle.pushSeries(key, bar)` for live bars.
-  `RunScriptOptions.intervalMs` (the chart's bar length) is required when the script reads any. The rules, which are the safety property:
+  `RunScriptOptions.intervalMs` (the chart's bar length) is required when the script reads any. `describeJoin(chartTimes, feedTimes, { align, spanMs })` (same as `alignFor` returns) says why a feed is blank on a chart: how many chart bars see a bar of it and, when none, the reason, e.g. NSE hourly bars (09:15) read from an MCX hourly chart (09:00) never share a time (`reason: "different-clock"`, `offsetMs: 900000`, with a sentence for the user). The rules, which are the safety property:
   a same-length series joins on exactly equal bar time and is `na` where the other has no bar (nothing carried over); a longer one joins on the latest
   bar that has finished (open + length not after the chart bar's start), so history never holds a value from after its bar and the live bar shows the last
   finished one; a shorter one is refused. A series with a timeframe is computed on its own bars (`ta.rsi(outside(timeframe="1h"), 14)` is hourly RSI),
   one without on the chart's; mixing it with other series puts each on the chart's bars first. `indicators/src/engine/feed.ts` has the join.
-- **Built-in series**: `open high low close volume time hl2 hlc3 ohlc4 hlcc4 bar_index`, `ta.tr`.
+- **Built-in series**: `open high low close volume time hl2 hlc3 ohlc4 hlcc4 bar_index bars_per_year`, `ta.tr` (na on bar 0, Pine's). `bars_per_year` is the chart's bars in a year read from its own bars (a causal annualisation: the median bars per UTC day over the last 60 finished days times 252 for intraday bars; 252 for daily bars without weekend bars, else 365 days over the median spacing), constant within a day, na before the first finished day, never a value from after the bar. `math.sqrt(bars_per_year)` annualises; `ta.bars_per_year(source, utcOffsetMinutes)` cuts the day elsewhere or counts an outside series' bars.
 - **Functions**: `math.abs sqrt pow log log10 exp sin cos tan asin acos atan sinh cosh tanh ceil floor trunc round sign avg max min toradians todegrees`,
   `math.pi math.e`, `nz`, `na`, `color.new`, and `ta.*` below. There are no user functions, strings operations, arrays, `while`, `eval` or any
   way to name a host object: such words are refused with a diagnostic.
 
 ### `ta.*`
 
-- Kernels (the graph's own): `sma ema wma rma highest lowest highestbars lowestbars stdev variance sum linreg` `(source, length)`, `atr(length)`, `ta.tr`,
+- Kernels (the graph's own): `sma ema wma rma highest lowest highestbars lowestbars sum linreg` `(source, length)`, `stdev` and `variance` `(source, length, sample=false)` (population, divisor n; `sample=true` divides by n - 1 and needs length 2 or more), `atr(length)` (Wilder's: bar 0's true range is high - low, first value at bar length - 1), `ta.tr`,
   `change(source, length=1)`, `crossover / crossunder / cross(a, b)`, `bb(source, length, mult) -> [basis, upper, lower]`.
   `highestbars/lowestbars` are bars since the extreme (0 = this bar), as the built-in Aroon uses them (TradingView's are negated).
 - **Every other study of `@alphacharts/indicators`** (all 200+ non-math ones, TA-Lib's catalogue and the TradingView set, candlestick patterns

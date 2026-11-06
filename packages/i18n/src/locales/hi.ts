@@ -187,7 +187,7 @@ export const hi: Catalogue = {
   "indicator.sma": "सरल मूविंग एवरेज",
   "indicator.ema": "एक्सपोनेंशियल मूविंग एवरेज",
   "indicator.wma": "भारित मूविंग एवरेज",
-  "indicator.vwap": "वॉल्यूम-भारित औसत मूल्य",
+  "indicator.vwap": "सत्र वॉल्यूम-भारित औसत मूल्य",
   "indicator.bollinger": "बोलिंगर बैंड",
   "indicator.keltner": "केल्टनर चैनल",
   "indicator.donchian": "डोंचियन चैनल",

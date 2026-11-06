@@ -169,7 +169,7 @@ describe("script examples", () => {
 
   it("a recipe whose fixture is wrong", T, async () => {
     const d = tree();
-    edit(join(d, "quant-recipes/recipes/realised-vol.expected.mjs"), "* Math.sqrt(ann) * 100", "* Math.sqrt(ann)");
+    edit(join(d, "quant-recipes/recipes/realised-vol.expected.mjs"), "* Math.sqrt(ppy[i]) * 100", "* Math.sqrt(ppy[i])");
     expectError(await errs(d), "recipes/realised-vol.acs", "differs from the fixture");
   });
 
@@ -196,7 +196,7 @@ describe("script examples", () => {
   it("an outside-series recipe on the wrong side of the join rule", T, async () => {
     const d = tree();
     // a daily bar shown on its own day (the fixture follows the rule: only a finished day)
-    edit(join(d, "outside-series/recipes/previous-day-levels.expected.mjs"), "ctx.outside(null, \"high\", \"1d\")", "ctx.outside(null, \"low\", \"1d\")");
+    edit(join(d, "outside-series/recipes/previous-day-levels.expected.mjs"), "\"Previous high\": level(\"high\")", "\"Previous high\": level(\"low\")");
     expectError(await errs(d), "recipes/previous-day-levels.acs", "differs from the fixture");
   });
 

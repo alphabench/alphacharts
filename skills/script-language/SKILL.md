@@ -113,24 +113,29 @@ operations.
 
 The signatures are generated from the compiler: [builtins.md](reference/builtins.md). Names by group:
 
-- Series: `open high low close volume time bar_index hl2 hlc3 ohlc4 hlcc4 ta.tr`. `volume` needs volume data; `time` is
-  UTC milliseconds; `bar_index` is the int bar number from 0; `ta.tr` is `na` on bar 0.
+- Series: `open high low close volume time bar_index bars_per_year hl2 hlc3 ohlc4 hlcc4 ta.tr`. `volume` needs volume data; `time` is
+  UTC milliseconds; `bar_index` is the int bar number from 0; `ta.tr` is `na` on bar 0 (Pine's; `ta.atr` does not use that, below).
+  `bars_per_year` is the chart's bars in a year, read from the chart's own bars and with nothing from after
+  the bar: bars per session (the median over the last 60 finished sessions, a session being a UTC day) times 252 for intraday bars, 252 for
+  daily bars without weekend bars, 365 for daily bars with them, 52.14 for weekly. It is constant within a session and `na` until the first session
+  has finished (for bars of a day or longer, until six bars). Use `math.sqrt(bars_per_year)` to annualise; never type the number. Another
+  series' bars: `ta.bars_per_year(outside(timeframe = "1d"))`.
 - Math: `math.abs math.sqrt math.pow math.log math.log10 math.exp math.sin math.cos math.tan math.asin math.acos math.atan
   math.sinh math.cosh math.tanh math.ceil math.floor math.trunc math.round math.sign math.max math.min math.avg
   math.toradians math.todegrees`, constants `math.pi math.e`. `math.max`, `math.min` and `math.avg` take two arguments and
   are `na` if either is. `math.round` rounds halves up. `math.sum(source, length)` equals `ta.sum`, checked in kernels.acs.
 - Helpers: `nz(x, replacement)`, `na(x)`.
 - Kernels (any series, `length` 1 to 5000; `ta.linreg` needs 2 or more): `ta.sma ta.ema ta.wma ta.rma ta.highest ta.lowest ta.highestbars ta.lowestbars
-  ta.stdev ta.variance ta.sum ta.linreg`, `ta.atr(length)`, `ta.change(source, length)`, `ta.crossover(a, b)`,
+  ta.stdev ta.variance ta.sum ta.linreg`, `ta.atr(length)`, `ta.stdev(source, length, sample)` and `ta.variance(source, length, sample)` (`sample=true` divides by n - 1, length 2 or more), `ta.change(source, length)`, `ta.crossover(a, b)`,
   `ta.crossunder(a, b)`, `ta.cross(a, b)` and `[basis, upper, lower] = ta.bb(source, length, mult)`.
 - Declarations: `indicator`, `input.int input.float input.bool input.string input.source input.color`, and the output
   statements of [plots-and-panes](../plots-and-panes/SKILL.md).
 
 Semantics, each checked against a plain-JavaScript recomputation in [kernels.acs](examples/kernels.acs): `ta.stdev` and
-`ta.variance` divide by n; `ta.ema` and `ta.rma` start from the SMA of the first `length` values; `ta.highestbars` and
+`ta.variance` divide by n unless `sample` is `true`, then by n - 1; `ta.ema` and `ta.rma` start from the SMA of the first `length` values; `ta.highestbars` and
 `ta.lowestbars` count bars since the extreme (0 is this bar) and are `int` (na until the window is full, and an index by an `na` fails at run time); `ta.linreg` is the least-squares line read at the last bar;
-`ta.wma` weights the newest bar `length`; `ta.change(source, length)` is `source - source[length]`; `ta.atr` is Wilder's, first value at bar
-`length`; `ta.bb` uses the population deviation, `basis` is the SMA.
+`ta.wma` weights the newest bar `length`; `ta.change(source, length)` is `source - source[length]`; `ta.atr` is Wilder's (the true range of bar 0 is high - low, the first value at bar
+`length - 1` is the mean of the first `length` true ranges; TA-Lib's skips bar 0 and starts a bar later); `ta.bb` uses the population deviation, `basis` is the SMA.
 
 <!-- skill: expect: {"same": {"all": 1}} -->
 ```alphacharts
@@ -239,7 +244,7 @@ return series that can be used in formulas and in `?:`. The output statements co
 ## 9. Validation
 
 The browser compiles the script and diagnostics come back with line and column. Then check the first non-`na` bar: a
-`ta.*` length of `n` produces its first value on bar `n - 1` (`n` for `ta.atr` and anything that needs a previous close).
+`ta.*` length of `n` produces its first value on bar `n - 1` (`n - 1` for `ta.atr` too; `n` for studies that need a previous close, such as `ta.adx`).
 
 ## 10. Related skills
 

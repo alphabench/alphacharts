@@ -2,7 +2,7 @@
 name: alphacharts-outside-series
 description: >
     Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads,
-    relative strength, beta, beta-adjusted price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, daily returns and N-day statistics (Sharpe, volatility) on an intraday chart, previous-day
+    relative strength, beta, market-neutral price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, daily returns and N-day statistics (Sharpe, volatility) on an intraday chart, previous-day
     levels, and the exact rules that decide which of its bars a chart bar sees.
 version: 1.0
 api_version: 0.x
@@ -141,20 +141,27 @@ plot(cov / (ta.stdev(ra, len) * ta.stdev(rb, len)), "Correlation", color.teal)
 hline(0, "Zero", color.gray, hline.style_dashed)
 ```
 
-**Beta-adjusted price.** The usual meaning of the phrase, taken without asking: the price less its rolling beta to the index
-times the index (the part of the stock's price the market does not explain), with beta the covariance of the two simple
-returns over the variance of the index's. 60 bars unless a length is said. Name the index in the reply ("the index" is Nifty 50)
-and say the meaning that was taken.
+**Market-neutral price.** What the phrases "beta-adjusted price" and "price without the market" mean here, taken without asking: a price line
+that moves only by what the index does not explain. Each bar's return is the stock's simple return less its rolling beta times the index's
+simple return (beta is the covariance of the two over the variance of the index's, 60 bars unless a length is said), and the line compounds
+those hedged returns from a base, the close of the first bar whose beta is known. Do not subtract beta times the index LEVEL from the price: a
+beta is a ratio of returns, so a return beta times an index level (close 2,500, index 24,000, beta 1.1 gives -23,900) is a number in no unit.
+A bar with no hedged return (the index has no bar, or beta is not known yet) draws nothing and adds nothing to the line. Name the index in the
+reply ("the index" is Nifty 50) and say the meaning that was taken.
 
-<!-- skill: file: recipes/beta-adjusted-price.acs -->
+<!-- skill: file: recipes/market-neutral-price.acs -->
 ```alphacharts
-indicator("Beta-adjusted price")
+indicator("Market-neutral price", overlay=true)
 len = input.int(60, "Beta length", minval=3, maxval=500)
 idx = outside("IDX")
 ra = close / close[1] - 1
 rb = idx / idx[1] - 1
 beta = (ta.sma(ra * rb, len) - ta.sma(ra, len) * ta.sma(rb, len)) / ta.variance(rb, len)
-plot(close - beta * idx, "Beta-adjusted price", color.blue)
+excess = ra - beta * rb
+var float level = na
+if not na(excess)
+    level := na(level) ? close : level * (1 + excess)
+plot(na(excess) ? na : level, "Market-neutral price", color.blue)
 ```
 
 **Regression residual.** The price minus its rolling least-squares fit on the other instrument.
@@ -215,26 +222,35 @@ hline(0, "Even", color.gray, hline.style_dashed)
 ```
 
 **Previous day's high, low and close.** From a daily series of the chart's own instrument, so it works on any intraday bar
-size and needs no session logic.
+size and needs no session logic, and the values are the broker's own daily bar (see the gap note in quant-recipes on why the
+daily close is the official one). On a chart whose bars are a day or longer the daily series is the chart's own bars and
+`outside(timeframe = "1d")` at a bar is that bar, not the day before, so the recipe reads one bar back there. It tells the two
+apart with `bars_per_year` (400 or more is intraday; a daily chart is 252 or 365), so the same preset works on both and
+draws nothing, rather than a wrong day, until that is known (the first day of an intraday chart, the first five bars of a daily one).
 
 <!-- skill: file: recipes/previous-day-levels.acs -->
 ```alphacharts
 indicator("Previous day high, low and close", overlay=true)
-plot(outside(timeframe = "1d", field = "high"), "Previous high", color.green)
-plot(outside(timeframe = "1d", field = "low"), "Previous low", color.red)
-plot(outside(timeframe = "1d", field = "close"), "Previous close", color.gray)
+hi = outside(timeframe = "1d", field = "high")
+lo = outside(timeframe = "1d", field = "low")
+cl = outside(timeframe = "1d", field = "close")
+intraday = bars_per_year >= 400
+daily = bars_per_year < 400
+plot(intraday ? hi : daily ? hi[1] : na, "Previous high", color.green)
+plot(intraday ? lo : daily ? lo[1] : na, "Previous low", color.red)
+plot(intraday ? cl : daily ? cl[1] : na, "Previous close", color.gray)
 ```
 
-**Rolling Sharpe of daily returns on an intraday chart.**
+**Rolling Sharpe of daily returns on an intraday chart.** The days per year come from the daily series itself,
+`ta.bars_per_year` given the daily series: 252 for a market that leaves weekends out, 365 for one that does not. Never a typed number.
 
 <!-- skill: file: recipes/rolling-sharpe-daily.acs -->
 ```alphacharts
 indicator("Rolling Sharpe of daily returns")
 len = input.int(10, "Days", minval=3, maxval=250)
-ann = input.int(252, "Days per year", minval=1, maxval=400)
 d = outside(timeframe = "1d")
 r = d / d[1] - 1
-plot(ta.sma(r, len) / ta.stdev(r, len) * math.sqrt(ann), "Sharpe", color.blue)
+plot(ta.sma(r, len) / ta.stdev(r, len, true) * math.sqrt(ta.bars_per_year(d)), "Sharpe", color.blue)
 hline(0, "Zero", color.gray, hline.style_dashed)
 ```
 
@@ -274,6 +290,9 @@ are in [studies](../studies/SKILL.md): any `ta.<id>` that takes a `source` takes
 
 ## 7. Constraints and correctness
 
+- A same-timeframe series from an exchange on another clock never meets the chart: hourly bars open at 09:15 on NSE and 09:00 on MCX, so no
+  bar has the other's time and every value is `na` (a blank chart is the correct result, not an error in the script). Read a longer
+  timeframe, such as `1d`, or tell the user the two do not share bar times. The host can say how far apart they are (`describeJoin`).
 - First values are `na` until both series have bars and the window is full. A window that reaches a missing bar of a
   same-timeframe series is `na`.
 - No value on a bar uses data from after that bar. A longer-timeframe value changes only when a bar finishes.
@@ -292,8 +311,9 @@ are in [studies](../studies/SKILL.md): any `ta.<id>` that takes a `source` takes
 - Today's open, or any of today's values, from a daily series: `outside(timeframe = "1d", field = "open")` on an intraday
   chart is **yesterday's** open, and on a daily chart it is the chart's own bar. Today's open is the open of the chart's
   first bar of the session, found by the change of the day number (the gap recipe in quant-recipes). The **previous** close
-  is the one thing the daily series gives: `outside(timeframe = "1d")` on an intraday chart, or `close[1]` at the first bar
-  of the session on any bar size.
+  is the one thing the daily series gives, and it is the official one: `outside(timeframe = "1d")` on an intraday chart. `close[1]` at the first
+  bar of an intraday session is only the last continuous trade, which can differ from the exchange's close (the gap recipe in quant-recipes says
+  why); on a chart of daily bars `close[1]` is the official close.
 - A new day detected as `time / 86400000 != time[1] / 86400000`: without `math.floor` the division is a fraction, so it is
   true on every bar. A day number is `math.floor((time + off * 60000) / 86400000)`.
 - Typing a symbol the user did not give, or a code in the wrong form: use their words. There is no spot currency series: a

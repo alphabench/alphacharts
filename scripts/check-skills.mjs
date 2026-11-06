@@ -268,8 +268,8 @@ function attempt(engine, source, { inputs = {}, limits, bars }) {
   }
   if (!compiled.ok) return { ok: false, messages: compiled.diagnostics.map((d) => d.message), diagnostics: compiled.diagnostics, phase: "compile" };
   try {
-    // a script that reads outside series runs on many days of bars with every series it reads generated here
-    if (compiled.plan.dependencies.length > 0) {
+    // a script that reads outside series, or bars per year (it needs finished days), runs on many days of bars with every series it reads generated here
+    if (compiled.plan.dependencies.length > 0 || /\bbars_per_year\b/.test(source)) {
       const o = runWithOutside(engine, compiled, inputs);
       return { ok: true, compiled, columns: o.columns, messages: [], bars: o.bars, ctx: o.ctx };
     }

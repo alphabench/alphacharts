@@ -1,7 +1,6 @@
 indicator("Rolling Sharpe (zero risk-free rate)")
 len = input.int(60, "Length", minval=2, maxval=1000)
-ann = input.int(252, "Bars per year", minval=1, maxval=1000000)
 r = close / close[1] - 1
-sharpe = ta.sma(r, len) / ta.stdev(r, len) * math.sqrt(ann)
+sharpe = ta.sma(r, len) / ta.stdev(r, len, true) * math.sqrt(bars_per_year)
 plot(sharpe, "Sharpe", color.teal)
 hline(0, "Zero", color.gray)

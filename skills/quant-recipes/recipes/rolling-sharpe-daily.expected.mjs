@@ -1,12 +1,13 @@
-import { NA, div, mean, popSd, returns, rolling } from "../../outside-series/recipes/helpers.mjs";
+import { NA, barsPerYear, div, mean, returns, rolling, sampleSd } from "../../outside-series/recipes/helpers.mjs";
 
-export const inputs = { len: 10, ann: 252 };
+export const inputs = { len: 10 };
 
-export function expected(_bars, { len, ann }, ctx) {
+export function expected(_bars, { len }, ctx) {
   const day = ctx.feed(null, "1d");
-  // returns and the window are over daily bars; the result is read on the chart's bars (a finished day)
+  // returns, the window and the bars per year are over the daily bars; the result is read on the chart's bars (a finished day)
   const r = returns(Array.from(day.close));
-  const m = rolling(r, len, mean), s = rolling(r, len, popSd);
-  const sharpe = m.map((v, i) => (Number.isNaN(v) ? NA : div(v, s[i]) * Math.sqrt(ann)));
+  const ppy = barsPerYear(Array.from(day.time));
+  const m = rolling(r, len, mean), s = rolling(r, len, sampleSd);
+  const sharpe = m.map((v, i) => (Number.isNaN(v) || Number.isNaN(ppy[i]) ? NA : div(v, s[i]) * Math.sqrt(ppy[i])));
   return { Sharpe: ctx.join(day, sharpe) };
 }

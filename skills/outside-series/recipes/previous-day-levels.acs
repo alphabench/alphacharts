@@ -1,4 +1,9 @@
 indicator("Previous day high, low and close", overlay=true)
-plot(outside(timeframe = "1d", field = "high"), "Previous high", color.green)
-plot(outside(timeframe = "1d", field = "low"), "Previous low", color.red)
-plot(outside(timeframe = "1d", field = "close"), "Previous close", color.gray)
+hi = outside(timeframe = "1d", field = "high")
+lo = outside(timeframe = "1d", field = "low")
+cl = outside(timeframe = "1d", field = "close")
+intraday = bars_per_year >= 400
+daily = bars_per_year < 400
+plot(intraday ? hi : daily ? hi[1] : na, "Previous high", color.green)
+plot(intraday ? lo : daily ? lo[1] : na, "Previous low", color.red)
+plot(intraday ? cl : daily ? cl[1] : na, "Previous close", color.gray)
