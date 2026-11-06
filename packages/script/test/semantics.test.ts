@@ -123,6 +123,27 @@ plotshape(close > open, "Up", shape.triangleup, location.belowbar, color.green)`
     expect((r.study.plots[3] as { value: (p: object) => number }).value({})).toBe(50);
     expect(r.study.plots[5]).toMatchObject({ shape: "triangleUp", position: "below" });
   });
+  it("hline returns a handle that fill takes: between two levels, and between a plot and a level", () => {
+    const r = ok(`up = hline(70, "Up", color.red)
+lo = hline(30, "Low", color.green)
+p = plot(ta.rsi(close, 14), "RSI")
+fill(up, lo, color.new(color.gray, 90), "Band")
+fill(p, up, color.new(color.red, 80), "Overbought")`);
+    expect(r.study.columns).toEqual(["up~level", "low~level", "rsi"]);
+    expect(r.study.plots.map((p) => [p.kind, p.key])).toEqual([["hline", "up"], ["hline", "low"], ["line", "rsi"], ["fill", "band"], ["fill", "overbought"]]);
+    expect(r.study.plots[3]).toMatchObject({ a: "up~level", b: "low~level" });
+    expect(r.study.plots[4]).toMatchObject({ a: "rsi", b: "up~level" });
+    const cols = run(`up = hline(70)\nlo = hline(30)\nfill(up, lo)`);
+    expect(cols.length).toBe(2);
+    for (let i = 0; i < DATA.close.length; i++) { expect(cols[0]![i]).toBe(70); expect(cols[1]![i]).toBe(30); }
+  });
+  it("an hline handle takes its level from an input, and an hline nobody fills adds no column", () => {
+    expect(ok("h = hline(50)\nplot(close)").study.columns.length).toBe(1);
+    const cols = run("lvl = input.float(65, \"Level\")\nh = hline(lvl)\np = plot(close)\nfill(p, h)", { lvl: 70 });
+    expect(cols.length).toBe(2);
+    expect(cols[0]![0]).toBe(70);
+    expect(run("lvl = input.float(65, \"Level\")\nh = hline(lvl)\np = plot(close)\nfill(p, h)")[0]![3]).toBe(65);
+  });
   it("a markers plot is na where the condition is false and 1 where true", () => {
     const v = run("plotshape(close > close[1])")[0]!;
     for (let i = 1; i < 30; i++) expect(v[i]).toBe(DATA.close[i]! > DATA.close[i - 1]! ? 1 : Number.NaN);

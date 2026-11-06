@@ -1,0 +1,15 @@
+indicator("RSI with zones")
+len = input.int(14, "Length", minval=2, maxval=200)
+hi = input.float(70, "Overbought", minval=50, maxval=100)
+lo = input.float(30, "Oversold", minval=0, maxval=50)
+r = ta.rsi(close, len)
+over = hline(hi, "Overbought level", color.red, hline.style_dashed)
+under = hline(lo, "Oversold level", color.green, hline.style_dashed)
+rsi = plot(r, "RSI", color.purple)
+hot = plot(math.max(r, hi), "RSI above level", color.new(color.red, 100))
+cold = plot(math.min(r, lo), "RSI below level", color.new(color.green, 100))
+fill(hot, over, color.new(color.red, 70), "Overbought zone")
+fill(cold, under, color.new(color.green, 70), "Oversold zone")
+fill(over, under, color.new(color.gray, 92), "Neutral band")
+// math.max(r, hi) is the RSI only while it is above the level and the level itself otherwise, so the fill
+// between it and the level has height only where the RSI is out of the band.

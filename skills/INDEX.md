@@ -59,7 +59,7 @@ Load when:
 
 ## Plots and panes
 
-Drawing a script's output: plot, plot styles, hline, fill, plotshape, overlay versus own pane, colours as constants, input.* controls, and a line shown only where a condition holds with two gapped plots.
+Drawing a script's output: plot, plot styles, hline, fill (shading zones such as RSI above 70), plotshape, overlay versus own pane, colours as constants, input.* controls, and a line shown only where a condition holds with two gapped plots.
 
 Name: `alphacharts-plots-and-panes`  
 Path: [plots-and-panes/SKILL.md](plots-and-panes/SKILL.md)  
@@ -75,7 +75,7 @@ Load when:
 
 ## Colour and shading
 
-Colour that depends on the bar: barcolor to colour candles, bgcolor to shade the background of a pane, a line coloured by a condition, and indicator(scale="left") to draw a series of another magnitude on the left axis.
+Colour that depends on the bar: barcolor to colour candles, bgcolor to shade the background of a pane, a line coloured by a condition, and indicator(scale="left") to draw a series of another magnitude on the left axis. It colours a condition and has no formulas for the gap, a previous close or any other level (quant-recipes).
 
 Name: `alphacharts-colour-and-shading`  
 Path: [colour-and-shading/SKILL.md](colour-and-shading/SKILL.md)  
@@ -91,7 +91,7 @@ Load when:
 
 ## Outside series
 
-Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.
+Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, beta-adjusted price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.
 
 Name: `alphacharts-outside-series`  
 Path: [outside-series/SKILL.md](outside-series/SKILL.md)  
@@ -107,7 +107,7 @@ Load when:
 
 ## Quant recipes
 
-Worked, numerically verified scripts for quant measures: z-score of returns, realised volatility, HV ratio, rolling Sharpe, beta and correlation on a series' own lag, autocorrelation, ADX/EMA regime, distance in ATR units, range expansion, breakout share, cumulative volume delta, session VWAP and the previous session's VWAP, swing highs and lows, VWAP anchored at a swing low, opening range, a Kalman-style filter.
+Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous session's high, low, close and VWAP, opening range, swing highs and lows, VWAP from a swing, z-score, realised volatility, rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any such value, also when the request is to colour or highlight it.
 
 Name: `alphacharts-quant-recipes`  
 Path: [quant-recipes/SKILL.md](quant-recipes/SKILL.md)  

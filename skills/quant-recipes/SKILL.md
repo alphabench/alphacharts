@@ -1,9 +1,10 @@
 ---
 name: alphacharts-quant-recipes
 description: >
-    Worked, numerically verified scripts for quant measures: z-score of returns, realised volatility, HV ratio, rolling Sharpe,
-    beta and correlation on a series' own lag, autocorrelation, ADX/EMA regime, distance in ATR units, range expansion,
-    breakout share, cumulative volume delta, session VWAP and the previous session's VWAP, swing highs and lows, VWAP anchored at a swing low, opening range, a Kalman-style filter.
+    Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous
+    session's high, low, close and VWAP, opening range, swing highs and lows, VWAP from a swing, z-score, realised volatility,
+    rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any
+    such value, also when the request is to colour or highlight it.
 version: 1.0
 api_version: 0.x
 depends_on:
@@ -57,7 +58,7 @@ Conventions every recipe follows:
 | Distance in ATR | (close - SMA) / ATR | Wilder ATR, its own length |
 | Previous session's high, low, close | three stepped lines | any bar size, daily included |
 | Opening range of the session | stepped high and low from the first minutes after the session's first bar | no session start typed in |
-| Range expansion | 1 when the bar's range exceeds a multiple of its average | flag and markers |
+| Range expansion | the bar's range exceeds a multiple of its average | markers |
 | Breakout share | percent of bars closing above the previous high | |
 | Cumulative volume delta | running sum of signed volume | approximation, see below |
 | Session VWAP | VWAP restarting at each exchange-clock day | `time` is milliseconds |
@@ -188,7 +189,7 @@ plot(dist, "Distance", color.blue)
 hline(0, "Zero", color.gray)
 ```
 
-**Range expansion flag.** `1` on bars whose high-low range exceeds `mult` times its own average.
+**Range expansion flag.** A marker under bars whose high-low range exceeds `mult` times its own average. The 0/1 flag is the script's own and is not plotted: on the price pane it would be drawn as the prices 0 and 1.
 
 <!-- skill: file: recipes/range-expansion.acs -->
 ```alphacharts
@@ -198,7 +199,6 @@ mult = input.float(1.5, "Multiple", minval=0.5, maxval=10, step=0.1)
 rng = high - low
 avg = ta.sma(rng, len)
 flag = na(avg) ? na : (rng > mult * avg ? 1 : 0)
-plot(flag, "Flag", color.orange, style=plot.style_histogram)
 plotshape(flag == 1, "Wide bar", shape.triangleup, location.belowbar, color.orange)
 ```
 

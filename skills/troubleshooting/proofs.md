@@ -288,11 +288,11 @@ var p = plot(close)
 
 <!-- skill: invalid: this expression has no value -->
 ```alphacharts
-x = hline(5)
+x = plotshape(close > open)
 plot(close)
 ```
 
-<!-- skill: invalid: a plot handle can only come from plot() -->
+<!-- skill: invalid: a plot handle can only come from plot() or hline() -->
 ```alphacharts
 x = 1
 p = plot(close)
@@ -743,7 +743,7 @@ c = input.color(color.red)
 plot(close, color_down=c)
 ```
 
-<!-- skill: invalid: fill needs line plots (not hline, histogram, area or markers) -->
+<!-- skill: invalid: fill needs line plots or hline levels (not histogram, area or markers) -->
 ```alphacharts
 p = plot(close)
 q = plot(open, style=plot.style_histogram)

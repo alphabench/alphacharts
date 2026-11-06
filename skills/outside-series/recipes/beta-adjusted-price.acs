@@ -1,0 +1,7 @@
+indicator("Beta-adjusted price")
+len = input.int(60, "Beta length", minval=3, maxval=500)
+idx = outside("IDX")
+ra = close / close[1] - 1
+rb = idx / idx[1] - 1
+beta = (ta.sma(ra * rb, len) - ta.sma(ra, len) * ta.sma(rb, len)) / ta.variance(rb, len)
+plot(close - beta * idx, "Beta-adjusted price", color.blue)

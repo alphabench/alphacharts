@@ -2,7 +2,7 @@
 name: alphacharts-outside-series
 description: >
     Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads,
-    relative strength, beta, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day
+    relative strength, beta, beta-adjusted price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day
     levels, and the exact rules that decide which of its bars a chart bar sees.
 version: 1.0
 api_version: 0.x
@@ -139,6 +139,22 @@ rb = outside("AAA") / outside("AAA")[1] - 1
 cov = ta.sma(ra * rb, len) - ta.sma(ra, len) * ta.sma(rb, len)
 plot(cov / (ta.stdev(ra, len) * ta.stdev(rb, len)), "Correlation", color.teal)
 hline(0, "Zero", color.gray, hline.style_dashed)
+```
+
+**Beta-adjusted price.** The usual meaning of the phrase, taken without asking: the price less its rolling beta to the index
+times the index (the part of the stock's price the market does not explain), with beta the covariance of the two simple
+returns over the variance of the index's. 60 bars unless a length is said. Name the index in the reply ("the index" is Nifty 50)
+and say the meaning that was taken.
+
+<!-- skill: file: recipes/beta-adjusted-price.acs -->
+```alphacharts
+indicator("Beta-adjusted price")
+len = input.int(60, "Beta length", minval=3, maxval=500)
+idx = outside("IDX")
+ra = close / close[1] - 1
+rb = idx / idx[1] - 1
+beta = (ta.sma(ra * rb, len) - ta.sma(ra, len) * ta.sma(rb, len)) / ta.variance(rb, len)
+plot(close - beta * idx, "Beta-adjusted price", color.blue)
 ```
 
 **Regression residual.** The price minus its rolling least-squares fit on the other instrument.
@@ -280,7 +296,9 @@ are in [studies](../studies/SKILL.md): any `ta.<id>` that takes a `source` takes
   of the session on any bar size.
 - A new day detected as `time / 86400000 != time[1] / 86400000`: without `math.floor` the division is a fraction, so it is
   true on every bar. A day number is `math.floor((time + off * 60000) / 86400000)`.
-- Typing a symbol the user did not give, or a code in the wrong form: use their words.
+- Typing a symbol the user did not give, or a code in the wrong form: use their words. There is no spot currency series: a
+  currency (`outside("USDINR")`) is found as its listed futures contracts and the user picks one, so say in the reply that it
+  is a futures contract and not spot. The same for any currency pair.
 - A `timeframe` shorter than the chart's.
 - Rebasing with `rs[len]` when the first bars are `na`: the line starts `len` bars after both series exist.
 

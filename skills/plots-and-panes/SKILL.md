@@ -1,8 +1,8 @@
 ---
 name: alphacharts-plots-and-panes
 description: >
-    Drawing a script's output: plot, plot styles, hline, fill, plotshape, overlay versus own pane, colours as constants,
-    input.* controls, and a line shown only where a condition holds with two gapped plots.
+    Drawing a script's output: plot, plot styles, hline, fill (shading zones such as RSI above 70), plotshape, overlay versus
+    own pane, colours as constants, input.* controls, and a line shown only where a condition holds with two gapped plots.
 version: 1.0
 api_version: 0.x
 depends_on:
@@ -30,9 +30,10 @@ puts the script's series on the chart's left axis (see colour-and-shading). `ind
   `style` is `plot.style_line`, `plot.style_histogram` or `plot.style_area`. `linewidth` is 1 to 8. `offset` shifts the
   plot by bars (positive moves it into the future), -5000 to 5000. `color_down` colours histogram bars below zero.
 - `hline(price, title, color, linestyle)` draws a horizontal line at a literal or an input; `linestyle` is
-  `hline.style_solid`, `hline.style_dashed` or `hline.style_dotted`. A level that depends on bars is a `plot`.
-- `fill(plot1, plot2, color, title)` shades between two line plots, given as handles `p = plot(...)`. Histograms, areas,
-  hlines and markers cannot be filled, and the two plots must differ.
+  `hline.style_solid`, `hline.style_dashed` or `hline.style_dotted`. A level that depends on bars is a `plot`. Written
+  `h = hline(70)` it returns a handle, like `plot`, which only `fill` takes.
+- `fill(plot1, plot2, color, title)` shades between two handles: two line plots `p = plot(...)`, a line plot and a level
+  `h = hline(...)`, or two levels. Histograms, areas and markers cannot be filled, and the two must differ.
 - `plotshape(series, title, style, location, color, offset, last, within)` marks bars. With a bool series it marks bars where it is true
   (`location.abovebar` or `location.belowbar`). With a number series it marks that price (`location.absolute`), and `na`
   leaves the bar unmarked. Styles: `shape.circle shape.square shape.diamond shape.triangleup shape.triangledown
@@ -48,6 +49,14 @@ color.navy color.olive color.orange color.purple color.red color.silver color.te
 `#rrggbb` or `#rrggbbaa`, `color.new(color, transp)` (0 opaque to 100 invisible; the colour must be a constant), or an
 `input.color` variable. A line's colour may depend on the bar, written `cond ? colorA : colorB`; candles and the
 background are coloured with `barcolor` and `bgcolor` ([colour-and-shading](../colour-and-shading/SKILL.md)).
+
+**Zones.** To shade where a series is beyond a level, the way RSI above 70 or below 30 is shaded, fill between the level
+and the larger of the series and the level (`math.max`, for above), or the smaller (`math.min`, for below): that line is
+the level itself while the series is inside, so the fill has height only where it is beyond. Draw it with a fully transparent colour
+(`color.new(color.red, 100)`) so only the fill shows. A fill between two levels shades the whole band
+between them, for a neutral zone. The file [rsi-zones.acs](examples/rsi-zones.acs) is checked against a plain-JavaScript
+recomputation. To tint the background of the bars that are beyond a level instead, use `bgcolor`
+([colour-and-shading](../colour-and-shading/SKILL.md)).
 
 **A line shown only where a condition holds.** Draw two plots and give each `na` where it should not show. Include the bar
 where the direction flips in both, so the line has no hole. The file [two-colour-line.acs](examples/two-colour-line.acs) is
@@ -83,6 +92,17 @@ upper = plot(mid + dev, "Upper", color.blue)
 lower = plot(mid - dev, "Lower", color.blue)
 fill(upper, lower, color.new(color.blue, 90))
 plot(mid, "Basis", color.orange, linewidth=2)
+```
+
+Levels as handles, and the zones beyond them shaded: [rsi-zones.acs](examples/rsi-zones.acs).
+
+```alphacharts
+indicator("RSI zones")
+r = ta.rsi(close, 14)
+over = hline(70, "Overbought", color.red)
+under = hline(30, "Oversold", color.green)
+plot(r, "RSI", color.purple)
+fill(over, under, color.new(color.gray, 90), "Band")
 ```
 
 A histogram with its own colour below zero, and a user-set level:
@@ -123,6 +143,13 @@ plotshape(close > up or close < lo, "Outside, last 100 bars", shape.xcross, loca
 ```
 
 Not possible, with the diagnostics:
+
+<!-- skill: invalid: fill needs line plots or hline levels (not histogram, area or markers) -->
+```alphacharts
+h = hline(0)
+v = plot(volume, "Volume", style=plot.style_histogram)
+fill(v, h)
+```
 
 <!-- skill: invalid: argument "plot2" of fill must be a plot handle: p = plot(...) -->
 ```alphacharts
@@ -171,7 +198,8 @@ a bool or a price; combine a pattern study with a comparison, `ta.cdl_hammer() >
 - `plot(close > open)`: bool is not a number.
 - A per-bar colour on a histogram or area (`color = cond ? ...`): only line plots take it; a histogram has `color_down`.
 - `plot` inside `if` or `for`: output is top-level only.
-- `fill` between a histogram, an area or an `hline`: line plots only.
+- `fill` between a histogram, an area or markers: line plots and `hline` handles only. `hline(70)` as a bare statement has no handle to fill: write `h = hline(70)`.
+- A fill between the RSI itself and a level shades everything between them, on both sides of the level; to shade only the zone beyond it, fill between the level and the larger of the RSI and the level (see Zones).
 - `plotshape` of a price without `location.absolute`: a number needs the absolute location, a bool the bar locations.
 - Writing `last=n` with an `input.int` `n`, `last=0`, or `last` on `plot`: it is an integer literal from 1 to 5000, on `plotshape` only. A request for "the last three" of anything that is not a mark (a line, a shaded region) cannot be cut: say so.
 

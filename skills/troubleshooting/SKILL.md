@@ -67,7 +67,7 @@ The common messages are listed here. Everything else is in the catalogue, by pha
 
 ## 5. Examples
 
-A bool plotted, and the repair:
+A bool plotted, and the fix:
 
 <!-- skill: invalid: argument "series" of plot must be a number series, got series bool -->
 ```alphacharts
@@ -78,7 +78,7 @@ plot(close > open)
 plot(close > open ? 1 : 0, "Up bar", style=plot.style_histogram)
 ```
 
-A tuple used as a series, and the repair:
+A tuple used as a series, and the fix:
 
 <!-- skill: invalid: this call returns 3 values; destructure them: [a, b, ...] = ... -->
 ```alphacharts
@@ -110,7 +110,7 @@ plot(smooth, "Smoothed")
 
 ## 6. Composition
 
-Most repairs need script-language (types, state) or studies (parameter lists). Output statement repairs need
+Most fixes need script-language (types, state) or studies (parameter lists). Output statement fixes need
 plots-and-panes.
 
 ## 7. Constraints and correctness
@@ -132,7 +132,7 @@ A script can compile and still look wrong. Check, in this order:
 
 ## 9. Validation
 
-The browser compiles the script and diagnostics come back. A repaired script should compile with no diagnostics and draw
+The browser compiles the script and diagnostics come back. A fixed script should compile with no diagnostics and draw
 something at the bars where its longest window is full.
 
 ## 10. Related skills

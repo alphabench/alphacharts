@@ -57,7 +57,7 @@ plotshape(ta.crossover(close, up), "Break", shape.triangleup, location.belowbar,
   declaration; the variable name is the input key. `string` needs `options=[...]` (a select). `color` inputs are not part of the study
   input schema (the engine has no colour type): they are reported in `compile().colorInputs` and applied as the colour of the plots that use them.
 - **Output**: `plot(series, title, color, linewidth, style, offset, color_down)` (`plot.style_line|histogram|area`), `hline(price, title, color, linestyle)`,
-  `fill(plotA, plotB, color)`, `plotshape(cond, title, style, location, color, offset, last, within)` (`last=N` keeps the N newest marks, `within=M` only marks on the final M bars; integer literals, markers only), `indicator(title, shorttitle, overlay, scale)` (`scale="left"` draws on the
+  `fill(plotA, plotB, color)` (both are handles: `p = plot(...)` and `h = hline(...)`; a fill may join two lines, a line and a level, or two levels, and a level it joins is a column, constant on every bar, named `<hline key>~level`), `plotshape(cond, title, style, location, color, offset, last, within)` (`last=N` keeps the N newest marks, `within=M` only marks on the final M bars; integer literals, markers only), `indicator(title, shorttitle, overlay, scale)` (`scale="left"` draws on the
   chart's left axis), `barcolor(cond, color)` (colours the chart's candles or bars), `bgcolor(cond, color)` (shades the background of the pane the script draws in).
   Colours are constants (`color.red`, `#rrggbb[aa]`, `color.new(c, transp)`) or an `input.color`; a line plot's colour may depend on the bar,
   `plot(x, color = cond ? colorA : colorB)` (constant colours, bool series condition). Output statements are top-level only.

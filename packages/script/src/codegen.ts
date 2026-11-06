@@ -77,7 +77,15 @@ export function generate(plan: Plan, source: string, limits: Limits = DEFAULT_LI
       case "histogram": columns.push(sp.key); plots.push({ kind: "histogram", ...base, col: sp.key, color, ...(sp.colorDown && { colorDown: sp.colorDown }) }); break;
       case "area": columns.push(sp.key); plots.push({ kind: "area", ...base, col: sp.key, color }); break;
       case "markers": columns.push(sp.key); plots.push({ kind: "markers", ...base, col: sp.key, shape: sp.shape as "circle", position: sp.position as "above", color, ...(sp.offset !== undefined && { offset: sp.offset }), ...(sp.last !== undefined && { last: sp.last }), ...(sp.within !== undefined && { within: sp.within }) }); break;
-      case "hline": plots.push({ kind: "hline", ...base, value: (p: Params) => new Builder(null, p, plan, limits).simpleNumber(sp.expr!), color, style: (sp.lineStyle ?? "dashed") as "dashed" }); break;
+      case "hline":
+        // a fill between this level and another plot reads it as a column, constant on every bar
+        if (sp.column) {
+          const col = `${sp.key}~level`;
+          columns.push(col);
+          colOfPlot.set(idx, col);
+        }
+        plots.push({ kind: "hline", ...base, value: (p: Params) => new Builder(null, p, plan, limits).simpleNumber(sp.expr!), color, style: (sp.lineStyle ?? "dashed") as "dashed" });
+        break;
       case "fill": plots.push({ kind: "fill", ...base, a: colOfPlot.get(sp.a!)!, b: colOfPlot.get(sp.b!)!, color }); break;
     }
   });
@@ -195,6 +203,11 @@ class Builder {
     if (exec.length > 0 || this.plan.stateVars.length > 0) this.buildExec(exec);
     const out: Col[] = [];
     for (const sp of this.plan.plots) {
+      if (sp.kind === "hline" && sp.column) {
+        const level = this.simpleNumber(sp.expr!);
+        out.push(g.calc(() => level));
+        continue;
+      }
       if (sp.kind === "hline" || sp.kind === "fill") continue;
       if (sp.kind === "markers" || sp.kind === "barcolor" || sp.kind === "bgcolor") { out.push(this.markers(sp)); continue; }
       out.push(this.colOf(sp.expr!));

@@ -462,6 +462,67 @@
   ]
  ],
  [
+  "h = hline(50)\nplot(h)",
+  [
+   "2:6 argument \"series\" of plot must be a number series, got plot"
+  ]
+ ],
+ [
+  "h = hline(50)\nx = h + 1\nplot(close)",
+  [
+   "2:5 \"+\" needs numbers, got plot and int"
+  ]
+ ],
+ [
+  "h = hline(50)\nfill(h, close)",
+  [
+   "2:9 argument \"plot2\" of fill must be a plot handle: p = plot(...)"
+  ]
+ ],
+ [
+  "h = hline(50)\nfill(h, h)",
+  [
+   "2:1 fill needs two different plots"
+  ]
+ ],
+ [
+  "h = hline(50)\np = plot(close, style=plot.style_histogram)\nfill(h, p)",
+  [
+   "3:9 fill needs line plots or hline levels (not histogram, area or markers)"
+  ]
+ ],
+ [
+  "h = hline(close)\nplot(close)",
+  [
+   "1:11 argument \"price\" of hline must be a literal or an input, not a series value"
+  ]
+ ],
+ [
+  "if close > open\n    h = hline(50)\nplot(close)",
+  [
+   "2:9 hline() is only allowed at the top level of the script"
+  ]
+ ],
+ [
+  "var h = hline(50)\nplot(close)",
+  [
+   "1:1 a plot handle cannot be declared var or typed"
+  ]
+ ],
+ [
+  "float h = hline(50)\nplot(close)",
+  [
+   "1:1 a plot handle cannot be declared var or typed"
+  ]
+ ],
+ [
+  "h = plotshape(close > open)\nplot(close)",
+  [
+   "1:5 plotshape() is only allowed as a statement at the top level of the script",
+   "1:5 this expression has no value"
+  ]
+ ],
+ [
   "hline(50, linestyle=1)",
   [
    "1:21 argument \"linestyle\" of hline must be one of hline.style_*"

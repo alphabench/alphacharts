@@ -4,8 +4,8 @@ Each row: the message (`{...}` stands for text that varies), its cause, the fix.
 
 - `"{name}" is already declared` — A name can be declared once, including inside blocks. Fix: reuse it with `:=`, or choose another name.
 - `'var' is only allowed at the top level of the script` — `var` was used inside `if` or `for`. Fix: declare it at the top, assign inside the block with `:=`.
-- `this expression has no value` — The right-hand side is a statement-only call (`hline`, `indicator`...). Fix: do not assign it.
-- `a plot handle can only come from plot()` — A plot handle was copied or passed through an expression. Fix: use the variable that `plot` returned, directly in `fill`.
+- `this expression has no value` — The right-hand side is a statement-only call (`plotshape`, `indicator`...). Fix: do not assign it.
+- `a plot handle can only come from plot() or hline()` — A plot handle was copied or passed through an expression. Fix: use the variable that `plot` or `hline` returned, directly in `fill`.
 - `cannot assign {...} to {s.type} "{s.name}"` — The value does not fit the declared type. Fix: use the right type, or convert (`c ? 1 : 0` for bool to number).
 - `cannot infer the type of "{s.name}" from na; declare it, e.g. float {s.name} = na` — `x = na` has no type. Fix: `float x = na`.
 - `destructuring is only allowed at the top level of the script` — `[a, b] = ...` inside a block. Fix: destructure at the top level, use the names in the block.

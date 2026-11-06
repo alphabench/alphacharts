@@ -2,7 +2,8 @@
 name: alphacharts-colour-and-shading
 description: >
     Colour that depends on the bar: barcolor to colour candles, bgcolor to shade the background of a pane, a line coloured by
-    a condition, and indicator(scale="left") to draw a series of another magnitude on the left axis.
+    a condition, and indicator(scale="left") to draw a series of another magnitude on the left axis. It colours a condition
+    and has no formulas for the gap, a previous close or any other level (quant-recipes).
 version: 1.0
 api_version: 0.x
 depends_on:
@@ -42,6 +43,10 @@ Rules that hold for all of them:
 - The condition is evaluated on every bar, history and live: when the live bar's price changes the colour follows.
 - `barcolor` needs a candle or bar chart. On a line or area chart it cannot colour anything and the app says so.
 - A script in its own pane (`overlay=false`) that uses `bgcolor` needs a `plot` of a line, histogram or area to hold the pane.
+
+A condition on a level the language has to compute (the gap from the previous close, a previous session's high, an opening
+range) uses the formula of [quant-recipes](../quant-recipes/SKILL.md), which holds those levels as `var` state; this skill
+only colours the result. Load quant-recipes beside this one. The gap recipe ends with `bgcolor` on the gap.
 
 ## 3. API reference
 
@@ -170,6 +175,10 @@ exist on some bars (plots-and-panes).
 - `plot(close, color = cond ? input_colour : color.red)`: both branches constants.
 - A colour ternary on a histogram or an area: lines only.
 - `bgcolor` in an own-pane script with no `plot`.
+- `close[1]` as "the previous close" of a gap, a level or a session: it is the previous bar's close. On the first bar of a session
+  it is the previous session's last close, and on every other bar it is the bar before, so `open` against `close[1]` compares
+  today's open with the previous bar on all but one bar a day. The previous session's close is held at the day's first bar
+  (the gap recipe in quant-recipes).
 - Shading with an opaque colour: it hides the grid and the bars behind; use a transparency of 80 to 95.
 
 ## 9. Validation

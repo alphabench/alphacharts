@@ -48,6 +48,8 @@ export interface PlotSpec {
   /** fill: indexes into the plots. */
   a?: number;
   b?: number;
+  /** hline: a fill draws between it and another plot, so its level is also a column (constant on every bar). */
+  column?: boolean;
   shape?: string;
   position?: string;
   /** plotshape: only the most recent `last` marked bars keep their mark. */
@@ -186,9 +188,9 @@ class Checker {
       this.inputDecl(s);
       return;
     }
-    const isPlot = s.init.k === "call" && this.calleeName(s.init) === "plot";
-    if (isPlot) {
-      if (!top) { this.err("plot() is only allowed at the top level of the script", s.init); return; }
+    const handleOf = s.init.k === "call" ? this.calleeName(s.init) : null;
+    if (handleOf === "plot" || handleOf === "hline") {
+      if (!top) { this.err(`${handleOf}() is only allowed at the top level of the script`, s.init); return; }
       if (s.isVar || s.type) this.err("a plot handle cannot be declared var or typed", s);
       this.call(s.init as Call, "decl");
       const sym: Sym = { name: s.name, kind: "plot", ty: t("plot"), key: String(this.plan.plots.length - 1) };
@@ -199,7 +201,7 @@ class Checker {
     const ity = this.expr(s.init);
     let ty = ity;
     if (ity.b === "void") { this.err("this expression has no value", s.init); ty = ERR; }
-    if (ity.b === "plot") { this.err("a plot handle can only come from plot()", s.init); ty = ERR; }
+    if (ity.b === "plot") { this.err("a plot handle can only come from plot() or hline()", s.init); ty = ERR; }
     if (ity.b === "tuple") { this.err(`this call returns ${ity.elems!.length} values; destructure them: [a, b, ...] = ...`, s.init); ty = ERR; }
     if (s.type) {
       const want = t(s.type as Ty["b"], "const");
@@ -609,7 +611,7 @@ class Checker {
     const declLike = name === "plot" || name === "hline" || name === "fill" || name === "plotshape" || name === "indicator" || name === "barcolor" || name === "bgcolor";
     if (declLike) {
       if (this.depth > 0 || mode === "expr" || mode === "expr-block") this.err(`${name}() is only allowed as a statement at the top level of the script`, c);
-      else if (mode === "decl" && name !== "plot") this.err(`${name}() does not return a handle`, c);
+      else if (mode === "decl" && name !== "plot" && name !== "hline") this.err(`${name}() does not return a handle`, c);
     }
     if (name.startsWith("input.") && mode !== "decl") {
       this.err("input.* may only be the whole right-hand side of a top-level declaration: name = input.int(...)", c);
@@ -834,7 +836,7 @@ class Checker {
     const title = this.str(b[1]) ?? `Level ${n + 1}`;
     const ls = b[3] ? (this.constVal(b[3]) as string | undefined) : undefined;
     this.plan.plots.push({ kind: "hline", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[2], "#787b86"), expr: b[0]!, ...(ls && { lineStyle: ls }), span: c });
-    return t("void");
+    return t("plot");
   }
 
   private fill(c: Call, b: (Expr | null)[]): Ty {
@@ -843,7 +845,10 @@ class Checker {
     const idx = (e: Expr | null | undefined): number | undefined => (e && e.k === "id" && e.sym?.kind === "plot" ? Number(e.sym.key) : undefined);
     const a = idx(b[0]), bb = idx(b[1]);
     for (const [i, e] of [[a, b[0]], [bb, b[1]]] as const) {
-      if (i !== undefined && this.plan.plots[i]!.kind !== "line") this.err("fill needs line plots (not hline, histogram, area or markers)", e!);
+      if (i === undefined) continue;
+      const plot = this.plan.plots[i]!;
+      if (plot.kind === "hline") plot.column = true;
+      else if (plot.kind !== "line") this.err("fill needs line plots or hline levels (not histogram, area or markers)", e!);
     }
     if (a !== undefined && a === bb) this.err("fill needs two different plots", c);
     this.plan.plots.push({ kind: "fill", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[2], "#2962ff33"), ...(a !== undefined && { a }), ...(bb !== undefined && { b: bb }), span: c });

@@ -58,7 +58,7 @@ anything not in price units. Two units means two scripts.
 3. Write the script: `indicator(...)` first, an input for every number the user may want to change, then the logic, then
    `plot`.
 4. Compute levels from bars (a rolling high, an average, a multiple of ATR) rather than typing a number you were not given.
-5. On a diagnostic, load troubleshooting and repair; do not guess.
+5. On a diagnostic, load troubleshooting and fix what it names; do not guess.
 
 ## 5. Examples
 
@@ -110,7 +110,7 @@ quant-recipes holds finished formulas to adapt.
 
 ## 9. Validation
 
-The browser compiles the script and diagnostics come back with line and column. Repair them with the troubleshooting
+The browser compiles the script and diagnostics come back with line and column. Fix them with the troubleshooting
 skill.
 
 ## 10. Related skills

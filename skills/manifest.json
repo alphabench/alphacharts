@@ -80,7 +80,7 @@
       "domain": "plots-and-panes",
       "title": "Plots and panes",
       "path": "plots-and-panes/SKILL.md",
-      "description": "Drawing a script's output: plot, plot styles, hline, fill, plotshape, overlay versus own pane, colours as constants, input.* controls, and a line shown only where a condition holds with two gapped plots.",
+      "description": "Drawing a script's output: plot, plot styles, hline, fill (shading zones such as RSI above 70), plotshape, overlay versus own pane, colours as constants, input.* controls, and a line shown only where a condition holds with two gapped plots.",
       "load_when": [
         "The request is about how something looks: line style, histogram, shaded band, markers, levels, colours.",
         "Adding user-adjustable settings (input.*).",
@@ -93,10 +93,12 @@
       "api_version": "0.x",
       "status": "stable",
       "assets": [
-        "examples/two-colour-line.acs"
+        "examples/two-colour-line.acs",
+        "examples/rsi-zones.acs"
       ],
       "checks": [
-        "examples/two-colour-line.expected.mjs"
+        "examples/two-colour-line.expected.mjs",
+        "examples/rsi-zones.expected.mjs"
       ]
     },
     {
@@ -104,7 +106,7 @@
       "domain": "colour-and-shading",
       "title": "Colour and shading",
       "path": "colour-and-shading/SKILL.md",
-      "description": "Colour that depends on the bar: barcolor to colour candles, bgcolor to shade the background of a pane, a line coloured by a condition, and indicator(scale=\"left\") to draw a series of another magnitude on the left axis.",
+      "description": "Colour that depends on the bar: barcolor to colour candles, bgcolor to shade the background of a pane, a line coloured by a condition, and indicator(scale=\"left\") to draw a series of another magnitude on the left axis. It colours a condition and has no formulas for the gap, a previous close or any other level (quant-recipes).",
       "load_when": [
         "The request is to colour candles or bars where a condition holds.",
         "Shading the price chart or an indicator pane where a condition holds.",
@@ -129,7 +131,7 @@
       "domain": "outside-series",
       "title": "Outside series",
       "path": "outside-series/SKILL.md",
-      "description": "Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.",
+      "description": "Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, beta-adjusted price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.",
       "load_when": [
         "The request involves a second instrument: against the index, spread, ratio, relative strength, beta, correlation, the sector.",
         "The request names another timeframe: RSI on the hourly, daily levels on an intraday chart, daily returns.",
@@ -145,6 +147,8 @@
       "status": "stable",
       "assets": [],
       "checks": [
+        "recipes/beta-adjusted-price.acs",
+        "recipes/beta-adjusted-price.expected.mjs",
         "recipes/helpers.mjs",
         "recipes/kalman-beta.acs",
         "recipes/kalman-beta.expected.mjs",
@@ -175,7 +179,7 @@
       "domain": "quant-recipes",
       "title": "Quant recipes",
       "path": "quant-recipes/SKILL.md",
-      "description": "Worked, numerically verified scripts for quant measures: z-score of returns, realised volatility, HV ratio, rolling Sharpe, beta and correlation on a series' own lag, autocorrelation, ADX/EMA regime, distance in ATR units, range expansion, breakout share, cumulative volume delta, session VWAP and the previous session's VWAP, swing highs and lows, VWAP anchored at a swing low, opening range, a Kalman-style filter.",
+      "description": "Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous session's high, low, close and VWAP, opening range, swing highs and lows, VWAP from a swing, z-score, realised volatility, rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any such value, also when the request is to colour or highlight it.",
       "load_when": [
         "The request is a statistic or state machine on one instrument's bars rather than a named indicator.",
         "Volatility, Sharpe, z-score, autocorrelation, regime, filter or volume-delta requests.",
@@ -260,5 +264,5 @@
       ]
     }
   ],
-  "language_sha256": "ca541db8236b0155c5a2b9087b99e22053a9a5d123628a65997ac3b3f20864a3"
+  "language_sha256": "9465badf4591dccda2c20c2b6fbcb3d921ffa6a675e1732796b57bc519ba8972"
 }
