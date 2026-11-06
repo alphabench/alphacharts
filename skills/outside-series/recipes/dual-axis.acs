@@ -1,0 +1,2 @@
+indicator("Another series on the left axis", overlay=true, scale="left")
+plot(outside("IDX"), "Other series", color.orange)

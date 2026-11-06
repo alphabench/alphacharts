@@ -2,7 +2,7 @@
 name: alphacharts-quant-recipes
 description: >
     Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous
-    session's high, low, close and VWAP, opening range, swing highs and lows, VWAP from a swing, z-score, realised volatility,
+    session's high, low, close and VWAP, opening range, swing highs and lows, higher highs and higher lows, VWAP from a swing, z-score, realised volatility,
     rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any
     such value, also when the request is to colour or highlight it. A window in days or a daily return ("60-day volatility",
     "10-day Sharpe") on an intraday chart is read on daily bars: the daily forms of the Sharpe and volatility recipes are here,
@@ -40,11 +40,10 @@ Conventions every recipe follows:
   Sharpe and realised volatility estimate from a sample of returns, so they use the sample deviation (the usual estimator). Bollinger and the
   z-score use the population deviation: the z-score standardises the window it is measured in (mean 0, deviation 1).
 - A rolling window containing `na` is `na`, so a statistic of returns first appears at bar `length`.
-- Annualise by `math.sqrt(bars_per_year)`; never type the number or make it an input (18,900 is right for a 5-minute NSE chart and 8.66 times
-  too high on a daily one). `bars_per_year` reads the chart's own bars: the median bars per session over the last 60 finished
-  sessions times 252 (5-minute NSE 75 * 252 = 18,900; 5-minute MCX 179 * 252 = 45,108), 252 for daily bars without weekend bars, 365 with them, 52.14
-  weekly. It is constant within a session, uses nothing after its bar, and is `na` until the first session has finished (daily: six bars). A
-  session is a UTC day, right for NSE, BSE, MCX, US and London. `ta.bars_per_year(source, utcOffsetMinutes)` cuts the day elsewhere.
+- Annualise by `math.sqrt(bars_per_year)`; never type the number or make it an input (18,900 is right for 5-minute NSE and 8.66 times too high on
+  a daily chart). `bars_per_year` reads the chart's own bars: the median bars per session over the last 60 finished sessions
+  times 252 (5-minute NSE 18,900), 252 for daily bars (365 with weekend bars), 52.14 weekly. It is `na` until the first session has finished (daily: six
+  bars). A session is a UTC day; `ta.bars_per_year(source, utcOffsetMinutes)` cuts the day elsewhere.
 - A period the trader names in days or sessions ("60-day volatility") is counted in bars by the script. On daily bars the
   length is that number; on an intraday chart it is the number of days times the bars per session, when that fits the
   length limits, and the reply says the conversion. Never let the number of days stand as a number of bars.
@@ -78,6 +77,7 @@ Conventions every recipe follows:
 | Previous session's VWAP | the finished session's VWAP, held as a level | not `vwap[1]` |
 | Gap from the previous close | percent from the previous day's official (daily series) close to the session's first open, held all day | session-day rule; daily close on intraday, `close[1]` on daily |
 | Swing highs and lows | last and previous swing level, held | known `right` bars late |
+| Higher highs and higher lows | a mark on the bar that confirms a swing above the one before it | known `right` bars late; no `offset` |
 | VWAP anchored at the last swing low | VWAP from the swing low's bar | uses the swing recipe |
 | Kalman-style filter | recursive estimate of the close | `var` state |
 
@@ -292,8 +292,7 @@ plot(pv / vol, "VWAP", color.blue)
 
 **Previous session's VWAP.** The VWAP of the session that just finished, held as a level for the whole of the next one. Add up price times
 volume and volume per session, and when a new session starts keep the finished session's ratio before the sums restart. `vwap[1]` is the
-previous BAR's VWAP, which on a 5-minute chart is a line that looks plausible and is wrong. If the instrument has no volume (an index)
-the ratio is `na` and the line draws nothing: say so instead of plotting a substitute.
+previous BAR's VWAP: plausible and wrong. An instrument with no volume (an index) draws nothing: say so.
 
 <!-- skill: file: recipes/prev-session-vwap.acs -->
 ```alphacharts
@@ -315,9 +314,9 @@ plot(prevVwap, "Previous session VWAP", color.orange)
 ```
 
 **Swing highs and lows.** A bar is a swing high when it is the highest of the `left` bars before it, itself and the `right` bars after it.
-So it can only be known `right` bars later, and every level below appears with that lag: the marker is on the confirming bar, not on the
+So it is known only `right` bars later, and every level below appears with that lag: the marker is on the confirming bar, not on the
 swing. The test is `high[right] == ta.highest(high, left + right + 1)`: the window ends on the current bar and the candidate sits `right`
-bars back in it. There is no swing function (`ta.pivot_points` is the floor-trader pivot level of a session, not a swing). The last and the previous swing levels are held in `var` and step at each new swing. The default is `left = right = 5`; say so in the reply.
+bars back in it. There is no swing function (`ta.pivot_points` is a session's floor-trader pivot). The last and the previous swing levels are held in `var` and step at each new swing. The default is `left = right = 5`; say so in the reply.
 
 <!-- skill: file: recipes/swing-points.acs -->
 ```alphacharts
@@ -344,6 +343,31 @@ plotshape(isHigh, "Swing high confirmed", shape.triangledown, location.abovebar,
 plotshape(isLow, "Swing low confirmed", shape.triangleup, location.belowbar, color.green)
 ```
 
+**Higher highs and higher lows.** A higher high is a swing high above the swing high before it, a higher low a swing low above the swing low before it, not every swing. The mark sits on the bar that confirms the swing, `right` bars after it: `offset` is a number literal and cannot follow the `right` input, so leave it out and say so in the reply. For "the last three" add `last=3` to each `plotshape`.
+
+<!-- skill: file: recipes/higher-highs.acs -->
+```alphacharts
+indicator("Higher highs and higher lows", overlay=true)
+left = input.int(5, "Bars to the left", minval=1, maxval=200)
+right = input.int(5, "Bars to the right (the confirmation lag)", minval=1, maxval=200)
+isHigh = high[right] == ta.highest(high, left + right + 1)
+isLow = low[right] == ta.lowest(low, left + right + 1)
+var float lastHigh = na
+var float prevHigh = na
+var float lastLow = na
+var float prevLow = na
+if isHigh
+    prevHigh := lastHigh
+    lastHigh := high[right]
+if isLow
+    prevLow := lastLow
+    lastLow := low[right]
+higherHigh = isHigh and not na(prevHigh) and lastHigh > prevHigh
+higherLow = isLow and not na(prevLow) and lastLow > prevLow
+plotshape(higherHigh, "Higher high confirmed", shape.arrowdown, location.abovebar, color.green)
+plotshape(higherLow, "Higher low confirmed", shape.arrowup, location.belowbar, color.green)
+```
+
 **VWAP anchored at the last swing low.** The average runs from the swing low's own bar to the current bar and restarts at each new
 swing low. The swing is confirmed `right` bars after it, so the line starts then, and the loop adds the `right` bars between the
 swing and the confirming bar so the average does count the swing bar itself.
@@ -368,11 +392,9 @@ else
 plot(pv / vol, "Anchored VWAP", color.purple)
 ```
 
-**Previous session's high, low and close.** A new session starts where the day number changes: the calendar day of `time`
-shifted by `off` minutes (the exchange clock's offset from UTC, east positive). Compare the day number, never the time of
-day: a test such as "the time of day went down" never fires on daily bars, where every bar is one day and the script would
-draw nothing. Here every bar of a daily chart is a new session, so the lines read the previous bar, and an intraday chart
-reads the previous day. The first session loaded may be partial.
+**Previous session's high, low and close.** A new session starts where the day number changes: the calendar day of `time` shifted by `off` minutes
+(the exchange clock's offset from UTC, east positive). Compare the day number, never the time of day, which never fires on daily bars. Every bar of
+a daily chart is a new session, so the lines read the previous bar; an intraday chart reads the previous day. The first session loaded may be partial.
 
 <!-- skill: file: recipes/prev-session-levels.acs -->
 ```alphacharts
@@ -400,11 +422,10 @@ plot(prevClose, "Previous close", color.blue)
 ```
 
 **Opening range of the session.** The high and low of the bars in the first `span` minutes after the session's first bar. They build up
-during the range and then stay level until the next session, which is what "extend the high and low" means on a chart. The session's
-first bar is the bar where the day number changes, and the range is measured from that bar's own `time`, so no session start is typed in:
-it is right on NSE (09:15), MCX (09:00) and anywhere else a preset is applied. Never write a session start such as 555 (09:15): on an
-exchange that opens at another time the range silently covers the wrong bars. A bar counts only when it ends inside the range (its open plus the bar length, read as the least gap between neighbouring bars, is not after the range's end), because a bar that
-reaches past it holds prices from outside. So a bar longer than the range draws nothing: a 30-minute range on an hourly chart would be the first hour's high and low. The first session loaded is partial and draws nothing.
+during the range and then stay level until the next session, which is what "extend the high and low" means. The session's first bar is where
+the day number changes, and the range is measured from that bar's own `time`, so no session start is typed in: it is right on NSE (09:15),
+MCX (09:00) and anywhere else. Never write a session start such as 555 (09:15). A bar counts only when it ends inside the range, so a bar
+longer than the range draws nothing (a 30-minute range on an hourly chart). The first session loaded is partial and draws nothing.
 
 <!-- skill: file: recipes/opening-range.acs -->
 ```alphacharts
@@ -429,11 +450,12 @@ plot(orLow, "Opening range low", color.red)
 ```
 
 **Gap from the previous close to today's open.** The session's first open against the previous day's official close, in percent, held for
-the whole session. On an intraday chart `close[1]` at the session's first bar is the last continuous trade of the previous session, which can
-differ from the exchange's close (NSE's close is a weighted average of the last half hour). The daily series' close is the official one,
-what the broker's daily candle and a quoted percent change use, so on an intraday chart the gap reads `outside(timeframe = "1d", field = "close")`
-(at a session's first bar, the finished previous day). On a chart of daily bars that series is the chart's own bar, so the recipe reads `close[1]`
-there, already official; `bars_per_year` tells the two apart (400 or more is intraday). Today's open is never from a daily series (`outside(timeframe = "1d", field = "open")` is yesterday's): it is the open of the chart's first bar of the session. The first session loaded draws nothing, and until a day has finished `bars_per_year` is `na`. "Highlight a gap over 1%" is the `bgcolor` where the gap passes the input.
+the whole session. On an intraday chart `close[1]` at the session's first bar is the last continuous trade, which can differ from the exchange's
+close (NSE's is a weighted average of the last half hour); the daily series' close is the official one, so an intraday chart reads
+`outside(timeframe = "1d", field = "close")` (at a session's first bar, the finished previous day). On daily bars that series is the chart's own
+bar, so the recipe reads `close[1]` there; `bars_per_year` tells the two apart (400 or more is intraday). Today's open is never from a daily
+series (`outside(timeframe = "1d", field = "open")` is yesterday's): it is the open of the chart's first bar of the session. The first session
+loaded draws nothing. "Highlight a gap over 1%" is the `bgcolor` where the gap passes the input.
 
 <!-- skill: file: recipes/gap.acs -->
 ```alphacharts
@@ -455,8 +477,7 @@ bgcolor(math.abs(gap) > minGap, color.new(color.orange, 85))
 hline(0, "Even", color.gray, hline.style_dashed)
 ```
 
-**Kalman-style filter.** Predict `err + q`, gain `pred / (pred + r)`, correct the estimate, shrink the error. Larger `q` or
-smaller `r` follows price faster. `q` and `r` are in price-squared units, so scale them to the instrument.
+**Kalman-style filter.** Predict `err + q`, gain `pred / (pred + r)`, correct the estimate, shrink the error. Larger `q` or smaller `r` follows price faster; both are in price-squared units.
 
 <!-- skill: file: recipes/kalman-filter.acs -->
 ```alphacharts
@@ -487,15 +508,12 @@ recipe's level against price by making it `overlay=true` only when it is in pric
 
 ## 7. Constraints and correctness
 
-- Population deviation everywhere; the first value of a rolling statistic is at bar `length` for returns (one bar later than
-  for prices).
 - A swing is known only `right` bars after it happened: a level from the swing recipe is never available on the swing bar, and the last `right` bars of a chart have no confirmed swing yet.
 - `var` state starts at the first loaded bar. A chart that loads more history later can change a cumulative value.
 - A script does not know which bar is the last one or how many bars are loaded. "The last three touches" or "the last 100
   bars" of a marker is `plotshape(series, ..., last=3)` or `within=100` (plots-and-panes). A line, a fill or a colour
   cannot be cut that way: draw the measure on every loaded bar and say that the limit is not applied.
-- Not possible here: tick-level
-  order flow, a Kalman filter with a matrix state, and any measure that needs an array.
+- Not possible here: tick-level order flow, a matrix Kalman filter, any measure that needs an array.
 - `ta.correl(source, length, "open")` correlates with a built-in series of the same chart only.
 
 ## 8. Common mistakes
@@ -505,11 +523,8 @@ recipe's level against price by making it `overlay=true` only when it is in pric
 - Annualising with a typed bars-per-year (right for one bar size, wrong on another), or counting "days" as bars. Use `bars_per_year`.
 - Writing `close / close[1] - 1` on a 5-minute chart for "daily returns" and saying the reply is on daily bars: that is a 5-minute return. Daily returns come from `outside(timeframe = "1d")` (the daily forms above).
 - One `len` input shared by two different parameters.
-- Detecting a new day by a fall in the time of day: it never fires on daily bars.
-- A swing written as `high[right] == ta.highest(high, left + right + 1)[right]`: that window ends `right` bars back, so it never sees the bars after the candidate and finds a new high instead of a swing. Write `high[right] == ta.highest(high, left + right + 1)`. There is no swing function to call.
+- A swing written as `high[right] == ta.highest(high, left + right + 1)[right]`: that window ends `right` bars back and finds a new high, not a swing. Drop the trailing `[right]`. There is no swing function.
 - `plot(vwap[1], "Previous session VWAP")`: that is the previous bar's VWAP. Keep the finished session's VWAP in a `var` when the day changes (previous-session recipe).
-- A session start typed as a number of minutes (`start = 555`): it is wrong on every exchange that opens at another time. Measure from the session's first bar.
-- Calling the cumulative volume delta order flow; it is a bar-direction approximation.
 
 ## 9. Validation
 

@@ -186,7 +186,7 @@ a bool or a price; combine a pattern study with a comparison, `ta.cdl_hammer() >
 
 ## 7. Constraints and correctness
 
-- Line widths, styles, `offset`, titles and `hline` prices are literals or inputs, never series. Colours are constants or
+- Line widths, styles, titles and `hline` prices are literals or inputs, never series. `offset` is a number literal only: an input, even `-right`, is refused ("this must be a number literal"), so a shift cannot follow an input such as a swing's `right`; leave `offset` out and mark the bar that confirms. Colours are constants or
   inputs, except the `cond ? colorA : colorB` form of a line's colour.
 - `na` leaves a gap in a line and no bar in a histogram; it is never drawn as zero.
 - Fills, markers and plots shifted back in time (negative `offset`) are drawn on the overlay and do not take part in autoscale.

@@ -107,7 +107,7 @@ Load when:
 
 ## Quant recipes
 
-Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous session's high, low, close and VWAP, opening range, swing highs and lows, VWAP from a swing, z-score, realised volatility, rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any such value, also when the request is to colour or highlight it. A window in days or a daily return ("60-day volatility", "10-day Sharpe") on an intraday chart is read on daily bars: the daily forms of the Sharpe and volatility recipes are here, and outside-series has the rule.
+Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous session's high, low, close and VWAP, opening range, swing highs and lows, higher highs and higher lows, VWAP from a swing, z-score, realised volatility, rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any such value, also when the request is to colour or highlight it. A window in days or a daily return ("60-day volatility", "10-day Sharpe") on an intraday chart is read on daily bars: the daily forms of the Sharpe and volatility recipes are here, and outside-series has the rule.
 
 Name: `alphacharts-quant-recipes`  
 Path: [quant-recipes/SKILL.md](quant-recipes/SKILL.md)  

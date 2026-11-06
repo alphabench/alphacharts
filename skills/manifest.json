@@ -147,6 +147,8 @@
       "status": "stable",
       "assets": [],
       "checks": [
+        "recipes/dual-axis.acs",
+        "recipes/dual-axis.expected.mjs",
         "recipes/helpers.mjs",
         "recipes/kalman-beta.acs",
         "recipes/kalman-beta.expected.mjs",
@@ -179,7 +181,7 @@
       "domain": "quant-recipes",
       "title": "Quant recipes",
       "path": "quant-recipes/SKILL.md",
-      "description": "Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous session's high, low, close and VWAP, opening range, swing highs and lows, VWAP from a swing, z-score, realised volatility, rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any such value, also when the request is to colour or highlight it. A window in days or a daily return (\"60-day volatility\", \"10-day Sharpe\") on an intraday chart is read on daily bars: the daily forms of the Sharpe and volatility recipes are here, and outside-series has the rule.",
+      "description": "Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous session's high, low, close and VWAP, opening range, swing highs and lows, higher highs and higher lows, VWAP from a swing, z-score, realised volatility, rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any such value, also when the request is to colour or highlight it. A window in days or a daily return (\"60-day volatility\", \"10-day Sharpe\") on an intraday chart is read on daily bars: the daily forms of the Sharpe and volatility recipes are here, and outside-series has the rule.",
       "load_when": [
         "The request is a statistic or state machine on one instrument's bars rather than a named indicator.",
         "Volatility, Sharpe, z-score, autocorrelation, regime, filter or volume-delta requests.",
@@ -207,6 +209,8 @@
         "recipes/gap.acs",
         "recipes/gap.expected.mjs",
         "recipes/helpers.mjs",
+        "recipes/higher-highs.acs",
+        "recipes/higher-highs.expected.mjs",
         "recipes/hv-ratio-daily.acs",
         "recipes/hv-ratio-daily.expected.mjs",
         "recipes/hv-ratio.acs",

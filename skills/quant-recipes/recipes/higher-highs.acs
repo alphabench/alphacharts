@@ -1,0 +1,19 @@
+indicator("Higher highs and higher lows", overlay=true)
+left = input.int(5, "Bars to the left", minval=1, maxval=200)
+right = input.int(5, "Bars to the right (the confirmation lag)", minval=1, maxval=200)
+isHigh = high[right] == ta.highest(high, left + right + 1)
+isLow = low[right] == ta.lowest(low, left + right + 1)
+var float lastHigh = na
+var float prevHigh = na
+var float lastLow = na
+var float prevLow = na
+if isHigh
+    prevHigh := lastHigh
+    lastHigh := high[right]
+if isLow
+    prevLow := lastLow
+    lastLow := low[right]
+higherHigh = isHigh and not na(prevHigh) and lastHigh > prevHigh
+higherLow = isLow and not na(prevLow) and lastLow > prevLow
+plotshape(higherHigh, "Higher high confirmed", shape.arrowdown, location.abovebar, color.green)
+plotshape(higherLow, "Higher low confirmed", shape.arrowup, location.belowbar, color.green)

@@ -37,7 +37,8 @@ like `close`: use it in arithmetic and as the source of any `ta.*` call.
 - Both must be literals: the app reads them from the script before anything runs, loads those series, and refuses the
   script in words if one cannot be had. A script reads at most 8 distinct (symbol, timeframe) pairs.
 - A timeframe shorter than the chart's is refused: the chart cannot have finer bars than it shows. The chart's own
-  length or a longer one is fine.
+  length or a longer one is fine. On a 5m chart `"5m"`, `"15m"`, `"1h"`, `"4h"`, `"1d"` and `"1w"` are all allowed (a 4-hour RSI
+  and a daily RSI on a 5m chart are both fine); on a 1d chart `"4h"` is refused and `"1d"` and `"1w"` are allowed.
 
 **Which bar a chart bar sees (exact rules).**
 
@@ -88,6 +89,16 @@ len = input.int(20, "Rebase length", minval=1, maxval=500)
 rs = close / outside("IDX")
 plot(100 * rs / rs[len], "Relative strength", color.blue)
 hline(100, "Even", color.gray, hline.style_dashed)
+```
+
+**Another series on the left axis (a dual axis).** The chart's own price stays on the right axis and is already drawn; the other series is its
+own script, with `scale="left"` in `indicator`, so the two have scales of their own. One script that plots `close` and the other series
+together puts both on one scale. Say in the reply only what the script does: "on the left axis" only with `scale="left"`.
+
+<!-- skill: file: recipes/dual-axis.acs -->
+```alphacharts
+indicator("Another series on the left axis", overlay=true, scale="left")
+plot(outside("IDX"), "Other series", color.orange)
 ```
 
 **Ratio with its average.**
@@ -319,7 +330,10 @@ are in [studies](../studies/SKILL.md): any `ta.<id>` that takes a `source` takes
 - Typing a symbol the user did not give, or a code in the wrong form: use their words. There is no spot currency series: a
   currency (`outside("USDINR")`) is found as its listed futures contracts and the user picks one, so say in the reply that it
   is a futures contract and not spot. The same for any currency pair.
-- A `timeframe` shorter than the chart's.
+- A `timeframe` shorter than the chart's (`"4h"` on a 1d chart). The mistake is not the reverse: `"4h"` on a 5m chart is a longer
+  timeframe, allowed, and its RSI is drawn; never leave it out for being "longer than the chart's bars".
+- A value of the chart read as an instrument. On a chart that shows several values (FII and DII net buying) a value is the chart's
+  `close` with the script's `on` naming it; `outside("FII")` is not that value, it is an instrument search for a symbol called FII.
 - Rebasing with `rs[len]` when the first bars are `na`: the line starts `len` bars after both series exist.
 
 ## 9. Validation
