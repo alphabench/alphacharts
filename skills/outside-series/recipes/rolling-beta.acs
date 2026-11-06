@@ -1,0 +1,7 @@
+indicator("Rolling beta to a benchmark")
+len = input.int(30, "Length", minval=3, maxval=500)
+ra = close / close[1] - 1
+rb = outside("IDX") / outside("IDX")[1] - 1
+beta = (ta.sma(ra * rb, len) - ta.sma(ra, len) * ta.sma(rb, len)) / ta.variance(rb, len)
+plot(beta, "Beta", color.purple)
+hline(1, "Market", color.gray, hline.style_dashed)

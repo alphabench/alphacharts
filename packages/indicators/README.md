@@ -41,6 +41,16 @@ Subpaths: `.` (engine, runner, plugin), `./studies` (every study as a named expo
 - **Chart integration** (`src/chart/studies.ts`): one core series per drawn plot (pane = the source's for overlays,
   the lowest free pane otherwise), the rest drawn on the overlay (fills, markers, ZigZag, lines shifted back in time
   or joined across gaps; these do not take part in autoscale). Layout JSON is keyed by study instance id.
+- **Outside series** (`src/engine/feed.ts`, `Study.setFeed` / `pushFeedBar`): a study can read bars the host gives it (another
+  instrument, another timeframe). Each is a graph of its own on its own bars; the study's graph reads it through a join by time
+  (`Graph.joined` / `external`): `"same"` is the bar with exactly the study bar's time, else NaN, `"closed"` the latest bar whose
+  open + length is not after the study bar's start (no value contains data from after its bar, and the live bar sees the last finished one).
+  Lookups walk forward from the last answer, so a run and a tick are O(1) amortised; `StudyEngine.pushFeed` re-evaluates the last bar only
+  when it sees a different row. Runners: `RunRequest.feeds`, `StudyRunner.feedBar`.
+- **Bar colours, background shading, per-point line colour, left axis** (`src/chart/studies.ts`): `barcolor` plots colour the source's candles
+  (core `Series.setBarColors`; several studies compose on one source, the latest wins, removal restores exactly), `bgcolor` plots draw through core's
+  `BarShading` primitive (no part in autoscale), a line plot's `colorBy: { col, color }` colours its segments per bar, `StudyDef.scale: "left"`
+  puts the series on the left axis.
 - **WASM** (`src/engine/kernels.ts`, `enableWasm()` from `src/wasm.ts`): optional batch kernels from `@alphacharts/wasm`
   for running sum, variance/stddev, rolling highest/lowest (+ bars) and linear regression, the kernels that won at 1M
   and 10M bars in its benchmark. They are bit-identical to the JS loops (test/wasm.test.ts runs every study both

@@ -9,10 +9,13 @@
 //  3. `lockdown` removes the host's network, storage, messaging and timing
 //     capabilities from the worker global before any script is compiled, and
 //     freezes the intrinsic prototypes.
+//     Outside series (`outside(...)`) are columns the host transfers in; the worker only joins them by time.
+//     Each counts against the limits: at most `maxFeeds` of them, each at most `maxBars` bars, and
+//     their bytes (six columns, held here and on the page, so 6 x bars x 8 x 2) are added to the script's.
 //  4. The main thread terminates a worker that does not answer within the
 //     batch / tick budget (runner.ts) and reports it.
 
-import { StudyEngine, type BarColumns, type BarInput, type InputValue, type StudyDef } from "@alphacharts/indicators";
+import { StudyEngine, type BarColumns, type BarInput, type FeedBar, type FeedData, type InputValue, type StudyDef } from "@alphacharts/indicators";
 import { compile } from "./compile.js";
 import { DEFAULT_LIMITS, type Limits } from "./limits.js";
 import { ScriptError } from "./diag.js";
@@ -57,9 +60,11 @@ export function lockdown(scope: object = globalThis): LockdownReport {
 
 // ---- protocol -----------------------------------------------------------------------
 
-export interface RunMsg { type: "run"; id: number; sid: number; source: string; params: Record<string, InputValue>; bars: BarColumns; limits?: Partial<Limits> }
+export interface RunMsg { type: "run"; id: number; sid: number; source: string; params: Record<string, InputValue>; bars: BarColumns; feeds?: Record<string, FeedData>; limits?: Partial<Limits> }
 export interface BarMsg { type: "bar"; sid: number; index: number; bar: BarInput }
-export type ToWorker = RunMsg | BarMsg | { type: "cancel"; id: number } | { type: "dispose"; sid: number };
+/** A live bar of outside series `key` (the `bar` channel for another instrument or timeframe). */
+export interface FeedBarMsg { type: "feed-bar"; sid: number; key: string; bar: FeedBar }
+export type ToWorker = RunMsg | BarMsg | FeedBarMsg | { type: "cancel"; id: number } | { type: "dispose"; sid: number };
 
 export interface ErrorInfo { message: string; from?: number; to?: number; kind: "build" | "runtime" | "budget" | "compile" }
 export type FromWorker =
@@ -67,6 +72,8 @@ export type FromWorker =
   | { type: "cancelled"; id: number }
   | { type: "error"; id: number; error: ErrorInfo }
   | { type: "values"; sid: number; index: number; values: Float64Array }
+  /** A feed bar that changed nothing the chart's last bar sees: nothing was recomputed. */
+  | { type: "idle"; sid: number }
   | { type: "tick-error"; sid: number; error: ErrorInfo };
 
 const yieldNow = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
@@ -124,6 +131,21 @@ export function serveScripts(post: (m: FromWorker, transfer?: Transferable[]) =>
         }
         return;
       }
+      case "feed-bar": {
+        const e = engines.get(m.sid);
+        if (!e) { post({ type: "tick-error", sid: m.sid, error: { message: "the script has no computed state in this worker (it was restarted); change an input to run it again", kind: "runtime" } }); return; }
+        try {
+          if (!e.graph.feeds.has(m.key)) throw new ScriptError(`this script reads no outside series "${m.key}"`);
+          if (!e.pushFeed(m.key, m.bar)) { post({ type: "idle", sid: m.sid }); return; }
+          const n = e.length;
+          const values = new Float64Array(e.outputs.length);
+          e.outputs.forEach((c, k) => (values[k] = c.v[n - 1]!));
+          post({ type: "values", sid: m.sid, index: n - 1, values }, [values.buffer]);
+        } catch (err) {
+          post({ type: "tick-error", sid: m.sid, error: errorInfo(err) });
+        }
+        return;
+      }
       case "run": {
         inflight.add(m.id);
         void (async () => {
@@ -134,8 +156,26 @@ export function serveScripts(post: (m: FromWorker, transfer?: Transferable[]) =>
             const n = m.bars.time.length;
             if (n > limits.maxBars) throw new ScriptError(`${n} bars exceed the limit of ${limits.maxBars}`, null, "budget");
             const e = new StudyEngine(withBridge(r.study), m.params);
-            const bytes = e.graph.cols.length * n * 8 * 3;
-            if (bytes > limits.maxBytes) throw new ScriptError(`the script needs ${(bytes / 2 ** 20).toFixed(0)} MiB (3 x ${e.graph.cols.length} columns x ${n} bars x 8); the limit is ${(limits.maxBytes / 2 ** 20).toFixed(0)} MiB`, null, "budget");
+            const feeds = Object.entries(m.feeds ?? {});
+            if (feeds.length > limits.maxFeeds) throw new ScriptError(`${feeds.length} outside series exceed the limit of ${limits.maxFeeds}`, null, "budget");
+            // an outside series is a graph of its own: its six bar columns and whatever the script computes on its bars
+            // (held here like the script's own columns, 3 x), and the page keeps a copy of the bars (6 columns)
+            let feedBytes = 0, feedRows = 0, feedCols = 0;
+            for (const [key, f] of feeds) {
+              const rows = f.bars.time.length;
+              if (rows > limits.maxBars) throw new ScriptError(`an outside series has ${rows} bars; the limit is ${limits.maxBars}`, null, "budget");
+              const cols = e.graph.feeds.get(key)?.graph.cols.length ?? 6;
+              feedRows += rows;
+              feedCols += cols;
+              feedBytes += rows * cols * 8 * 3 + rows * 6 * 8;
+            }
+            const bytes = e.graph.cols.length * n * 8 * 3 + feedBytes;
+            if (bytes > limits.maxBytes) {
+              const mib = `${(bytes / 2 ** 20).toFixed(0)} MiB`, cap = `${(limits.maxBytes / 2 ** 20).toFixed(0)} MiB`;
+              if (feeds.length === 0) throw new ScriptError(`the script needs ${mib} (3 x ${e.graph.cols.length} columns x ${n} bars x 8); the limit is ${cap}`, null, "budget");
+              throw new ScriptError(`the script and its ${feeds.length} outside series need ${mib} (3 x ${e.graph.cols.length} columns x ${n} bars x 8, and 3 x ${feedCols} columns of ${feedRows} outside bars in all, x 8, with a copy of their bars); the limit is ${cap}`, null, "budget");
+            }
+            for (const [key, f] of feeds) e.setFeed(key, f.bars, f);
             const done = await e.loadChunked(m.bars, CHUNK, yieldNow, () => cancelled.has(m.id));
             if (!done) { post({ type: "cancelled", id: m.id }); return; }
             if (!gone.has(m.sid)) engines.set(m.sid, e);

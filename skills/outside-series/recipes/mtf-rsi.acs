@@ -1,0 +1,7 @@
+indicator("RSI on three timeframes")
+len = input.int(14, "Length", minval=2, maxval=200)
+plot(ta.rsi(close, len), "RSI chart", color.blue)
+plot(ta.rsi(outside(timeframe = "1h"), len), "RSI 1h", color.orange)
+plot(ta.rsi(outside(timeframe = "1d"), len), "RSI 1d", color.red)
+hline(70, "Upper", color.gray, hline.style_dashed)
+hline(30, "Lower", color.gray, hline.style_dashed)

@@ -18,10 +18,19 @@
 // When prepend/update meet a time that no series has and that falls inside the
 // timeline (another series' gap), they take the setData path; that is a full
 // re-index, not an approximation.
+//
+// Per-bar colour (OHLC series): an optional Uint32 column (0xRRGGBBAA, 0 = the
+// series' own up/down colours) that is added to the store the first time a
+// colour is written, so a series that is never coloured has no such column, no
+// pyramid colour column and no extra work on any path below. A colour belongs
+// to (series, time): update() and prepend() leave the colour of bars they do
+// not name alone, and setData() carries the colours of the times it keeps (rows
+// that bring their own colour win). setColors() writes colours alone, without a
+// data change event the studies would answer by recomputing.
 
 import { parseColor } from "../render/color.js";
 import { ColumnDeque, F64_NAN, U32_ZERO } from "./deque.js";
-import { Lod } from "./lod.js";
+import { Lod, type LodSource } from "./lod.js";
 import { assertIncreasing, Timeline } from "./timeline.js";
 
 export type SeriesShape = "ohlc" | "value";
@@ -33,6 +42,8 @@ export interface OhlcBar {
   high: number;
   low: number;
   close: number;
+  /** Per-bar colour override, CSS colour string; absent leaves the bar's colour as it is. */
+  color?: string;
 }
 export interface ValuePoint {
   time: number;
@@ -47,6 +58,14 @@ export interface ColumnarOhlc {
   high: Float64Array;
   low: Float64Array;
   close: Float64Array;
+  /** Packed 0xRRGGBBAA per bar; 0 means the series colours. Absent leaves the bars' colours as they are. */
+  color?: Uint32Array;
+}
+/** Colours alone for bars of an OHLC series, by time (times strictly increasing; a time the series has no bar at is ignored). */
+export interface ColumnarColors {
+  time: Float64Array;
+  /** Packed 0xRRGGBBAA; 0 clears the bar back to the series colours. */
+  color: Uint32Array;
 }
 export interface ColumnarValue {
   time: Float64Array;
@@ -61,6 +80,8 @@ export type ValueInput = readonly ValuePoint[] | ColumnarValue;
 // Store column layout.
 export const COL_O = 0, COL_H = 1, COL_L = 2, COL_C = 3;
 export const COL_V = 0, COL_COLOR = 1;
+/** The optional colour column of an OHLC store, added by `SeriesData.enableColors`. */
+export const COL_BAR_COLOR = 4;
 
 /** Normalised rows: times plus the store's columns in order. */
 interface Rows {
@@ -68,7 +89,8 @@ interface Rows {
   cols: (Float64Array | Uint32Array)[];
 }
 
-export type ChangeKind = "replace" | "prepend" | "update";
+/** "color": only bar colours changed (no bar, price or time did): data followers such as studies have nothing to recompute. */
+export type ChangeKind = "replace" | "prepend" | "update" | "color";
 
 export interface DataChange {
   readonly series: SeriesData | null;
@@ -85,14 +107,42 @@ export interface DataChange {
 export class SeriesData {
   readonly store: ColumnDeque;
   readonly lod: Lod;
+  private readonly lodSrc: LodSource;
+  /**
+   * A value series: whether any point may carry its own colour (set when one is written, cleared when the series is
+   * replaced). Conservative: renderers that draw uncoloured series faster read it.
+   */
+  pointColors = false;
 
   constructor(readonly shape: SeriesShape) {
     this.store =
       shape === "ohlc" ? new ColumnDeque([F64_NAN, F64_NAN, F64_NAN, F64_NAN]) : new ColumnDeque([F64_NAN, U32_ZERO]);
-    this.lod =
+    this.lodSrc =
       shape === "ohlc"
-        ? new Lod({ store: this.store, o: COL_O, h: COL_H, l: COL_L, c: COL_C })
-        : new Lod({ store: this.store, o: COL_V, h: COL_V, l: COL_V, c: COL_V, color: COL_COLOR });
+        ? { store: this.store, o: COL_O, h: COL_H, l: COL_L, c: COL_C, colorMode: "any" }
+        : { store: this.store, o: COL_V, h: COL_V, l: COL_V, c: COL_V, color: COL_COLOR };
+    this.lod = new Lod(this.lodSrc);
+  }
+
+  /** Whether an OHLC series holds a per-bar colour column. */
+  get colored(): boolean {
+    return this.shape === "ohlc" && this.store.cols.length > COL_BAR_COLOR;
+  }
+
+  /** Add the colour column (all zero) and the pyramid's colour column. A no-op when present or for a value series. */
+  enableColors(): void {
+    if (this.shape !== "ohlc" || this.colored) return;
+    this.store.addColumn(U32_ZERO);
+    this.lodSrc.color = COL_BAR_COLOR;
+    this.lod.rebuild();
+  }
+
+  /** Remove the colour column again, giving its memory back. */
+  disableColors(): void {
+    if (!this.colored) return;
+    this.store.dropColumn();
+    delete this.lodSrc.color;
+    this.lod.rebuild();
   }
 
   /** True when the series has a bar at timeline index i. */
@@ -174,7 +224,12 @@ export class DataModel {
 
   setData(s: SeriesData, input: OhlcInput | ValueInput): void {
     this.live(s);
-    const rows = normalize(s.shape, input);
+    let rows = normalize(s.shape, input);
+    // colours belong to (series, time): the times this call keeps keep theirs
+    if (s.colored && rows.cols.length === COL_BAR_COLOR) {
+      const snap = snapshotColors(s, this.timeline);
+      if (snap) rows = carryColors(rows, snap);
+    }
     if (this.batchDepth > 0) {
       this.touched.add(s);
       if (placeOnTimeline(s, rows, this.timeline)) this.deferred.delete(s);
@@ -276,6 +331,65 @@ export class DataModel {
     this.emit({ series: s, kind: "update", lo: i, hi: i + 1, reindexed: false, appended });
   }
 
+  /**
+   * Write bar colours of an OHLC series without touching its bars. Times the series has no bar at are ignored; a colour
+   * equal to the one already there changes nothing and announces nothing. Announces a "color" change over the bars that
+   * did change (one event), which renderers answer by patching those records.
+   */
+  setColors(s: SeriesData, input: ColumnarColors): void {
+    this.settle();
+    this.live(s);
+    if (s.shape !== "ohlc") throw new TypeError("setColors: only an OHLC series (candles, bars) has bar colours");
+    const n = input.time.length;
+    if (input.color.length !== n) throw new RangeError(`setColors: color has ${input.color.length} rows, time has ${n}`);
+    assertIncreasing(input.time, "bar colours");
+    if (n === 0) return;
+    if (!s.colored) {
+      let any = false;
+      for (let k = 0; k < n && !any; k++) any = input.color[k]! !== 0;
+      if (!any) return;
+      s.enableColors();
+    }
+    const tl = this.timeline;
+    const { buf, offset } = tl.raw();
+    const st = s.store;
+    const C = st.cols[COL_BAR_COLOR] as Uint32Array;
+    let lo = Number.POSITIVE_INFINITY, hi = Number.NEGATIVE_INFINITY;
+    let j = tl.first;
+    for (let k = 0; k < n; k++) {
+      const t = input.time[k]!;
+      while (j < tl.end && buf[offset + j]! < t) j++;
+      if (j >= tl.end) break;
+      if (buf[offset + j]! !== t || !s.has(j)) continue;
+      const p = st.pos(j);
+      if (C[p] === input.color[k]) continue;
+      C[p] = input.color[k]!;
+      if (j < lo) lo = j;
+      if (j > hi) hi = j;
+    }
+    if (hi < lo) return;
+    s.lod.update(lo, hi + 1);
+    this.emit({ series: s, kind: "color", lo, hi: hi + 1, reindexed: false, appended: false });
+  }
+
+  /** Remove every bar colour of an OHLC series (and the colour column). Announces one "color" change when there were any. */
+  clearColors(s: SeriesData): void {
+    this.settle();
+    this.live(s);
+    if (!s.colored) return;
+    const st = s.store;
+    const C = st.cols[COL_BAR_COLOR] as Uint32Array;
+    let lo = Number.POSITIVE_INFINITY, hi = Number.NEGATIVE_INFINITY;
+    for (let i = st.first; i < st.end; i++) {
+      if (C[st.pos(i)] === 0) continue;
+      if (i < lo) lo = i;
+      hi = i;
+    }
+    s.disableColors();
+    if (hi < lo) return;
+    this.emit({ series: s, kind: "color", lo, hi: hi + 1, reindexed: false, appended: false });
+  }
+
   private rebuildAndEmit(s: SeriesData, rows: Rows): void {
     const reindexed = this.rebuild([[s, rows]]);
     this.emit({ series: s, kind: "replace", lo: this.timeline.first, hi: this.timeline.end, reindexed, appended: false });
@@ -334,6 +448,7 @@ function placeRows(s: SeriesData, rows: Rows, tl: Timeline): void {
 
 function put(s: SeriesData, rows: Rows, idx: Float64Array): void {
   s.store.clear();
+  s.pointColors = false;
   s.store.cover(idx[0]!, idx[idx.length - 1]! + 1);
   writeRows(s, rows, idx);
   s.lod.rebuild();
@@ -372,12 +487,48 @@ function placeOnTimeline(s: SeriesData, rows: Rows, tl: Timeline): boolean {
 
 function writeRows(s: SeriesData, rows: Rows, idx: Float64Array): void {
   const st = s.store;
+  // rows that bring colours add the column; rows that do not leave the colours of the bars they overwrite
+  if (s.shape === "ohlc" && rows.cols.length > COL_BAR_COLOR) s.enableColors();
   for (let c = 0; c < rows.cols.length; c++) {
     const dst = st.cols[c]!;
     const src = rows.cols[c]!;
     const off = st.head - st.first;
     for (let i = 0; i < idx.length; i++) dst[off + idx[i]!] = src[i]!;
+    if (s.shape === "value" && c === COL_COLOR && !s.pointColors) {
+      for (let i = 0; i < src.length; i++) if (src[i] !== 0) { s.pointColors = true; break; }
+    }
   }
+}
+
+/** The non-zero bar colours of an OHLC series with their times; null when there are none. */
+function snapshotColors(s: SeriesData, tl: Timeline): Rows | null {
+  const st = s.store;
+  const C = st.cols[COL_BAR_COLOR] as Uint32Array;
+  let n = 0;
+  for (let i = st.first; i < st.end; i++) if (C[st.pos(i)] !== 0 && s.has(i)) n++;
+  if (n === 0) return null;
+  const time = new Float64Array(n), color = new Uint32Array(n);
+  let k = 0;
+  for (let i = st.first; i < st.end; i++) {
+    if (C[st.pos(i)] === 0 || !s.has(i)) continue;
+    time[k] = tl.timeAt(i);
+    color[k++] = C[st.pos(i)]!;
+  }
+  return { time, cols: [color] };
+}
+
+/** `rows` with a colour column: the snapshot's colour at every time it holds, zero elsewhere. */
+function carryColors(rows: Rows, snap: Rows): Rows {
+  const n = rows.time.length;
+  const color = new Uint32Array(n);
+  const st = snap.time, sc = snap.cols[0] as Uint32Array;
+  let j = 0;
+  for (let i = 0; i < n; i++) {
+    const t = rows.time[i]!;
+    while (j < st.length && st[j]! < t) j++;
+    if (j < st.length && st[j] === t) color[i] = sc[j]!;
+  }
+  return { time: rows.time, cols: [...rows.cols, color] };
 }
 
 /** A series' rows with their times, in index order. */
@@ -399,6 +550,12 @@ function extract(s: SeriesData, tl: Timeline): Rows {
 }
 
 function concatRows(a: Rows, b: Rows): Rows {
+  // one side may carry bar colours and the other not
+  if (a.cols.length !== b.cols.length) {
+    const pad = (r: Rows): Rows => (r.cols.length === COL_BAR_COLOR ? { time: r.time, cols: [...r.cols, new Uint32Array(r.time.length)] } : r);
+    a = pad(a);
+    b = pad(b);
+  }
   const time = new Float64Array(a.time.length + b.time.length);
   time.set(a.time);
   time.set(b.time, a.time.length);
@@ -470,6 +627,7 @@ function normalize(shape: SeriesShape, input: OhlcInput | ValueInput): Rows {
 function ohlcFromObjects(bars: readonly OhlcBar[]): Rows {
   const n = bars.length;
   const time = new Float64Array(n), o = new Float64Array(n), h = new Float64Array(n), l = new Float64Array(n), c = new Float64Array(n);
+  let color: Uint32Array | undefined;
   for (let i = 0; i < n; i++) {
     const b = bars[i]!;
     time[i] = b.time;
@@ -477,8 +635,9 @@ function ohlcFromObjects(bars: readonly OhlcBar[]): Rows {
     h[i] = b.high;
     l[i] = b.low;
     c[i] = b.close;
+    if (b.color !== undefined) (color ??= new Uint32Array(n))[i] = parseColor(b.color);
   }
-  return { time, cols: [o, h, l, c] };
+  return { time, cols: color ? [o, h, l, c, color] : [o, h, l, c] };
 }
 
 function ohlcFromColumns(d: ColumnarOhlc): Rows {
@@ -486,7 +645,8 @@ function ohlcFromColumns(d: ColumnarOhlc): Rows {
   for (const k of ["open", "high", "low", "close"] as const) {
     if (d[k].length !== n) throw new RangeError(`columnar ohlc: ${k} has ${d[k].length} rows, time has ${n}`);
   }
-  return { time: d.time, cols: [d.open, d.high, d.low, d.close] };
+  if (d.color && d.color.length !== n) throw new RangeError(`columnar ohlc: color has ${d.color.length} rows, time has ${n}`);
+  return { time: d.time, cols: d.color ? [d.open, d.high, d.low, d.close, d.color] : [d.open, d.high, d.low, d.close] };
 }
 
 function valueFromObjects(points: readonly ValuePoint[]): Rows {

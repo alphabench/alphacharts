@@ -55,6 +55,9 @@ plot(nz(close[1]), "nz")
 plot(nz(close[1], 7), "nz7")
 ```
 
+**Outside series.** `outside(symbol, field, timeframe)` is a number series like `close`: pure, usable in arithmetic and as the
+source of any `ta.*` call. See [outside-series](../outside-series/SKILL.md) for its arguments and for how its bars are joined to the chart's.
+
 **Pure and state.** A *pure* value depends only on bars and inputs; the engine computes it as whole columns with the same
 kernels as the built-in studies. A *state* value depends on a variable that is declared `var` or assigned with `:=`, `+=`,
 `-=`, `*=`, `/=` or `%=`, on a block variable, or on a loop counter. Rules that follow:
@@ -217,8 +220,9 @@ return series that can be used in formulas and in `?:`. The output statements co
   cannot be assigned.
 - Refused words: `while switch function return import export break continue class eval this null undefined constructor
   prototype __proto__`.
-- Not in the language: arrays (only `options=[...]`), user functions, string operations, other symbols or timeframes,
-  per-bar colour, drawings, alerts, randomness and clocks (output is deterministic).
+- Not in the language: arrays (only `options=[...]`), user functions, string operations, drawings, alerts, randomness and
+  clocks (output is deterministic). Another symbol or timeframe is `outside(...)`; colour that depends on the bar is
+  `barcolor`, `bgcolor` and `plot(..., color = cond ? a : b)` (outside-series, colour-and-shading).
 
 ## 8. Common mistakes
 

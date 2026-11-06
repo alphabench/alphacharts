@@ -52,7 +52,7 @@ The common messages are listed here. Everything else is in the catalogue, by pha
 - `argument "{p.name}" of {sig.name} must be between {...} and {...}, got {cv}` — A literal outside the accepted range (a length of 0 or 6000, transparency over 100...). Fix: use a value inside the range shown.
 - `unknown function "{name}"{...}` — A wrong or missing prefix. Fix: use the suggested name; kernels and studies are `ta.<id>`, maths `math.<name>`.
 - `argument "{p.name}" of {sig.name} depends on a variable that is declared var, assigned with :=, or is a block variable / loop counter. {sig.name} runs over whole columns, so its inputs must be known before the bar is evaluated` — A `ta.*` call received state. Fix: compute the value from bars only, or write the recursion with `var` yourself.
-- `a color here must be a constant (color.red, #rrggbb, color.new(...)) or an input.color variable` — The colour is per bar or computed. Fix: a `color.*` constant, `#rrggbb`, `color.new` of a constant, or an `input.color`. For a changing colour use two plots.
+- `a color here must be a constant (color.red, #rrggbb, color.new(...)) or an input.color variable` — The colour is per bar or computed. Fix: a `color.*` constant, `#rrggbb`, `color.new` of a constant, or an `input.color`. For a colour that changes per bar write `plot(series, color = cond ? colorA : colorB)`, or use `barcolor` / `bgcolor`.
 - `unknown function "{name}"` — No such function. Fix: check the studies and builtins references; math-family ids are not callable.
 - `the script draws nothing: add plot(...)` — No `plot`, `hline` or `plotshape` output. Fix: add `plot(...)` of the series to show.
 
@@ -63,7 +63,7 @@ The common messages are listed here. Everything else is in the catalogue, by pha
 3. Recompile. If the same message returns, re-read the cause: the fix may belong to a different line (a `ta.*` call cannot be
    fixed by editing the line that uses its result).
 4. When the message names a parameter, copy the parameter list from the studies reference instead of guessing.
-5. When a fix would need something the language lacks (per-bar colour, arrays, other symbols), stop and say so.
+5. When a fix would need something the language lacks (arrays, user functions, drawings), stop and say so.
 
 ## 5. Examples
 

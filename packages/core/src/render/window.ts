@@ -19,7 +19,7 @@
 
 import { LOD_BASE, LOD_C, LOD_COLOR, LOD_H, LOD_L, LOD_O } from "../data/lod.js";
 import type { DataChange, SeriesData } from "../data/model.js";
-import { COL_C, COL_COLOR, COL_H, COL_L, COL_O, COL_V } from "../data/model.js";
+import { COL_BAR_COLOR, COL_C, COL_COLOR, COL_H, COL_L, COL_O, COL_V } from "../data/model.js";
 
 export const RECORD_FLOATS = 6;
 /**
@@ -193,7 +193,8 @@ export class InstanceWindow {
       const st = d.store;
       const ohlc = d.shape === "ohlc";
       const O = st.cols[ohlc ? COL_O : COL_V]!, H = st.cols[ohlc ? COL_H : COL_V]!, L = st.cols[ohlc ? COL_L : COL_V]!, C = st.cols[ohlc ? COL_C : COL_V]!;
-      const COL = ohlc ? undefined : st.cols[COL_COLOR]!;
+      // OHLC bars have a colour column only once something coloured them
+      const COL = ohlc ? st.cols[COL_BAR_COLOR] : st.cols[COL_COLOR]!;
       for (let i = u0; i <= u1; i++) {
         const r = (i - this.lo) * RECORD_FLOATS;
         const p = st.head + (i - st.first);

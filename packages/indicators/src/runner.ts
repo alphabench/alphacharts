@@ -11,6 +11,7 @@
 // worker's own registry) run in a worker; a study defined at runtime does not
 // exist there, so `createRunner` callers use InlineRunner for it (`canRun`).
 
+import type { FeedBar, FeedData } from "./engine/feed.js";
 import { StudyEngine } from "./engine/study.js";
 import type { BarColumns, InputValue, StudyDef } from "./types.js";
 
@@ -21,6 +22,8 @@ export interface RunRequest {
   params: Readonly<Record<string, InputValue>>;
   /** Transferred to the runner when it is a worker: do not use afterwards. */
   bars: BarColumns;
+  /** Outside series by key, each a copy the runner may keep or transfer. Only a runner that can run a study that reads them (a script) uses them. */
+  feeds?: Record<string, FeedData>;
 }
 
 export interface RunResult {
@@ -41,6 +44,11 @@ export interface StudyRunner {
   canRun(def: StudyDef): boolean;
   /** Rejects with CancelledError when `cancel(handle)` is called first. */
   run(def: StudyDef, req: RunRequest): { promise: Promise<RunResult>; cancel(): void };
+  /**
+   * A live bar of outside series `key` for a study this runner holds state for; the runner answers through the channel
+   * its ticks use. Optional: a runner that keeps no per-study state (every batch starts afresh) does not have it.
+   */
+  feedBar?(def: StudyDef, key: string, bar: FeedBar): void;
   dispose(): void;
 }
 
@@ -55,6 +63,7 @@ export class InlineRunner implements StudyRunner {
     let cancelled = false;
     const promise = (async (): Promise<RunResult> => {
       const e = new StudyEngine(def, req.params);
+      for (const [key, f] of Object.entries(req.feeds ?? {})) e.setFeed(key, f.bars, f);
       const done = await e.loadChunked(req.bars, CHUNK, yieldNow, () => cancelled);
       if (!done) throw new CancelledError();
       return { n: e.length, buffers: e.graph.cols.map((c) => c.v) };

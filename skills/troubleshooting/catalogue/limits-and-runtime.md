@@ -5,7 +5,7 @@ Each row: the message (`{...}` stands for text that varies), its cause, the fix.
 - `this loop runs {trips} times; the limit is {this.limits.maxLoopIterations} iterations per loop` — The literal bounds exceed 10,000 iterations. Fix: shorten the range, or restructure with `ta.*` over the window.
 - `a script may draw at most 64 plots` — More than 64 output statements. Fix: reduce.
 - `a series is not available here` — Internal: a series was requested outside a graph. [host]
-- `the script needs {g.cols.length} columns; the limit is {this.limits.maxColumns}` — More than 512 computed columns (every named series, `ta.*` result and intermediate). Fix: fewer distinct calls and variables.
+- `the script needs {cols} columns; the limit is {this.limits.maxColumns}` — More than 512 computed columns (every named series, `ta.*` result and intermediate). Fix: fewer distinct calls and variables.
 - `execution budget exceeded: more than {this.limits.maxSteps} loop steps in one bar` — Loop work in one bar passed 2,000,000 steps (nested loops). Fix: shrink the loops or replace them with kernels.
 - `loop bounds must be finite and the step non-zero` — A dynamic bound or step turned out `na`, infinite or 0. Fix: guard with `nz` and a non-zero step.
 - `this loop would run {trips} times; the limit is {maxIt} iterations per loop` — Dynamic bounds exceed 10,000 iterations. Fix: cap the bound, e.g. a `math.min` of the bound and 1000.
@@ -34,3 +34,8 @@ Each row: the message (`{...}` stands for text that varies), its cause, the fix.
 - `out of sync with the chart: bar {m.index} arrived with {e.length} bars computed` — The chart and the worker disagree on the bar count. Fix: reload the chart. [host]
 - `{n} bars exceed the limit of {limits.maxBars}` — More than 10,000,000 bars. Fix: load fewer bars. [host]
 - `the script needs {...} MiB (3 x {e.graph.cols.length} columns x {n} bars x 8); the limit is {...} MiB` — Columns x bars x 8 x 3 passed 512 MiB. Fix: fewer columns or fewer bars. [host]
+- `this script reads no outside series "{m.key}"` — The app sent a bar for a series the script does not read. Fix: reload the chart. [host]
+- `{feeds.length} outside series exceed the limit of {limits.maxFeeds}` — More distinct series than the limit. Fix: fewer instruments or timeframes. [host]
+- `an outside series has {rows} bars; the limit is {limits.maxBars}` — One series is longer than the limit. Fix: load fewer bars. [host]
+- `the script and its {feeds.length} outside series need {...} MiB (3 x {e.graph.cols.length} columns x {n} bars x 8, and 3 x {feedCols} columns of {feedRows} outside bars in all, x 8, with a copy of their bars); the limit is {...} MiB` — The script and the series it reads pass the memory limit. Fix: fewer columns, fewer series, fewer bars. [host]
+

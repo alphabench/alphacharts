@@ -3,6 +3,7 @@
 
 import { Graph, SOURCE_NAMES, type Col } from "./graph.js";
 import type { BarColumns, BarInput, InputDef, InputValue, Params, StudyDef } from "../types.js";
+import type { FeedBar, FeedConfig, FeedBars } from "./feed.js";
 
 /** Validate `given` against the study's inputs and fill defaults. Throws on anything unknown or out of range. */
 export function resolveParams(def: StudyDef, given: Readonly<Record<string, InputValue>> = {}): Params {
@@ -97,6 +98,30 @@ export class StudyEngine {
       await pause();
     }
     return !cancelled();
+  }
+
+  /** Give the study outside series `key`: bars in their own time and how to join them (copied). Run the study again afterwards. */
+  setFeed(key: string, bars: FeedBars, cfg: FeedConfig): void {
+    this.graph.feed(key).load(bars, cfg, `outside series ${key}`);
+  }
+
+  /**
+   * A live bar of outside series `key`: the feed's last bar is replaced or one is appended, and what the study computed
+   * on the feed's bars follows. When the study's last bar now sees a different feed row (or the same one revised), that
+   * bar is evaluated again and `true` is returned; otherwise nothing of the study is recomputed. O(1) amortised.
+   */
+  pushFeed(key: string, bar: FeedBar): boolean {
+    const f = this.graph.feeds.get(key);
+    if (!f) throw new RangeError(`${this.def.id}: no outside series "${key}"`);
+    const n = this.graph.n;
+    const t = n > 0 ? this.graph.time.v[n - 1]! : Number.NaN;
+    const before = n > 0 ? f.lookup(t) : -1;
+    const change = f.apply(bar, `outside series ${key}`);
+    if (n === 0) return false;
+    const after = f.lookup(t);
+    const affected = after !== before || (after >= 0 && after === f.n - 1 && change === "revised");
+    if (affected) this.graph.run(n - 1, n);
+    return affected;
   }
 
   /** Append a bar (time later than the last). */

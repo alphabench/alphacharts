@@ -26,3 +26,14 @@ Each row: the message (`{...}` stands for text that varies), its cause, the fix.
 - `minval is above maxval` — Bounds are reversed. Fix: swap them.
 - `the default "{...}" is not one of the options` — An `input.string` default is not in `options`. Fix: use one of them.
 - `the default must be a color` — An `input.color` default that is not a colour. Fix: a `color.*` constant. [host]
+- `{name} needs a bool condition, got {...}` — `barcolor` or `bgcolor` received a number. Fix: compare it, `barcolor(close > open, color.yellow)`.
+- `bgcolor shades the pane the script draws in, and with overlay=false the script has a pane only if it plots a line, histogram or area: add a plot(...), or use indicator(..., overlay=true) to shade the price chart` — A script in its own pane has `bgcolor` and nothing to hold the pane. Fix: add a line plot, or `overlay=true`.
+- `both colors of a color that depends on the bar must be constants (color.red, #rrggbb, color.new(...)), not an input.color` — `cond ? tone : color.red` with an input colour. Fix: constants in both branches.
+- `a color that depends on the bar is for line plots; histogram and area take a constant color (a histogram can use color_down for negative values)` — `cond ? a : b` on a histogram or area plot. Fix: a line, or a constant colour, or `color_down`.
+- `outside() needs a symbol or a timeframe; this chart's own series are close, open, high, low and volume` — `outside()` with neither. Fix: give a symbol, a timeframe, or use `close`.
+- `the {what} of outside() must be a string literal, or na for this chart's, not a computed value` — The symbol is a variable or expression. Fix: write it as a literal in the call.
+- `the {what} of outside() must be a string literal like "1d", or na for this chart's, not a computed value` — The timeframe is a variable, an input or an expression. Fix: a literal such as `"1d"`.
+- `the symbol of outside() must be 1 to 128 printable characters` — An empty or very long symbol. Fix: the name the user gave.
+- `the timeframe "{timeframe}" is not written like 5m, 15m, 1h, 4h, 1d or 1w` — A timeframe that is not `<n><m|h|d|w>`. Fix: write `"5m"`, `"1h"`, `"1d"`.
+- `a script may read at most {this.limits.maxFeeds} outside series (distinct symbol and timeframe pairs)` — Too many series. Fix: fewer instruments or timeframes.
+

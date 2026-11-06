@@ -28,10 +28,11 @@ chart's own bars. There are three answers:
 3. **Say what cannot be done.** When part of the request can be drawn, draw that part and say plainly what was left out;
    refuse only when none of it can be drawn. Either way one sentence, with the nearest thing the language can do.
 
-The language reads one instrument's own bars: `open high low close volume time`. It cannot do: user functions, arrays,
-string operations, `while` or `break`, other symbols or timeframes, per-bar colours, labels, lines or boxes, alerts or
-orders, and it cannot know which bar is the last, so "the last N bars" cannot be cut off exactly. Say so plainly; do not
-fake one with a near miss. Day and session logic from `time` is possible (quant-recipes: previous session, opening range).
+The language reads the chart's own bars (`open high low close volume time`) and, through `outside(...)`, the bars of
+another instrument or another timeframe. It can colour candles, shade the background and colour a line per bar. It cannot
+do: user functions, arrays, string operations, `while` or `break`, labels, lines or boxes, alerts or orders, and it cannot
+know which bar is the last, so "the last N bars" cannot be cut off exactly. Say so plainly; do not fake one with a near
+miss. Day and session logic from `time` is possible (quant-recipes: previous session, opening range).
 
 One script draws into one place. `indicator("Title", overlay=true)` draws on the price scale: moving averages, bands,
 channels, VWAP, SAR, levels. The default `overlay=false` gives an own pane: oscillators, ratios, z-scores, volume,
@@ -44,6 +45,8 @@ anything not in price units. Two units means two scripts.
 | Types, `na`, state, loops, inputs, the grammar | [script-language](../script-language/SKILL.md) |
 | A standard indicator: exact `ta.*` names, parameters, outputs | [studies](../studies/SKILL.md) |
 | `plot`, `hline`, `fill`, `plotshape`, colours, `input.*` | [plots-and-panes](../plots-and-panes/SKILL.md) |
+| Colour candles, shade the background, colour a line by a condition, the left axis | [colour-and-shading](../colour-and-shading/SKILL.md) |
+| Another instrument or timeframe: ratios, spreads, relative strength, multi-timeframe, previous-day levels | [outside-series](../outside-series/SKILL.md) |
 | Verified formulas for quant measures | [quant-recipes](../quant-recipes/SKILL.md) |
 | A compile error came back | [troubleshooting](../troubleshooting/SKILL.md) |
 
@@ -76,19 +79,17 @@ len = input.int(20, "Length", minval=2, maxval=500)
 plot(100 * (close / ta.sma(close, len) - 1), "Distance", color.blue)
 ```
 
-"Colour the line green when above the average" is not available per bar, and the compiler says so:
+"Colour the line green when above the average" is a colour that depends on the bar:
 
-<!-- skill: invalid: argument "color" of plot must be a literal or an input, not a series value -->
 ```alphacharts
 plot(close, color = close > ta.sma(close, 20) ? color.green : color.red)
 ```
 
-The nearest thing is two gapped plots, taught in plots-and-panes.
-
 ## 6. Composition
 
 core names the other skills. script-language is needed by every skill that writes code; studies supplies `ta.*`
-signatures; plots-and-panes supplies the output statements; quant-recipes holds finished formulas to adapt.
+signatures; plots-and-panes supplies the output statements; colour-and-shading and outside-series extend them;
+quant-recipes holds finished formulas to adapt.
 
 ## 7. Constraints and correctness
 
@@ -113,4 +114,4 @@ skill.
 
 ## 10. Related skills
 
-[Script language](../script-language/SKILL.md), [Studies](../studies/SKILL.md), [Plots and panes](../plots-and-panes/SKILL.md), [Quant recipes](../quant-recipes/SKILL.md), [Troubleshooting](../troubleshooting/SKILL.md).
+[Script language](../script-language/SKILL.md), [Studies](../studies/SKILL.md), [Plots and panes](../plots-and-panes/SKILL.md), [Colour and shading](../colour-and-shading/SKILL.md), [Outside series](../outside-series/SKILL.md), [Quant recipes](../quant-recipes/SKILL.md), [Troubleshooting](../troubleshooting/SKILL.md).

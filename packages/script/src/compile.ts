@@ -6,6 +6,7 @@ import { parse } from "./parser.js";
 import { check, type InputSpec, type Plan, type PlotSpec } from "./check.js";
 import type { Expr, Stmt } from "./ast.js";
 import { generate, type ColorInput } from "./codegen.js";
+import type { Dependency } from "./feeds.js";
 import { DEFAULT_LIMITS, type Limits } from "./limits.js";
 
 /** One output statement of the script. `expr` is the series plotted (plot, plotshape) or the price of an hline; fill has none. */
@@ -22,6 +23,14 @@ export interface PlotView {
  */
 export interface ScriptPlan {
   overlay: boolean;
+  /** The price axis the script's series use. */
+  scale: "left" | "right";
+  /**
+   * The outside series the script reads, one entry per distinct `outside(symbol, field, timeframe)` call, found by
+   * reading the program (nothing is run). `symbol` / `timeframe` are null for "this chart's". The host loads them and
+   * gives them to the script (`feedsOf(plan.dependencies)` groups them by series).
+   */
+  dependencies: readonly Dependency[];
   /** The most the script reads: "value" (close/time only), "ohlc", or "ohlcv" when it reads volume (the `volume` series or a study that does). */
   needs: Plan["needs"];
   plots: readonly PlotView[];
@@ -59,5 +68,5 @@ export function compile(source: string, limits: Limits = DEFAULT_LIMITS): Compil
   if (rep.errorCount === 0 && plan && plan.plots.length === 0) rep.error("the script draws nothing: add plot(...)", { from: 0, to: Math.min(source.length, 1) });
   if (rep.errorCount > 0 || !plan) return { ok: false, diagnostics: rep.list };
   const { def, colorInputs } = generate(plan, source, limits);
-  return { ok: true, study: def, colorInputs, inputs: plan.inputs, title: plan.title, diagnostics: rep.list, source, plan: { overlay: plan.overlay, needs: plan.needs, plots: plan.plots.map((p) => ({ kind: p.kind, title: p.title, expr: p.expr ?? null })), body: plan.body } };
+  return { ok: true, study: def, colorInputs, inputs: plan.inputs, title: plan.title, diagnostics: rep.list, source, plan: { overlay: plan.overlay, scale: plan.scale, dependencies: plan.dependencies, needs: plan.needs, plots: plan.plots.map((p) => ({ kind: p.kind, title: p.title, expr: p.expr ?? null })), body: plan.body } };
 }

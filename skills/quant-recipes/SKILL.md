@@ -38,8 +38,9 @@ Conventions every recipe follows:
   length limits, and the reply says the conversion. Never let the number of days stand as a number of bars.
 - Give every parameter its own input. A parameter the trader did not name (an ATR length beside the average's) is never
   tied to one they did: it gets its own input with the usual default.
-- Pairs of series come from the same bars: this language has no other symbol, so "beta" and "correlation" are of a series on
-  its own lag, or on a named built-in (`ta.correl`, `ta.beta` take `source2` as a string such as `"volume"`).
+- Pairs of series on this chart's bars: "beta" and "correlation" are of a series on its own lag, or on a named built-in
+  (`ta.correl`, `ta.beta` take `source2` as a string such as `"volume"`). Against another symbol or timeframe, load
+  [outside-series](../outside-series/SKILL.md), which has rolling beta, correlation, residual, spread z-score and relative strength.
 - Recursions use `var float` state and run once per bar, oldest first.
 
 ## 3. API reference
@@ -424,7 +425,7 @@ recipe's level against price by making it `overlay=true` only when it is in pric
 - `var` state starts at the first loaded bar. A chart that loads more history later can change a cumulative value.
 - A script does not know which bar is the last one or how many bars are loaded. "The last 100 bars" or "the last three
   touches" cannot be cut off exactly: draw the measure on every loaded bar and say that the limit is not applied.
-- Not possible here: a rolling beta or correlation against another symbol or timeframe (no outside series), tick-level
+- Not possible here: tick-level
   order flow, a Kalman filter with a matrix state, and any measure that needs an array.
 - `ta.correl(source, length, "open")` correlates with a built-in series of the same chart only.
 

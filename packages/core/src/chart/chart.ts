@@ -11,7 +11,7 @@
 // changed anything, the layers that depend on it are promoted to dirty.
 
 import { emitFault } from "../fault.js";
-import { COL_H, COL_L, COL_V, DataModel, type DataChange } from "../data/model.js";
+import { COL_H, COL_L, COL_V, DataModel, type ColumnarColors, type DataChange } from "../data/model.js";
 import type { Timeline } from "../data/timeline.js";
 import { TimeZone } from "../data/tz.js";
 import { parseColor } from "../render/color.js";
@@ -820,6 +820,14 @@ export class Chart implements Renderable {
     this.model.update(s.data, bar as never);
   }
   /** @internal */
+  setColors(s: Series<SeriesType>, colors: ColumnarColors): void {
+    this.model.setColors(s.data, colors);
+  }
+  /** @internal */
+  clearColors(s: Series<SeriesType>): void {
+    this.model.clearColors(s.data);
+  }
+  /** @internal */
   optionsChanged(s: Series<SeriesType>, moved: boolean): void {
     if (moved) {
       for (const p of this.panes) {
@@ -1043,6 +1051,12 @@ export class Chart implements Renderable {
   // ---- data ----------------------------------------------------------------
 
   private readonly onData = (c: DataChange): void => {
+    if (c.kind === "color") {
+      // bar colours only: renderers patch the records; no bar, price or time moved, so plugins (studies) have nothing to follow
+      for (const p of this.panes) for (const s of p.series) { s.renderer?.dataChanged(c); s.renderer2d?.dataChanged(c); }
+      this.invalidate(LAYER_GL);
+      return;
+    }
     const t = this.time;
     const tl = this.model.timeline;
     const wasEmpty = t.end <= t.first;

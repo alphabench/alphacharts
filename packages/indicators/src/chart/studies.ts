@@ -16,14 +16,22 @@
 // what each study is: study id, inputs, source/volume series ids, visibility
 // and style overrides, keyed by study instance id.
 //
+// Beyond lines and fills a study can colour the source's candles (`barcolor`
+// plots; several studies compose on one source), shade the background of its
+// pane (`bgcolor` plots, a core `BarShading` primitive: no part in autoscale),
+// colour a line per point (`colorBy`), draw on the chart's left axis
+// (`scale: "left"`), and read outside series its host gives it
+// (`setFeed` / `pushFeedBar`, see engine/feed.ts for the join).
+//
 // Limits: a study plot with a negative shift or `connect` is drawn on the
 // overlay, so it does not take part in autoscale or the crosshair readout. A
 // line's dash style is not drawn on series lines (the core line has none).
 
 import {
-  COL_C, COL_H, COL_L, COL_O, COL_V, cssColor, parseColor,
+  BarShading, COL_C, COL_H, COL_L, COL_O, COL_V, cssColor, parseColor,
   type Chart, type ChartPlugin, type DataChange, type PluginApi, type PluginPaneView, type PriceLine, type Series, type SeriesData, type SeriesType,
 } from "@alphacharts/core";
+import { Feed, type FeedBar, type FeedBars, type FeedConfig } from "../engine/feed.js";
 import { StudyEngine, resolveParams } from "../engine/study.js";
 import { getStudy } from "../registry.js";
 import { CancelledError, type StudyRunner } from "../runner.js";
@@ -74,6 +82,16 @@ export class Study {
   private engine: StudyEngine;
   private outs: OutSeries[] = [];
   private lines: { series: AnySeries; line: PriceLine }[] = [];
+  /** Background shading: one primitive per bgcolor plot, attached to the series of the pane it shades. */
+  private shades: { plot: Extract<PlotDef, { kind: "bgcolor" }>; col: number; prim: BarShading; anchor: AnySeries }[] = [];
+  /** Outside series the host gave this study, by key. */
+  private feeds = new Map<string, Feed>();
+  /**
+   * Longer-timeframe series ("closed" join) whose forming bar is not shown on any chart bar: the last row sent to a runner,
+   * and the newest revision of it not sent yet. A revision is sent when the next row opens (its final state), not per tick.
+   */
+  private feedSent = new Map<string, { time: number; held?: FeedBar }>();
+  private sameScale = true;
   private styles: Record<string, PlotStyle> = {};
   private shown = true;
   private pane = 0;
@@ -145,9 +163,14 @@ export class Study {
     return this.outs.map((o) => o.series as unknown as AnySeries);
   }
 
-  /** Change inputs; unspecified ones keep their value. Validated before anything changes. */
-  setInputs(partial: Readonly<Record<string, InputValue>>): void {
-    const next = resolveParams(this.def, { ...this.params, ...partial });
+  /**
+   * Change inputs; unspecified ones keep their value, and the keys in `reset` go back to their defaults (a preset that
+   * has no value for an input the study has). Validated before anything changes. Outside series the study was given stay.
+   */
+  setInputs(partial: Readonly<Record<string, InputValue>>, reset: readonly string[] = []): void {
+    const kept: Record<string, InputValue> = { ...this.params };
+    for (const k of reset) delete kept[k];
+    const next = resolveParams(this.def, { ...kept, ...partial });
     const engine = new StudyEngine(this.def, next);
     this.params = next;
     this.engine = engine;
@@ -159,6 +182,8 @@ export class Study {
   setVisible(visible: boolean): void {
     this.shown = visible;
     for (const o of this.outs) o.series.applyOptions({ visible } as never);
+    for (const sh of this.shades) sh.prim.setVisible(visible);
+    if (this.hasBarColor()) this.host.syncBarColors(this.source);
     this.host.changed();
   }
 
@@ -169,6 +194,8 @@ export class Study {
       if (o.key.split(":")[0] !== plotKey) continue;
       o.series.applyOptions(this.seriesOptions(o.plot, o.key) as never);
     }
+    // a shade or a bar colour is not a series: it is drawn again from the columns
+    if (!this.job && this.engine.length > 0 && (this.shades.length > 0 || this.hasBarColor())) this.syncOverlays();
     this.host.changed();
   }
 
@@ -223,9 +250,116 @@ export class Study {
   dispose(chart: Chart): void {
     this.drop();
     for (const { series, line } of this.lines) chart.removePriceLine(series as never, line);
+    for (const sh of this.shades) sh.anchor.detachPrimitive(sh.prim);
     for (const o of this.outs) chart.removeSeries(o.series);
     this.outs = [];
     this.lines = [];
+    this.shades = [];
+  }
+
+  // ---- outside series -------------------------------------------------------------
+
+  /**
+   * Give the study outside series `key` (see engine/feed.ts for what a feed is and how it is joined), replacing the
+   * previous bars of that key, and compute everything again. The study keeps its own copy.
+   */
+  setFeed(key: string, bars: FeedBars, cfg: FeedConfig): void {
+    let f = this.feeds.get(key);
+    if (!f) this.feeds.set(key, (f = new Feed()));
+    f.load(bars, cfg, `outside series ${key}`);
+    this.feedSent.delete(key);
+    this.recompute();
+    this.host.changed();
+  }
+
+  /** Keys of the outside series given so far. */
+  feedKeys(): string[] {
+    return [...this.feeds.keys()];
+  }
+
+  /**
+   * A live bar of outside series `key` (same time as its last bar revises it, a later time appends). Only the study's
+   * last bar is evaluated again, and only when it sees a different feed bar through the join; otherwise nothing is
+   * recomputed or redrawn.
+   */
+  pushFeedBar(key: string, bar: FeedBar): void {
+    const f = this.feeds.get(key);
+    if (!f) throw new RangeError(`${this.def.id}: no outside series "${key}"; give it with setFeed first`);
+    f.apply(bar, `outside series ${key}`); // the study's own copy: what a later full computation sends
+    if (this.disposed || this.error) return;
+    if (this.job) {
+      // a batch that started before this bar is in flight: run again when it lands
+      this.structural = true;
+      return;
+    }
+    const runner = this.ownRunner ?? this.host.runner;
+    if (runner?.canRun(this.def)) {
+      if (f.align === "closed") {
+        const sent = this.feedSent.get(key);
+        if (sent && sent.time === bar.time) {
+          sent.held = bar; // the forming bar again: no chart bar sees it yet
+          return;
+        }
+        // a new row: the one before is final now
+        if (sent?.held) runner.feedBar?.(this.def, key, sent.held);
+        this.feedSent.set(key, { time: bar.time });
+      }
+      runner.feedBar?.(this.def, key, bar);
+      return;
+    }
+    if (this.engine.pushFeed(key, bar)) {
+      this.tickSync();
+      this.host.api?.requestRender();
+    }
+  }
+
+  // ---- bar colours (composed by the plugin) --------------------------------------------
+
+  /** @internal */
+  hasBarColor(): boolean {
+    return this.def.plots.some((p) => p.kind === "barcolor");
+  }
+
+  /** @internal The source series this study colours. */
+  barColorSource(): SourceSeries {
+    return this.source;
+  }
+
+  /** @internal Colour of the bar at engine row `j` from this study's barcolor plots: the latest that applies, 0 if none. */
+  barColorAt(j: number): number {
+    const e = this.engine;
+    let c = 0;
+    if (j < 0) return c;
+    for (const p of this.def.plots) {
+      if (p.kind !== "barcolor") continue;
+      const v = e.outputs[this.def.columns.indexOf(p.col)]!.v[j]!;
+      if (v === v && v !== 0) c = parseColor(this.color(p));
+    }
+    return c;
+  }
+
+  /** @internal Time and colour of every row (0 = none). */
+  barColors(): { time: Float64Array; color: Uint32Array } {
+    const n = this.engine.length;
+    const color = new Uint32Array(n);
+    for (let j = 0; j < n; j++) color[j] = this.barColorAt(j);
+    return { time: this.engine.graph.time.v.slice(0, n), color };
+  }
+
+  /** @internal Engine row of the bar at `time` (the last row when it is the last bar's time), -1 if none. */
+  rowOf(time: number): number {
+    const n = this.engine.length;
+    return n > 0 && this.engine.graph.time.v[n - 1] === time ? n - 1 : -1;
+  }
+
+  /** @internal Time of the last row, NaN when empty. */
+  lastTime(): number {
+    const n = this.engine.length;
+    return n > 0 ? this.engine.graph.time.v[n - 1]! : Number.NaN;
+  }
+
+  get isShown(): boolean {
+    return this.shown && !this.error && !this.disposed;
   }
 
   // ---- source ------------------------------------------------------------------
@@ -243,6 +377,7 @@ export class Study {
       }
     }
     if (need === "ohlcv" && !this.volume) throw new TypeError(`${this.def.id} needs volume: pass the volume series as options.volume`);
+    if (!this.ohlc && this.def.plots.some((p) => p.kind === "barcolor")) throw new TypeError(`${this.def.id} colours bars; the source series holds single values, not candles or bars`);
   }
 
   /** Whether `d` is the store of one of this study's inputs. */
@@ -295,7 +430,7 @@ export class Study {
 
   /** @internal */
   onChange(c: DataChange): void {
-    if (this.disposed || this.error) return;
+    if (this.disposed || this.error || c.kind === "color") return;
     const which = this.watches(c.series);
     if (c.series === null) {
       // A removal elsewhere rebuilt the timeline: nothing of ours moved unless an input died.
@@ -338,13 +473,15 @@ export class Study {
     const bars = this.bars();
     const runner = this.ownRunner ?? this.host.runner;
     if (!runner || !runner.canRun(this.def)) {
+      for (const [k, f] of this.feeds) this.engine.setFeed(k, f.snapshot(), f);
       this.engine.load(bars);
       this.syncAll();
       this.ready_ = Promise.resolve();
       return;
     }
     const v = this.version;
-    const run = runner.run(this.def, { studyId: this.def.id, params: this.params, bars });
+    const feeds = this.feeds.size > 0 ? Object.fromEntries([...this.feeds].map(([k, f]) => [k, { align: f.align, spanMs: f.spanMs, bars: f.snapshot() }])) : undefined;
+    const run = runner.run(this.def, { studyId: this.def.id, params: this.params, bars, ...(feeds && { feeds }) });
     this.job = run;
     this.ready_ = run.promise.then(
       (res) => {
@@ -426,19 +563,21 @@ export class Study {
     const so = this.source.options();
     if (this.def.pane === "overlay") {
       this.pane = so.pane;
-      this.scaleId = so.priceScaleId;
+      this.scaleId = this.def.scale ?? so.priceScaleId;
     } else {
       this.pane = this.host.freePane();
-      this.scaleId = "right";
+      this.scaleId = this.def.scale ?? "right";
     }
     const overlay = this.def.pane === "overlay";
+    // an overlay on the source's own scale reads like its source; on the other axis (or in a pane of its own) it has its own scale and format
+    this.sameScale = overlay && this.scaleId === so.priceScaleId;
     const cols = this.def.columns;
     const add = (plot: PlotDef, key: string, type: "line" | "histogram" | "area", col: string, offset: number) => {
       const s = chart.addSeries(type, {
         id: `study:${this.id}:${key}`, pane: this.pane, priceScaleId: this.scaleId, title: this.outs.length === 0 ? this.title() : plot.title,
-        lastValueVisible: !overlay, priceLineVisible: false, visible: this.shown, ...this.seriesOptions(plot, key),
+        lastValueVisible: !this.sameScale, priceLineVisible: false, visible: this.shown, ...this.seriesOptions(plot, key),
         // Overlays read like their source; oscillators show two decimals instead of whatever the data happens to carry.
-        priceFormat: overlay ? so.priceFormat : { type: "price", minMove: this.def.minMove ?? 10 ** -this.decimals },
+        priceFormat: this.sameScale ? so.priceFormat : { type: "price", minMove: this.def.minMove ?? 10 ** -this.decimals },
       } as never) as unknown as Series<"line" | "histogram" | "area">;
       this.outs.push({ plot, key, col: cols.indexOf(col), series: s, offset, lastTime: Number.NaN });
     };
@@ -457,6 +596,16 @@ export class Study {
       }
     }
     const anchor = this.outs[0]?.series as unknown as AnySeries | undefined;
+    for (const plot of this.def.plots) {
+      if (plot.kind !== "bgcolor") continue;
+      // shades the pane the study draws in: the source's for an overlay, else the pane its first series made
+      const host = overlay ? (this.source as unknown as AnySeries) : anchor;
+      if (!host) throw new TypeError(`${this.def.id}: bgcolor shades the study's pane, and a study in its own pane needs a plot to hold it`);
+      const prim = new BarShading();
+      prim.setVisible(this.shown);
+      host.attachPrimitive(prim);
+      this.shades.push({ plot, col: cols.indexOf(plot.col), prim, anchor: host });
+    }
     if (anchor) {
       for (const plot of this.def.plots) {
         if (plot.kind !== "hline") continue;
@@ -472,25 +621,43 @@ export class Study {
     const n = e.length;
     const times = e.graph.time.v;
     for (const o of this.outs) this.writeSeries(o, e.outputs[o.col]!.v, times, n);
+    this.syncOverlays();
     this.host.api?.requestRender(true);
+  }
+
+  /** Background shades and bar colours, from the engine's columns (every bar). */
+  private syncOverlays(): void {
+    const e = this.engine;
+    const n = e.length;
+    const times = e.graph.time.v;
+    for (const sh of this.shades) {
+      const col = e.outputs[sh.col]!.v;
+      const rgba = parseColor(this.color(sh.plot));
+      const color = new Uint32Array(n);
+      for (let j = 0; j < n; j++) color[j] = col[j]! === col[j]! && col[j] !== 0 ? rgba : 0;
+      sh.prim.set(times.slice(0, n), color);
+    }
+    if (this.hasBarColor()) this.host.syncBarColors(this.source);
   }
 
   private writeSeries(o: OutSeries, col: Float64Array, times: Float64Array, n: number): void {
     const down = o.plot.kind === "histogram" && o.plot.colorDown ? { up: parseColor(this.color(o.plot)), down: parseColor(o.plot.colorDown) } : null;
+    const by = o.plot.kind === "line" && o.plot.colorBy ? { col: this.engine.outputs[this.def.columns.indexOf(o.plot.colorBy.col)]!.v, color: parseColor(o.plot.colorBy.color) } : null;
     let m = 0;
     for (let j = 0; j < n; j++) {
       const t = j + o.offset;
       if (t >= 0 && t < n && col[j] === col[j]) m++;
     }
     const time = new Float64Array(m), value = new Float64Array(m);
-    const color = down ? new Uint32Array(m) : undefined;
+    const color = down || by ? new Uint32Array(m) : undefined;
     let k = 0;
     for (let j = 0; j < n; j++) {
       const t = j + o.offset;
       if (t < 0 || t >= n || col[j] !== col[j]) continue;
       time[k] = times[t]!;
       value[k] = col[j]!;
-      if (color) color[k] = col[j]! >= 0 ? down!.up : down!.down;
+      if (down) color![k] = col[j]! >= 0 ? down.up : down.down;
+      else if (by) color![k] = by.col[j]! === by.col[j]! && by.col[j] !== 0 ? by.color : 0;
       k++;
     }
     let maxAbs = 0;
@@ -502,7 +669,7 @@ export class Study {
 
   /** Show enough decimals for values below 1 (three significant digits); only ever grows. A def's own `minMove` wins; an overlay reads like its source. */
   private widen(maxAbs: number): void {
-    if (this.def.pane === "overlay" || this.def.minMove !== undefined || !(maxAbs > 0) || maxAbs >= 1) return;
+    if (this.sameScale || this.def.minMove !== undefined || !(maxAbs > 0) || maxAbs >= 1) return;
     const d = Math.min(8, 2 - Math.floor(Math.log10(maxAbs)));
     if (d <= this.decimals) return;
     this.decimals = d;
@@ -521,6 +688,12 @@ export class Study {
     const n = e.length;
     const times = e.graph.time.v;
     const t = times[n - 1]!;
+    const cols = this.def.columns;
+    for (const sh of this.shades) {
+      const v = e.outputs[sh.col]!.v[n - 1]!;
+      sh.prim.setAt(t, v === v && v !== 0 ? parseColor(this.color(sh.plot)) : 0);
+    }
+    if (this.hasBarColor()) this.host.syncBarColors(this.source, true);
     for (const o of this.outs) {
       const j = n - 1 - o.offset;
       if (j < 0) continue;
@@ -529,7 +702,10 @@ export class Study {
       if (v === v) {
         this.widen(Math.abs(v));
         const down = o.plot.kind === "histogram" && o.plot.colorDown;
-        o.series.update({ time: t, value: v, ...(down && { color: v >= 0 ? this.color(o.plot) : down }) } as never);
+        const by = o.plot.kind === "line" ? o.plot.colorBy : undefined;
+        const cond = by ? e.outputs[cols.indexOf(by.col)]!.v[j]! : Number.NaN;
+        const own = by && cond === cond && cond !== 0 ? by.color : undefined;
+        o.series.update({ time: t, value: v, ...(down && { color: v >= 0 ? this.color(o.plot) : down }), ...(own && { color: own }) } as never);
         o.lastTime = t;
       } else if (o.lastTime === t) this.writeSeries(o, col, times, n); // a point turned absent: rewrite
     }
@@ -710,6 +886,8 @@ export class StudiesPlugin implements ChartPlugin {
   api: PluginApi | null = null;
   private readonly studies = new Map<string, Study>();
   private counter = 0;
+  /** Sources whose bars the plugin has coloured: the plugin owns their colour column while a barcolor study exists. */
+  private readonly coloured = new Set<SourceSeries>();
 
   constructor(readonly chart: Chart, readonly runner: StudyRunner | undefined, private readonly resolve: (id: string) => StudyDef) {}
 
@@ -718,9 +896,46 @@ export class StudiesPlugin implements ChartPlugin {
   }
 
   uninstall(): void {
+    const sources = [...this.coloured];
     for (const s of [...this.studies.values()]) s.dispose(this.chart);
     this.studies.clear();
+    for (const src of sources) this.syncBarColors(src);
     this.api = null;
+  }
+
+  /**
+   * Bring the colours of `source`'s candles in line with every visible study that colours them: per bar, the latest
+   * study (in creation order) whose barcolor applies wins. With no such study the colour column is removed, so the
+   * candles are exactly as they were. `last`: only the source's last bar (a tick).
+   * @internal
+   */
+  syncBarColors(source: SourceSeries, last = false): void {
+    const live = [...this.studies.values()].filter((s) => s.barColorSource() === source && s.hasBarColor() && s.isShown);
+    const target = source as unknown as Series<"candles">;
+    if (live.length === 0) {
+      if (this.coloured.delete(source)) target.clearBarColors();
+      return;
+    }
+    this.coloured.add(source);
+    if (last) {
+      const t = live[0]!.lastTime();
+      if (t !== t) return;
+      let c = 0;
+      for (const s of live) if (s.lastTime() === t) c = s.barColorAt(s.rowOf(t)) || c;
+      target.setBarColors({ time: Float64Array.of(t), color: Uint32Array.of(c) });
+      return;
+    }
+    const base = live[0]!.barColors();
+    const time = base.time, color = base.color;
+    for (let k = 1; k < live.length; k++) {
+      const o = live[k]!.barColors();
+      let j = 0;
+      for (let i = 0; i < o.time.length; i++) {
+        while (j < time.length && time[j]! < o.time[i]!) j++;
+        if (j < time.length && time[j] === o.time[i] && o.color[i] !== 0) color[j] = o.color[i]!;
+      }
+    }
+    target.setBarColors({ time, color });
   }
 
   dataChanged(c: DataChange): void {
@@ -761,6 +976,8 @@ export class StudiesPlugin implements ChartPlugin {
     const s = new Study(this, id, def, inputs, source, o.volume, saved, o.runner, o.onDispose);
     s.persist = o.persist !== false;
     this.studies.set(id, s);
+    // a study computed inline has already written once, before it was registered to be composed
+    if (s.hasBarColor()) this.syncBarColors(source);
     return s;
   }
 
@@ -769,6 +986,7 @@ export class StudiesPlugin implements ChartPlugin {
     if (!s) return;
     this.studies.delete(id);
     s.dispose(this.chart);
+    if (s.hasBarColor()) this.syncBarColors(s.barColorSource());
     this.changed();
   }
 
@@ -780,6 +998,8 @@ export class StudiesPlugin implements ChartPlugin {
       if (!alive.has(inputs.source.data) || (inputs.volume && !alive.has(inputs.volume.data))) {
         this.studies.delete(id);
         s.dispose(this.chart);
+        if (!alive.has(inputs.source.data)) this.coloured.delete(inputs.source);
+        else if (s.hasBarColor()) this.syncBarColors(inputs.source);
       }
     }
   }

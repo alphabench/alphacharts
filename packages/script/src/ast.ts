@@ -21,6 +21,8 @@ export interface Sym {
   /** A top-level variable kept in the exec program (var, or assigned with :=). */
   isVar?: boolean;
   decl?: Span;
+  /** A pure variable's domain (see `Base_.dom`). */
+  dom?: string;
 }
 
 interface Base_ extends Span {
@@ -28,6 +30,11 @@ interface Base_ extends Span {
   ty?: Ty;
   /** Depends on a variable that changes while a bar is evaluated (state, locals, loop counters). */
   st?: boolean;
+  /**
+   * Whose bars the value lives on, set by the checker: "~" a constant (no bars of its own), "@" the chart's bars (the
+   * default), or the key of the outside series whose own bars it is computed on. See check.ts, `combineDom`.
+   */
+  dom?: string;
 }
 
 /** `float` is how the literal was written: with a dot or an exponent (0.0, 1., 1e3) it is a float whatever its value. */
@@ -40,7 +47,7 @@ export interface Unary extends Base_ { k: "un"; op: "-" | "+" | "not"; x: Expr }
 export interface Binary extends Base_ { k: "bin"; op: string; a: Expr; b: Expr }
 export interface Ternary extends Base_ { k: "tern"; c: Expr; a: Expr; b: Expr }
 export interface Arg { name: string | null; nameSpan?: Span; value: Expr }
-export interface Call extends Base_ { k: "call"; callee: Expr; args: Arg[]; /** Resolved signature name, e.g. "ta.sma". */ fn?: string; /** Arguments in parameter order (null = omitted). */ bound?: (Expr | null)[] }
+export interface Call extends Base_ { k: "call"; callee: Expr; /** For outside(): the key of the series it reads, and whether it has a timeframe of its own (then what is computed on it runs on its own bars). */ feed?: string; own?: boolean; args: Arg[]; /** Resolved signature name, e.g. "ta.sma". */ fn?: string; /** Arguments in parameter order (null = omitted). */ bound?: (Expr | null)[] }
 export interface Member extends Base_ { k: "mem"; obj: Expr; name: string; nameSpan: Span; /** A namespace constant's value (math.pi, color.red, plot.style_line). */ cv?: number | string }
 export interface Index extends Base_ { k: "idx"; x: Expr; i: Expr }
 export interface ArrayLit extends Base_ { k: "arr"; items: Expr[] }

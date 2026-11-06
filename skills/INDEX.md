@@ -59,7 +59,7 @@ Load when:
 
 ## Plots and panes
 
-Drawing a script's output: plot, plot styles, hline, fill, plotshape, overlay versus own pane, colours as constants, input.* controls, and colour that changes along a line with two gapped plots.
+Drawing a script's output: plot, plot styles, hline, fill, plotshape, overlay versus own pane, colours as constants, input.* controls, and a line shown only where a condition holds with two gapped plots.
 
 Name: `alphacharts-plots-and-panes`  
 Path: [plots-and-panes/SKILL.md](plots-and-panes/SKILL.md)  
@@ -71,7 +71,39 @@ Load when:
 
 - The request is about how something looks: line style, histogram, shaded band, markers, levels, colours.
 - Adding user-adjustable settings (input.*).
-- Colouring a line by a condition.
+- Showing a line only where a condition holds.
+
+## Colour and shading
+
+Colour that depends on the bar: barcolor to colour candles, bgcolor to shade the background of a pane, a line coloured by a condition, and indicator(scale="left") to draw a series of another magnitude on the left axis.
+
+Name: `alphacharts-colour-and-shading`  
+Path: [colour-and-shading/SKILL.md](colour-and-shading/SKILL.md)  
+Status: stable  
+API version: 0.x  
+Depends on: alphacharts-core, alphacharts-script-language, alphacharts-plots-and-panes
+
+Load when:
+
+- The request is to colour candles or bars where a condition holds.
+- Shading the price chart or an indicator pane where a condition holds.
+- Colouring a line by a condition, or drawing a series on the left axis.
+
+## Outside series
+
+Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.
+
+Name: `alphacharts-outside-series`  
+Path: [outside-series/SKILL.md](outside-series/SKILL.md)  
+Status: stable  
+API version: 0.x  
+Depends on: alphacharts-core, alphacharts-script-language, alphacharts-studies, alphacharts-plots-and-panes
+
+Load when:
+
+- The request involves a second instrument: against the index, spread, ratio, relative strength, beta, correlation, the sector.
+- The request names another timeframe: RSI on the hourly, daily levels on an intraday chart, daily returns.
+- Previous day's high, low or close.
 
 ## Quant recipes
 

@@ -2,7 +2,7 @@
 name: alphacharts-plots-and-panes
 description: >
     Drawing a script's output: plot, plot styles, hline, fill, plotshape, overlay versus own pane, colours as constants,
-    input.* controls, and colour that changes along a line with two gapped plots.
+    input.* controls, and a line shown only where a condition holds with two gapped plots.
 version: 1.0
 api_version: 0.x
 depends_on:
@@ -21,8 +21,8 @@ line, colours, or user-adjustable settings. Every script uses `plot`, so load it
 ## 2. Domain overview
 
 **Where it draws.** `indicator("Title", overlay=true)` puts every output on the price scale; the default
-`overlay=false` gives one own pane for the whole script. A second argument `shorttitle` replaces the title.
-`indicator` may appear once.
+`overlay=false` gives one own pane for the whole script. A second argument `shorttitle` replaces the title. `scale="left"`
+puts the script's series on the chart's left axis (see colour-and-shading). `indicator` may appear once.
 
 **Output statements** are top-level only. Give each plot its own title (an untitled plot is `Plot N`; two plots with the same title get distinct internal keys but are hard to tell apart). At most 64 per script.
 
@@ -41,11 +41,13 @@ line, colours, or user-adjustable settings. Every script uses `plot`, so load it
 **Colours are constants.** `color.aqua color.black color.blue color.fuchsia color.gray color.green color.lime color.maroon
 color.navy color.olive color.orange color.purple color.red color.silver color.teal color.white color.yellow`, a hex
 `#rrggbb` or `#rrggbbaa`, `color.new(color, transp)` (0 opaque to 100 invisible; the colour must be a constant), or an
-`input.color` variable. A colour cannot depend on the bar.
+`input.color` variable. A line's colour may depend on the bar, written `cond ? colorA : colorB`; candles and the
+background are coloured with `barcolor` and `bgcolor` ([colour-and-shading](../colour-and-shading/SKILL.md)).
 
-**Per-bar colour, the substitute.** Draw two plots and give each `na` where it should not show. Include the bar where the
-direction flips in both, so the line has no hole. The file [two-colour-line.acs](examples/two-colour-line.acs) is checked
-against a plain-JavaScript recomputation.
+**A line shown only where a condition holds.** Draw two plots and give each `na` where it should not show. Include the bar
+where the direction flips in both, so the line has no hole. The file [two-colour-line.acs](examples/two-colour-line.acs) is
+checked against a plain-JavaScript recomputation. To change only the colour of one continuous line, use the colour form
+in colour-and-shading.
 
 **Controls.** `input.int`, `input.float`, `input.bool`, `input.string(options=[...])`, `input.source` and `input.color`
 declare settings the user can change; `input.color` recolours the plots that use it.
@@ -122,12 +124,13 @@ plot(close > open)
 
 ## 6. Composition
 
-Study outputs and recipe formulas are plotted here. Colour that follows a condition uses the gapped pair. Markers need
+Study outputs and recipe formulas are plotted here. Colour that follows a condition: colour-and-shading. Markers need
 a bool or a price; combine a pattern study with a comparison, `ta.cdl_hammer() > 0`.
 
 ## 7. Constraints and correctness
 
-- Colours, line widths, styles, `offset`, titles and `hline` prices are literals or inputs, never series.
+- Line widths, styles, `offset`, titles and `hline` prices are literals or inputs, never series. Colours are constants or
+  inputs, except the `cond ? colorA : colorB` form of a line's colour.
 - `na` leaves a gap in a line and no bar in a histogram; it is never drawn as zero.
 - Fills, markers and plots shifted back in time (negative `offset`) are drawn on the overlay and do not take part in autoscale.
 - One pane per script; scale differences between plots in the same pane are the user's problem, so split by units.
@@ -136,7 +139,7 @@ a bool or a price; combine a pattern study with a comparison, `ta.cdl_hammer() >
 ## 8. Common mistakes
 
 - `plot(close > open)`: bool is not a number.
-- `color = cond ? color.green : color.red`: colour is not per bar.
+- A per-bar colour on a histogram or area (`color = cond ? ...`): only line plots take it; a histogram has `color_down`.
 - `plot` inside `if` or `for`: output is top-level only.
 - `fill` between a histogram, an area or an `hline`: line plots only.
 - `plotshape` of a price without `location.absolute`: a number needs the absolute location, a bool the bar locations.
@@ -144,7 +147,7 @@ a bool or a price; combine a pattern study with a comparison, `ta.cdl_hammer() >
 ## 9. Validation
 
 The browser compiles the script and diagnostics come back. Then check that the pane matches the units, that every plot has
-a title, and that a gapped pair share the flip bar.
+a title, and that a gapped pair share the flip bar. Axis: `indicator(..., scale="left")` puts the script on the left axis.
 
 ## 10. Related skills
 

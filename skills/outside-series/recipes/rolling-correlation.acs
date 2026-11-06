@@ -1,0 +1,7 @@
+indicator("Rolling correlation with another instrument")
+len = input.int(30, "Length", minval=3, maxval=500)
+ra = close / close[1] - 1
+rb = outside("AAA") / outside("AAA")[1] - 1
+cov = ta.sma(ra * rb, len) - ta.sma(ra, len) * ta.sma(rb, len)
+plot(cov / (ta.stdev(ra, len) * ta.stdev(rb, len)), "Correlation", color.teal)
+hline(0, "Zero", color.gray, hline.style_dashed)

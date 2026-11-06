@@ -15,6 +15,8 @@ export interface Limits {
   maxBars: number;
   /** Nodes of the syntax tree / source length: refuses pathological inputs before they are parsed. */
   maxSourceChars: number;
+  /** Distinct outside series (symbol and timeframe pairs) a script may read. Each is held twice (worker and page), in six columns of its own length. */
+  maxFeeds: number;
   /** Wall-clock budget of one batch in the worker before it is terminated, milliseconds. */
   batchMs: number;
   /** Wall-clock budget of one tick, milliseconds. */
@@ -28,6 +30,7 @@ export const DEFAULT_LIMITS: Readonly<Limits> = Object.freeze({
   maxColumns: 512,
   maxBytes: 512 * 1024 * 1024,
   maxBars: 10_000_000,
+  maxFeeds: 8,
   maxSourceChars: 200_000,
   batchMs: 8000,
   tickMs: 1000,

@@ -1,0 +1,8 @@
+indicator("Spread z-score")
+len = input.int(30, "Length", minval=2, maxval=500)
+hedge = input.float(1.5, "Hedge ratio", minval=0.01, maxval=100, step=0.01)
+spread = close - hedge * outside("AAA")
+z = (spread - ta.sma(spread, len)) / ta.stdev(spread, len)
+plot(z, "Z", color.blue)
+hline(2, "Plus 2", color.gray, hline.style_dashed)
+hline(-2, "Minus 2", color.gray, hline.style_dashed)

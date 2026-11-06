@@ -7,7 +7,7 @@
 // the pane), may add labels to the price axis, and may claim the pointer. It may
 // also draw behind the series (`drawBackground`, on the background layer).
 
-import { parseColor } from "../render/color.js";
+import { cssColor, parseColor } from "../render/color.js";
 
 export interface PaneView {
   /** Pane size in CSS px. */
@@ -176,4 +176,123 @@ export class PriceLine implements PanePrimitive {
     const o = this.opts;
     return o.axisLabelVisible ? [{ price: o.price, text: view.formatPrice(o.price), background: o.axisLabelColor ?? o.color, color: o.labelTextColor }] : [];
   }
+}
+
+// ---- bar shading ---------------------------------------------------------------
+
+/**
+ * A background colour per bar, drawn behind the series of the pane it is attached to (`Series.attachPrimitive`).
+ * It takes no part in autoscale (a primitive never does) and costs nothing while no bar is shaded. Colours are
+ * keyed by bar time (UTC ms), so they stay with their bars when the timeline is re-indexed; a time with no bar on
+ * the chart draws nothing. Runs of equal colour on neighbouring bars are painted as one rectangle.
+ */
+export class BarShading implements PanePrimitive {
+  private host: PrimitiveHost | null = null;
+  private times = new Float64Array(0);
+  private colors = new Uint32Array(0);
+  private n = 0;
+  private shown = true;
+  private any = false;
+
+  /** Replace every shade: strictly increasing times, packed 0xRRGGBBAA colours (0 = no shade). */
+  set(time: Float64Array, color: Uint32Array): void {
+    if (time.length !== color.length) throw new RangeError(`BarShading.set: ${color.length} colours for ${time.length} times`);
+    this.times = time.slice();
+    this.colors = color.slice();
+    this.n = time.length;
+    this.any = this.colors.some((c) => c !== 0);
+    this.host?.requestRender("background");
+  }
+
+  /** Shade one bar: replaces the colour at `time` when the bar is known, else appends (a time later than the last). */
+  setAt(time: number, color: number): void {
+    const n = this.n;
+    let i = n;
+    if (n > 0 && time <= this.times[n - 1]!) {
+      i = lowerBoundTime(this.times, n, time);
+      if (this.times[i] !== time) throw new RangeError(`BarShading.setAt: time ${time} is neither the last bar nor a later one`);
+    }
+    if (i === n) {
+      if (n === this.times.length) {
+        const cap = Math.max(64, n * 2);
+        const t = new Float64Array(cap), c = new Uint32Array(cap);
+        t.set(this.times.subarray(0, n));
+        c.set(this.colors.subarray(0, n));
+        this.times = t;
+        this.colors = c;
+      }
+      this.times[n] = time;
+      this.n = n + 1;
+    } else if (this.colors[i] === color) return;
+    this.colors[i] = color;
+    if (color !== 0) this.any = true;
+    this.host?.requestRender("background");
+  }
+
+  clear(): void {
+    this.n = 0;
+    this.any = false;
+    this.host?.requestRender("background");
+  }
+
+  setVisible(visible: boolean): void {
+    if (visible === this.shown) return;
+    this.shown = visible;
+    this.host?.requestRender("background");
+  }
+
+  attached(host: PrimitiveHost): void {
+    this.host = host;
+  }
+
+  detached(): void {
+    this.host = null;
+  }
+
+  drawBackground(ctx: CanvasRenderingContext2D, view: PaneView): void {
+    if (!this.shown || !this.any || this.n === 0) return;
+    const times = this.times, colors = this.colors, n = this.n;
+    const half = view.barSpacing / 2;
+    // first bar whose right edge is inside the pane (timeToX never throws, and grows with time)
+    let a = 0, b = n;
+    while (a < b) {
+      const mid = (a + b) >>> 1;
+      if (view.timeToX(times[mid]!) + half < 0) a = mid + 1;
+      else b = mid;
+    }
+    let k = a;
+    let runStart = -1, runEnd = -1, runColor = 0;
+    const flush = () => {
+      if (runColor === 0 || runStart < 0) return;
+      ctx.fillStyle = cssColor(runColor);
+      ctx.fillRect(runStart, 0, runEnd - runStart, view.height);
+    };
+    for (; k < n; k++) {
+      if (view.timeToX(times[k]!) - half > view.width) break;
+      const c = colors[k]!;
+      const idx = view.timeToIndex(times[k]!);
+      if (idx === undefined) continue;
+      const x = view.x(idx);
+      // contiguous with the open run when this bar starts where the run ends
+      if (c === runColor && c !== 0 && Math.abs(x - half - runEnd) < 0.5) {
+        runEnd = x + half;
+        continue;
+      }
+      flush();
+      runColor = c;
+      runStart = x - half;
+      runEnd = x + half;
+    }
+    flush();
+  }
+}
+
+function lowerBoundTime(a: Float64Array, n: number, t: number): number {
+  let lo = 0, hi = n;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (a[mid]! < t) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
 }

@@ -1,0 +1,5 @@
+indicator("Return minus sector return")
+len = input.int(20, "Length", minval=1, maxval=500)
+sector = outside("SECT")
+plot(100 * ((close / close[len] - 1) - (sector / sector[len] - 1)), "Excess return, percent", color.blue)
+hline(0, "Even", color.gray, hline.style_dashed)

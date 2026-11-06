@@ -1,6 +1,6 @@
 // Public handle for one series on a chart.
 
-import type { ColumnarOhlc, ColumnarValue, OhlcBar, SeriesData, ValuePoint } from "../data/model.js";
+import type { ColumnarColors, ColumnarOhlc, ColumnarValue, OhlcBar, SeriesData, ValuePoint } from "../data/model.js";
 import { COL_C, COL_H, COL_L, COL_O, COL_V } from "../data/model.js";
 import type { SeriesRenderer2D } from "../render/canvas2d.js";
 import type { SeriesRenderer } from "../render/renderers.js";
@@ -42,6 +42,8 @@ export interface SeriesHost {
   setData(s: Series<SeriesType>, input: unknown): void;
   prepend(s: Series<SeriesType>, input: unknown): void;
   update(s: Series<SeriesType>, bar: unknown): void;
+  setColors(s: Series<SeriesType>, colors: ColumnarColors): void;
+  clearColors(s: Series<SeriesType>): void;
   optionsChanged(s: Series<SeriesType>, paneOrScaleMoved: boolean): void;
   markersChanged(s: Series<SeriesType>): void;
   /** Pane-relative y of a price on the series' scale; NaN when the scale has no range yet. */
@@ -106,6 +108,20 @@ export class Series<T extends SeriesType> {
   /** Live bar: same time as the last bar replaces it, a later time appends. */
   update(bar: SeriesBar<T>): void {
     this.host.update(this as never, bar);
+  }
+
+  /**
+   * Colour individual bars of a candle or OHLC-bar series (`colors.color`: packed 0xRRGGBBAA, 0 = the series' own up/down
+   * colours), by time; a time with no bar is ignored. Colours belong to (series, time): `update`, `prepend` and `setData`
+   * keep the colours of the bars they keep. Writing the colour a bar already has changes and redraws nothing.
+   */
+  setBarColors(this: Series<"candles" | "bars">, colors: ColumnarColors): void {
+    this.host.setColors(this as never, colors);
+  }
+
+  /** Remove every bar colour (the colour column too): the series draws in its up/down colours again. */
+  clearBarColors(this: Series<"candles" | "bars">): void {
+    this.host.clearColors(this as never);
   }
 
   /** The bar at `time`, or undefined. Values are the exact inputs (Float64). */

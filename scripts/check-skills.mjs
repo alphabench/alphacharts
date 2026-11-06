@@ -11,7 +11,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { generated } from "./gen-skill-reference.mjs";
-import { CHARTS_ROOT, distProblems, extractDiagnostics, loadBuiltins, loadEngine, matchTemplates, seededBars, templateRegex } from "./lib/skills-engine.mjs";
+import { CHARTS_ROOT, distProblems, extractDiagnostics, loadBuiltins, loadEngine, matchTemplates, runWithOutside, seededBars, templateRegex } from "./lib/skills-engine.mjs";
 import { REGISTRY_END, REGISTRY_START, renderRegistry } from "./lib/skills-reference.mjs";
 
 export const SECTIONS = ["When to use this skill", "Domain overview", "API reference", "Standard workflow", "Examples", "Composition", "Constraints and correctness", "Common mistakes", "Validation", "Related skills"];
@@ -188,7 +188,7 @@ function splitArgs(s) {
 
 /** A call written in a ticked span of prose is a signature: its names must be the function's parameters, in order. */
 function checkSignatureSpan(rep, where, span, tables, extra) {
-  const m = /(?:^|[^A-Za-z0-9_.])((?:ta|math|input|color)\.[a-z_0-9]+|nz|na|plot|hline|fill|plotshape|indicator)\(/.exec(span);
+  const m = /(?:^|[^A-Za-z0-9_.])((?:ta|math|input|color)\.[a-z_0-9]+|nz|na|plot|hline|fill|plotshape|indicator|barcolor|bgcolor|outside)\(/.exec(span);
   if (!m) return;
   const name = m[1];
   const sig = tables.funcs.get(name);
@@ -268,8 +268,13 @@ function attempt(engine, source, { inputs = {}, limits, bars }) {
   }
   if (!compiled.ok) return { ok: false, messages: compiled.diagnostics.map((d) => d.message), diagnostics: compiled.diagnostics, phase: "compile" };
   try {
+    // a script that reads outside series runs on many days of bars with every series it reads generated here
+    if (compiled.plan.dependencies.length > 0) {
+      const o = runWithOutside(engine, compiled, inputs);
+      return { ok: true, compiled, columns: o.columns, messages: [], bars: o.bars, ctx: o.ctx };
+    }
     const columns = engine.runStudy(compiled.study, inputs, bars);
-    return { ok: true, compiled, columns, messages: [] };
+    return { ok: true, compiled, columns, messages: [], bars };
   } catch (e) {
     return { ok: false, compiled, messages: [String(e?.message ?? e)], phase: "run" };
   }
@@ -310,7 +315,7 @@ function checkExpect(rep, at, compiled, columns, spec) {
   }
 }
 
-async function checkFixture(rep, at, file, compiled, columns, bars, strict) {
+async function checkFixture(rep, at, file, compiled, columns, bars, strict, ctx) {
   let mod;
   try {
     const st = statSync(file);
@@ -322,7 +327,7 @@ async function checkFixture(rep, at, file, compiled, columns, bars, strict) {
   if (typeof mod.expected !== "function") { rep.err(at, "fixture must export a function `expected(bars, inputs)`"); return 0; }
   let want;
   try {
-    want = mod.expected(bars, mod.inputs ?? {});
+    want = mod.expected(bars, mod.inputs ?? {}, ctx);
   } catch (e) {
     rep.err(at, `fixture failed: ${e.message}`);
     return 0;
@@ -596,7 +601,7 @@ export async function validate(root, { strict = false, chartsRoot = CHARTS_ROOT 
         for (const w of code.match(/[A-Za-z_][A-Za-z0-9_.]*/g) ?? []) mentioned.add(w);
         checkDotted(rep, rel, code, tables);
         if (!s.checks.includes(fixtureRel)) { rep.err(rel, `a script needs a companion fixture ${fixtureRel} listed in checks`); continue; }
-        counters.fixtures += (await checkFixture(rep, rel, join(root, s.domain, fixtureRel), r.compiled, r.columns, bars, strict)) > 0 ? 1 : 0;
+        counters.fixtures += (await checkFixture(rep, rel, join(root, s.domain, fixtureRel), r.compiled, r.columns, r.bars, strict, r.ctx)) > 0 ? 1 : 0;
       } else if (a.endsWith(".expected.mjs")) {
         const script = a.slice(0, -".expected.mjs".length) + SCRIPT_EXT;
         if (!s.assets.includes(script) && !s.checks.includes(script)) rep.err(rel, "fixture has no script of the same name in assets or checks");

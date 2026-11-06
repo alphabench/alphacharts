@@ -56,6 +56,10 @@ export async function loadEngine(root = CHARTS_ROOT) {
     ScriptError: script.ScriptError,
     limits: script.DEFAULT_LIMITS,
     runStudy: ind.runStudy,
+    StudyEngine: ind.StudyEngine,
+    feedsOf: script.feedsOf,
+    alignFor: script.alignFor,
+    parseTimeframe: script.parseTimeframe,
     studies: ind.listStudies(),
     sourceNames: ind.SOURCE_NAMES,
     scriptVersion: scriptPkg.version,
@@ -89,7 +93,7 @@ export async function loadReservedWords(root = CHARTS_ROOT) {
 
 const shapeOf = (template) => template.replace(/\{[^{}]*\}/g, "{}");
 const SITES = new Set(["err", "error", "warn", "fail", "ScriptError"]);
-const FILES = ["lexer.ts", "parser.ts", "check.ts", "codegen.ts", "compile.ts", "diag.ts", "run.ts", "runner.ts", "sandbox.ts", "limits.ts"];
+const FILES = ["lexer.ts", "parser.ts", "check.ts", "codegen.ts", "compile.ts", "diag.ts", "run.ts", "runner.ts", "sandbox.ts", "limits.ts", "feeds.ts"];
 
 /**
  * Every message template in the language's source: the first argument of err/error/warn/fail/new ScriptError,
@@ -232,4 +236,119 @@ export function seededBars(n = 300, seed = 20260101) {
     volume[i] = 1000 + Math.floor(rnd() * 9000);
   }
   return { time, open, high, low, close, volume };
+}
+
+// ---- seeded outside series ---------------------------------------------------------------------------------
+//
+// A script that reads `outside(...)` is run on bars that span many days (a daily or weekly series needs days to
+// close), with every series it reads generated here from its own symbol and timeframe. The reference join below is a
+// plain loop over all bars, written from the rules in the skills and sharing no code with the engine's.
+
+export const SESSIONS = { days: 40, perDay: 25, intervalMs: 15 * 60000, start: Date.UTC(2026, 0, 5, 3, 45) };
+const DAY = 86400000;
+
+const hashText = (s) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193) >>> 0;
+  return h;
+};
+
+function walk(times, rnd, start, drop) {
+  const keep = times.filter(() => drop === 0 || rnd() >= drop);
+  const n = keep.length;
+  const time = Float64Array.from(keep), open = new Float64Array(n), high = new Float64Array(n), low = new Float64Array(n), close = new Float64Array(n), volume = new Float64Array(n);
+  let c = start;
+  for (let i = 0; i < n; i++) {
+    const o = c;
+    c = Math.round(o * (1 + (rnd() - 0.5) * 0.03) * 100) / 100;
+    open[i] = o;
+    close[i] = c;
+    high[i] = Math.round(Math.max(o, c) * (1 + rnd() * 0.01) * 100) / 100;
+    low[i] = Math.round(Math.min(o, c) * (1 - rnd() * 0.01) * 100) / 100;
+    volume[i] = 500 + Math.floor(rnd() * 5000);
+  }
+  return { time, open, high, low, close, volume };
+}
+
+/** The chart's bars for a script that reads outside series: 40 days of 25 bars of 15 minutes, the last bar of a day 9 hours before the next day's first. */
+export function seededSessions() {
+  const { days, perDay, intervalMs, start } = SESSIONS;
+  const times = [];
+  for (let d = 0; d < days; d++) for (let k = 0; k < perDay; k++) times.push(start + d * DAY + k * intervalMs);
+  return { ...walk(times, mulberry32(20260102), 1000, 0), intervalMs };
+}
+
+/**
+ * The bars of one outside series for the chart `main`: the same instrument's other timeframe (symbol null) or another
+ * instrument (a seed from its text). Same timeframe: the chart's own times with about one bar in a hundred missing.
+ * Longer: bars of that length on the clock from before the chart's first bar to past its last.
+ */
+export function seededOutside(symbol, timeframe, main) {
+  const tf = timeframe === null ? main.intervalMs : parseTf(timeframe);
+  const rnd = mulberry32(hashText(`${symbol ?? ""}\u0001${timeframe ?? ""}`));
+  const first = main.time[0], last = main.time[main.time.length - 1];
+  let times;
+  if (tf === main.intervalMs) times = Array.from(main.time);
+  else {
+    times = [];
+    // day/week bars start at midnight UTC (Monday for a week), shorter ones at the chart's first bar
+    const origin = tf >= DAY ? Math.floor(first / DAY) * DAY - (tf >= 7 * DAY ? ((new Date(first).getUTCDay() + 6) % 7) * DAY : 0) : first;
+    for (let t = origin - tf; t <= last + tf; t += tf) times.push(t);
+  }
+  return { ...walk(times, rnd, 50 + (hashText(symbol ?? "") % 200), tf === main.intervalMs && symbol !== null ? 0.01 : 0), tfMs: tf };
+}
+
+function parseTf(tf) {
+  const m = /^([1-9][0-9]{0,2})([mhdw])$/.exec(tf);
+  return Number(m[1]) * { m: 60000, h: 3600000, d: DAY, w: 7 * DAY }[m[2]];
+}
+
+/**
+ * The join, by the rules the skills state, as a loop over every bar. Same length: the outside bar with exactly the
+ * chart bar's time, else na. Longer: among the outside bars that have finished by the chart bar's time (open + length
+ * <= that time) the one that opened last, else na.
+ */
+export function referenceJoin(feed, field, main) {
+  return joinValues(feed, feed[field], main);
+}
+
+/** The same join for any values given on the outside series' own bars (something computed on them). */
+export function joinValues(feed, values, main) {
+  const out = [];
+  for (let i = 0; i < main.time.length; i++) {
+    const t = main.time[i];
+    let best = -1;
+    for (let j = 0; j < feed.time.length; j++) {
+      if (feed.tfMs === main.intervalMs) {
+        if (feed.time[j] === t) best = j;
+      } else if (feed.time[j] + feed.tfMs <= t && (best < 0 || feed.time[j] > feed.time[best])) best = j;
+    }
+    out.push(best < 0 ? Number.NaN : values[best]);
+  }
+  return out;
+}
+
+/**
+ * Run a compiled script that reads outside series on the seeded sessions. Returns the columns, and the context a
+ * fixture receives: `outside(symbol, field, timeframe)` is the joined series by the reference join above.
+ */
+export function runWithOutside(engine, compiled, inputs) {
+  const main = seededSessions();
+  const feeds = new Map();
+  for (const f of engine.feedsOf(compiled.plan.dependencies)) feeds.set(f.key, { ref: f, bars: seededOutside(f.symbol, f.timeframe, main) });
+  const e = new engine.StudyEngine(compiled.study, inputs);
+  for (const [key, { ref, bars }] of feeds) {
+    const { align, spanMs } = engine.alignFor(ref.timeframe, main.intervalMs);
+    e.setFeed(key, bars, { align, spanMs });
+  }
+  e.load(main);
+  const ctx = {
+    intervalMs: main.intervalMs,
+    outside: (symbol = null, field = "close", timeframe = null) => referenceJoin(seededOutside(symbol, timeframe, main), field, main),
+    /** The outside series' own bars: time, open, high, low, close, volume, tfMs. */
+    feed: (symbol = null, timeframe = null) => seededOutside(symbol, timeframe, main),
+    /** Values computed on an outside series' own bars (from `feed`), read on the chart's bars by the same join. */
+    join: (feed, values) => joinValues(feed, values, main),
+  };
+  return { columns: e.outputs.map((c, k) => e.column(k).slice()), bars: main, ctx };
 }

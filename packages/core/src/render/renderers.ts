@@ -155,8 +155,10 @@ export interface CandleStyle {
   wickDownColor: string;
 }
 
+// A bar with its own colour (a_color != 0, packed 0xRRGGBBAA) is drawn in it, body and wick; every other bar in the
+// up/down colours. The attribute is the record's existing colour slot: no extra buffer, one integer compare per vertex.
 const CANDLE_VS = GLSL_COMMON + /* glsl */ `
-in vec4 a_r; in float a_c;
+in vec4 a_r; in float a_c; in uint a_color;
 uniform vec2 u_w;
 uniform vec4 u_up, u_down, u_wup, u_wdown;
 out vec4 v_color;
@@ -179,13 +181,13 @@ void main() {
   }
   gl_Position = vec4(toClip(vec2(mix(x0, x1, cr.x), mix(y0, y1, cr.y))), 0.0, 1.0);
   bool up = c >= o;
-  v_color = wick ? (up ? u_wup : u_wdown) : (up ? u_up : u_down);
+  v_color = a_color != 0u ? unpack(a_color) : wick ? (up ? u_wup : u_wdown) : (up ? u_up : u_down);
 }`;
 
 export class CandleRenderer extends WindowRenderer<CandleStyle> {
   private readonly colors = new Colors();
   constructor(gl: WebGL2RenderingContext, ctx: GLContext, data: SeriesData) {
-    super(gl, ctx, data, false, ctx.program("candles", CANDLE_VS, FS_FLAT, ["u_w", "u_up", "u_down", "u_wup", "u_wdown"], ["a_r", "a_c"]), false);
+    super(gl, ctx, data, false, ctx.program("candles", CANDLE_VS, FS_FLAT, ["u_w", "u_up", "u_down", "u_wup", "u_wdown"], ["a_r", "a_c", "a_color"]), false);
   }
   draw(v: DrawView, o: CandleStyle): void {
     const n = this.prepare(v);
@@ -209,7 +211,7 @@ export interface BarStyle {
 }
 
 const BAR_VS = GLSL_COMMON + /* glsl */ `
-in vec4 a_r; in float a_c;
+in vec4 a_r; in float a_c; in uint a_color;
 uniform vec2 u_w;
 uniform vec4 u_up, u_down;
 out vec4 v_color;
@@ -231,13 +233,13 @@ void main() {
     if (seg == 1) { x0 = left; x1 = mid; } else { x0 = mid + t; x1 = left + u_w.x; }
   }
   gl_Position = vec4(toClip(vec2(mix(x0, x1, cr.x), mix(y0, y1, cr.y))), 0.0, 1.0);
-  v_color = c >= o ? u_up : u_down;
+  v_color = a_color != 0u ? unpack(a_color) : c >= o ? u_up : u_down;
 }`;
 
 export class BarRenderer extends WindowRenderer<BarStyle> {
   private readonly colors = new Colors();
   constructor(gl: WebGL2RenderingContext, ctx: GLContext, data: SeriesData) {
-    super(gl, ctx, data, false, ctx.program("bars", BAR_VS, FS_FLAT, ["u_w", "u_up", "u_down"], ["a_r", "a_c"]), false);
+    super(gl, ctx, data, false, ctx.program("bars", BAR_VS, FS_FLAT, ["u_w", "u_up", "u_down"], ["a_r", "a_c", "a_color"]), false);
   }
   draw(v: DrawView, o: BarStyle): void {
     const n = this.prepare(v);
@@ -306,15 +308,17 @@ export interface LineStyle {
 
 // Instance i joins record i to record i+1 with an anti-aliased capsule. Above
 // level 0 a second capsule spans record i+1's low..high, so a zoomed-out line
-// draws the exact per-bucket envelope instead of a sampled path.
+// draws the exact per-bucket envelope instead of a sampled path. A segment takes
+// the colour of the point it arrives at (record i+1) when that point has one.
 const LINE_VS = GLSL_COMMON + /* glsl */ `
 in vec4 a_r; in float a_c;
-in vec4 a_r1;
+in vec4 a_r1; in uint a_color1;
 uniform float u_half;
 uniform int u_env;
 out vec2 v_pos;
 flat out vec2 v_a;
 flat out vec2 v_b;
+flat out vec4 v_seg;
 void main() {
   if (a_r.x < ${HOLE_TEST} || a_r1.x < ${HOLE_TEST}) { ${OFFSCREEN} }
   bool env = gl_VertexID >= 6;
@@ -329,6 +333,7 @@ void main() {
   vec2 cr = corner(gl_VertexID % 6);
   vec2 p = mix(a - dir * r, b + dir * r, cr.x) + nrm * mix(-r, r, cr.y);
   v_pos = p; v_a = a; v_b = b;
+  v_seg = a_color1 != 0u ? unpack(a_color1) : vec4(0.0, 0.0, 0.0, -1.0);
   gl_Position = vec4(toClip(p), 0.0, 1.0);
 }`;
 
@@ -337,6 +342,7 @@ precision highp float;
 in vec2 v_pos;
 flat in vec2 v_a;
 flat in vec2 v_b;
+flat in vec4 v_seg;
 uniform float u_half;
 uniform vec4 u_color;
 out vec4 o_color;
@@ -346,14 +352,15 @@ void main() {
   float dist = length(pa - ba * t);
   float cov = clamp(u_half + 0.5 - dist, 0.0, 1.0);
   if (cov <= 0.0) discard;
-  float a = u_color.a * cov;
-  o_color = vec4(u_color.rgb * a, a);
+  vec4 col = v_seg.a < 0.0 ? u_color : v_seg;
+  float a = col.a * cov;
+  o_color = vec4(col.rgb * a, a);
 }`;
 
 export class LineRenderer extends WindowRenderer<LineStyle> {
   private readonly colors = new Colors();
   constructor(gl: WebGL2RenderingContext, ctx: GLContext, data: SeriesData) {
-    super(gl, ctx, data, false, ctx.program("line", LINE_VS, LINE_FS, ["u_half", "u_env", "u_color"], ["a_r", "a_c", "a_r1"]), true);
+    super(gl, ctx, data, false, ctx.program("line", LINE_VS, LINE_FS, ["u_half", "u_env", "u_color"], ["a_r", "a_c", "a_r1", "a_color1"]), true);
   }
   draw(v: DrawView, o: LineStyle): void {
     const n = this.prepare(v);

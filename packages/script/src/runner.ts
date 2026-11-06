@@ -3,7 +3,7 @@
 // bar's output values back). Owns the watchdog: a worker that does not answer
 // within the budget is terminated and replaced, and the failure is reported.
 
-import { CancelledError, type BarColumns, type BarInput, type RunRequest, type RunResult, type StudyDef, type StudyRunner, type WorkerLike } from "@alphacharts/indicators";
+import { CancelledError, type BarColumns, type BarInput, type FeedBar, type RunRequest, type RunResult, type StudyDef, type StudyRunner, type WorkerLike } from "@alphacharts/indicators";
 import { ScriptError } from "./diag.js";
 import { DEFAULT_LIMITS, type Limits } from "./limits.js";
 import type { ErrorInfo, FromWorker, ToWorker } from "./sandbox.js";
@@ -84,9 +84,10 @@ export class ScriptRunner implements StudyRunner {
     const promise = new Promise<RunResult>((resolve, reject) => {
       const timer = setTimeout(() => this.timeout(id, `the script did not finish within ${this.limits.batchMs} ms and was terminated`), this.limits.batchMs);
       this.pending.set(id, { resolve, reject, timer });
-      const transfer = [b.time, b.close, b.open, b.high, b.low, b.volume].filter((a): a is Float64Array => !!a).map((a) => a.buffer);
+      const feedBars = Object.values(req.feeds ?? {}).flatMap((f) => [f.bars.time, f.bars.open, f.bars.high, f.bars.low, f.bars.close, f.bars.volume]);
+      const transfer = [b.time, b.close, b.open, b.high, b.low, b.volume, ...feedBars].filter((a): a is Float64Array => !!a).map((a) => a.buffer);
       try {
-        this.post({ type: "run", id, sid: info.sid, source: info.source, params: req.params, bars: b, limits: this.limits }, transfer);
+        this.post({ type: "run", id, sid: info.sid, source: info.source, params: req.params, bars: b, ...(req.feeds && { feeds: req.feeds }), limits: this.limits }, transfer);
       } catch (e) {
         clearTimeout(timer);
         this.pending.delete(id);
@@ -99,6 +100,19 @@ export class ScriptRunner implements StudyRunner {
   /** Send one bar of a tick (append or revision) to the script instance. */
   sendBar(sid: number, index: number, bar: BarInput): void {
     if (!this.listeners.has(sid) || this.dead.has(sid)) return;
+    this.arm(sid);
+    this.post({ type: "bar", sid, index, bar });
+  }
+
+  /** Send one live bar of an outside series to the script instance; it answers with the chart's last bar's values, or `idle` when nothing it sees changed. */
+  feedBar(def: StudyDef, key: string, bar: FeedBar): void {
+    const info = this.infos.get(def);
+    if (!info || !this.listeners.has(info.sid) || this.dead.has(info.sid)) return;
+    this.arm(info.sid);
+    this.post({ type: "feed-bar", sid: info.sid, key, bar });
+  }
+
+  private arm(sid: number): void {
     // a tick queued behind another script's batch is not slow because of its own script: no timer then
     if (!this.tickTimers.has(sid) && this.pending.size === 0) {
       this.tickTimers.set(sid, setTimeout(() => {
@@ -106,7 +120,6 @@ export class ScriptRunner implements StudyRunner {
         this.terminateWorker(new ScriptError(`a tick took longer than ${this.limits.tickMs} ms; the script was terminated`, null, "budget"));
       }, this.limits.tickMs));
     }
-    this.post({ type: "bar", sid, index, bar });
   }
 
   private clearTick(sid: number): void {
@@ -133,6 +146,7 @@ export class ScriptRunner implements StudyRunner {
         this.listeners.get(m.sid)?.values(m.index, m.values);
         return;
       }
+      case "idle": this.clearTick(m.sid); return;
       case "tick-error": this.clearTick(m.sid); this.listeners.get(m.sid)?.error(toError(m.error)); return;
     }
   }

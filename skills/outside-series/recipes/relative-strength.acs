@@ -1,0 +1,5 @@
+indicator("Relative strength vs a benchmark")
+len = input.int(20, "Rebase length", minval=1, maxval=500)
+rs = close / outside("IDX")
+plot(100 * rs / rs[len], "Relative strength", color.blue)
+hline(100, "Even", color.gray, hline.style_dashed)

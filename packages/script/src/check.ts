@@ -15,6 +15,7 @@ import type { Arg, Assign, Call, Expr, For, If, Program, Stmt, Sym, Ty, VarDecl 
 import type { Reporter, Span } from "./diag.js";
 import { BOOL_S, BUILTIN_SERIES, ENUMS, FLOAT_S, INT_S, MEMBER_CONSTS, NAMESPACES, SIGS, t, TA_TR, type Param, type Sig } from "./builtins.js";
 import { DEFAULT_LIMITS, MAX_HISTORY } from "./limits.js";
+import { feedKey, feedsOf, parseTimeframe, type Dependency } from "./feeds.js";
 import { SOURCE_NAMES } from "@alphacharts/indicators";
 
 export type ColorRef = { value: string } | { input: string };
@@ -32,15 +33,17 @@ export interface InputSpec {
 }
 
 export interface PlotSpec {
-  kind: "line" | "histogram" | "area" | "hline" | "fill" | "markers";
+  kind: "line" | "histogram" | "area" | "hline" | "fill" | "markers" | "barcolor" | "bgcolor";
   key: string;
   title: string;
   color: ColorRef;
+  /** A line coloured per bar: `color` where `cond` is false or absent, this colour where it is true. */
+  colorWhen?: { cond: Expr; color: string };
   colorDown?: string;
   width?: number;
   lineStyle?: string;
   offset?: number;
-  /** Series plotted (line/histogram/area/markers) or the price of an hline. */
+  /** Series plotted (line/histogram/area/markers), the price of an hline, or the condition of a barcolor / bgcolor. */
   expr?: Expr;
   /** fill: indexes into the plots. */
   a?: number;
@@ -53,6 +56,10 @@ export interface PlotSpec {
 export interface Plan {
   title: string;
   overlay: boolean;
+  /** Which price axis the script's series use. */
+  scale: "left" | "right";
+  /** Every `outside(...)` call, once per distinct (symbol, field, timeframe), in order of first use. */
+  dependencies: Dependency[];
   inputs: InputSpec[];
   plots: PlotSpec[];
   body: Stmt[];
@@ -64,6 +71,23 @@ export interface Plan {
 }
 
 const ERR: Ty = { b: "na", q: "const" };
+/** Domains: a value lives on the chart's bars ("@"), on an outside series' own bars (its key), or on none (a constant, "~"). */
+export const CHART_DOM = "@";
+export const CONST_DOM = "~";
+/**
+ * The domain of an operation on operands of these domains: constants take the other's; operands of one outside series
+ * stay on its bars (so a window of 14 is 14 of its bars); anything else is on the chart's bars, each outside operand
+ * meeting them through the join first.
+ */
+export function combineDom(...doms: string[]): string {
+  let out = CONST_DOM;
+  for (const d of doms) {
+    if (d === CONST_DOM) continue;
+    if (out === CONST_DOM) out = d;
+    else if (out !== d) return CHART_DOM;
+  }
+  return out;
+}
 const NEEDS_RANK = { value: 0, ohlc: 1, ohlcv: 2 } as const;
 const QRANK = { const: 0, input: 1, series: 2 } as const;
 const qmax = (...q: Ty["q"][]): Ty["q"] => q.reduce((a, b) => (QRANK[b] > QRANK[a] ? b : a), "const" as Ty["q"]);
@@ -94,7 +118,7 @@ function collectAssigned(body: Stmt[], out: Set<string>): void {
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 class Checker {
-  readonly plan: Plan = { title: "Script", overlay: false, inputs: [], plots: [], body: [], needs: "value", slots: 0, stateVars: [] };
+  readonly plan: Plan = { title: "Script", overlay: false, scale: "right", dependencies: [], inputs: [], plots: [], body: [], needs: "value", slots: 0, stateVars: [] };
   private scope = new Scope(null);
   private assigned = new Set<string>();
   private depth = 0;
@@ -114,6 +138,10 @@ class Checker {
     collectAssigned(prog.body, this.assigned);
     for (const s of prog.body) this.stmt(s, true);
     this.plan.body = prog.body;
+    const bg = this.plan.plots.find((p) => p.kind === "bgcolor");
+    if (bg && !this.plan.overlay && !this.plan.plots.some((p) => p.kind === "line" || p.kind === "histogram" || p.kind === "area")) {
+      this.err("bgcolor shades the pane the script draws in, and with overlay=false the script has a pane only if it plots a line, histogram or area: add a plot(...), or use indicator(..., overlay=true) to shade the price chart", bg.span);
+    }
     return this.plan;
   }
 
@@ -192,6 +220,7 @@ class Checker {
         this.plan.stateVars.push(sym);
       } else {
         const sym: Sym = { name: s.name, kind: simple(ty) ? "simple" : "pure", ty };
+        if (sym.kind === "pure") sym.dom = s.init.dom ?? CHART_DOM;
         this.declare(s.name, sym, s.nameSpan);
         s.sym = sym;
       }
@@ -211,7 +240,7 @@ class Checker {
     if (ty.elems!.length !== s.names.length) this.err(`this call returns ${ty.elems!.length} values, ${s.names.length} names given`, s);
     s.names.forEach((n, i) => {
       if (this.assigned.has(n.name)) this.err(`"${n.name}" is destructured from a call and cannot be assigned with :=`, n.span);
-      const sym: Sym = { name: n.name, kind: "pure", ty: ty.elems![i] ?? FLOAT_S };
+      const sym: Sym = { name: n.name, kind: "pure", ty: ty.elems![i] ?? FLOAT_S, dom: s.init.dom ?? CHART_DOM };
       this.declare(n.name, sym, n.span);
       s.syms!.push(sym);
     });
@@ -294,7 +323,43 @@ class Checker {
   expr(e: Expr): Ty {
     const ty = this.expr_(e);
     e.ty = ty;
+    e.dom = this.domOf(e);
     return ty;
+  }
+
+  /** Whose bars an expression lives on (children have been typed). */
+  private domOf(e: Expr): string {
+    if (e.ty === ERR || e.st) return CHART_DOM;
+    switch (e.k) {
+      case "num": case "str": case "bool": case "color": case "arr": return CONST_DOM;
+      case "mem": return e.obj.k === "id" && e.obj.name === "ta" && e.name === "tr" ? CHART_DOM : CONST_DOM;
+      case "id": {
+        const s = e.sym;
+        if (!s) return CONST_DOM;
+        if (s.kind === "simple") return CONST_DOM;
+        if (s.kind === "input") return s.ty.b === "float" && s.ty.q === "series" ? CHART_DOM : CONST_DOM;
+        if (s.kind === "pure") return s.dom ?? CHART_DOM;
+        return CHART_DOM;
+      }
+      case "un": return e.x.dom ?? CHART_DOM;
+      case "bin": return combineDom(e.a.dom ?? CHART_DOM, e.b.dom ?? CHART_DOM);
+      case "tern": return combineDom(e.c.dom ?? CHART_DOM, e.a.dom ?? CHART_DOM, e.b.dom ?? CHART_DOM);
+      case "idx": return combineDom(e.x.dom ?? CHART_DOM, e.i.dom ?? CHART_DOM);
+      case "call": {
+        // a series on the chart's own timeframe is read on the chart's bars; one with a timeframe of its own, on its own
+        if (e.fn === "outside") return e.own && e.feed ? e.feed : CHART_DOM;
+        const sig = e.fn ? SIGS.get(e.fn) : undefined;
+        if (!sig || !e.bound) return CHART_DOM;
+        const doms: string[] = [];
+        sig.params.forEach((p, k) => {
+          const a = e.bound![k];
+          if (a && p.kind === "series") doms.push(a.dom ?? CHART_DOM);
+        });
+        const d = combineDom(...doms);
+        // a study or kernel that was given no series of its own reads the chart's
+        return d === CONST_DOM && (sig.op === "kernel" || sig.op === "study" || sig.name === "ta.bb") ? CHART_DOM : d;
+      }
+    }
   }
 
   private expr_(e: Expr): Ty {
@@ -496,6 +561,8 @@ class Checker {
         break;
       case "bool": case "string": case "color":
         if (ty.b !== p.kind) { this.err(`${where} must be a ${p.kind}, got ${show(ty)}`, e); break; }
+        // plot()'s color may depend on the bar (cond ? colorA : colorB): plot() checks its branches
+        if (sig.name === "plot" && p.name === "color" && e.k === "tern") break;
         needSimple();
         if (p.oneOf) {
           const sv = this.constVal(e);
@@ -530,11 +597,12 @@ class Checker {
     if (!sig) {
       for (const a of c.args) this.expr(a.value);
       const near = [...SIGS.keys()].filter((k) => k.endsWith(`.${name.split(".").pop()}`) || k === name.split(".").pop());
+      if (name === "security" || name === "request.security") near.unshift("outside");
       this.err(`unknown function "${name}"${near.length ? `; did you mean ${near.slice(0, 3).join(", ")}?` : ""}`, c.callee);
       return ERR;
     }
     c.fn = name;
-    const declLike = name === "plot" || name === "hline" || name === "fill" || name === "plotshape" || name === "indicator";
+    const declLike = name === "plot" || name === "hline" || name === "fill" || name === "plotshape" || name === "indicator" || name === "barcolor" || name === "bgcolor";
     if (declLike) {
       if (this.depth > 0 || mode === "expr" || mode === "expr-block") this.err(`${name}() is only allowed as a statement at the top level of the script`, c);
       else if (mode === "decl" && name !== "plot") this.err(`${name}() does not return a handle`, c);
@@ -615,6 +683,8 @@ class Checker {
       case "hline": return this.hline(c, bound);
       case "fill": return this.fill(c, bound);
       case "plotshape": return this.plotshape(c, bound);
+      case "barcolor": case "bgcolor": return this.shade(sig.name, c, bound);
+      case "outside": return this.outside(c, bound, ret);
       default:
         if (sig.name.startsWith("input.")) return t("void");
         void mode;
@@ -652,6 +722,8 @@ class Checker {
       if (typeof v === "boolean") this.plan.overlay = v;
       else if (bound[2].ty && bound[2].ty !== ERR) this.err("overlay must be true or false", bound[2]);
     }
+    const scale = this.str(bound[3]);
+    if (scale === "left" || scale === "right") this.plan.scale = scale;
     return t("void");
   }
 
@@ -688,12 +760,69 @@ class Checker {
     const offset = this.int(b[5]);
     const down = b[6] ? this.colorRef(b[6], "#f23645") : undefined;
     if (down && "input" in down) this.err("color_down must be a constant color", b[6]!);
+    const dflt = ["#2962ff", "#ff6d00", "#089981", "#f23645", "#9c27b0", "#fbc02d"][n % 6]!;
+    // a color that depends on the bar: `cond ? colorA : colorB` with a bool series for the condition
+    const ce = b[2];
+    let color: ColorRef;
+    let colorWhen: PlotSpec["colorWhen"];
+    if (ce && ce.k === "tern" && ce.c.ty && ce.c.ty !== ERR && ce.c.ty.q === "series" && ce.ty && ce.ty.b === "color") {
+      const a = this.colorRef(ce.a, dflt), other = this.colorRef(ce.b, dflt);
+      if (style !== "line") this.err("a color that depends on the bar is for line plots; histogram and area take a constant color (a histogram can use color_down for negative values)", ce);
+      else if (!("value" in a) || !("value" in other)) this.err("both colors of a color that depends on the bar must be constants (color.red, #rrggbb, color.new(...)), not an input.color", ce);
+      color = "value" in other ? other : { value: dflt };
+      if ("value" in a && "value" in other && style === "line") colorWhen = { cond: ce.c, color: a.value };
+    } else color = this.colorRef(ce, dflt);
     this.plan.plots.push({
-      kind: style as "line", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[2], ["#2962ff", "#ff6d00", "#089981", "#f23645", "#9c27b0", "#fbc02d"][n % 6]!), expr: b[0]!,
+      kind: style as "line", key: this.nextKey(title, n + 1), title, color, expr: b[0]!,
       ...(width !== undefined && { width }), ...(offset !== undefined && { offset }),
-      ...(down && "value" in down && { colorDown: down.value }), span: c,
+      ...(down && "value" in down && { colorDown: down.value }), ...(colorWhen && { colorWhen }), span: c,
     });
     return t("plot");
+  }
+
+  /** barcolor(cond, color) and bgcolor(cond, color): a colour for the bars (or the pane) where a bool is true. */
+  private shade(name: "barcolor" | "bgcolor", c: Call, b: (Expr | null)[]): Ty {
+    const n = this.plan.plots.length;
+    if (n >= 64) this.err("a script may draw at most 64 plots", c);
+    const x = b[0]!;
+    if (x.ty && x.ty !== ERR && x.ty.b !== "bool") this.err(`${name} needs a bool condition, got ${show(x.ty)}`, x);
+    const title = `${name === "barcolor" ? "Bar color" : "Background"} ${n + 1}`;
+    this.plan.plots.push({ kind: name, key: this.nextKey(title, n + 1), title, color: this.colorRef(b[1], name === "barcolor" ? "#fdd835" : "#2962ff33"), expr: x, span: c });
+    return t("void");
+  }
+
+  /** outside(symbol, field, timeframe): a number series of another instrument and/or timeframe. Everything is read here, without running anything. */
+  private outside(c: Call, b: (Expr | null)[], ret: Ty): Ty {
+    const text = (e: Expr | null | undefined, what: "symbol" | "timeframe"): string | null | undefined => {
+      if (!e) return null;
+      if (e.k === "id" && e.name === "na" && !e.sym) return null;
+      if (e.k === "str") return e.value;
+      if (e.ty && e.ty !== ERR) this.err(`the ${what} of outside() must be a string literal${what === "timeframe" ? ' like "1d"' : ""}, or na for this chart's, not a computed value`, e);
+      return undefined;
+    };
+    const symbol = text(b[0], "symbol"), timeframe = text(b[2], "timeframe");
+    if (symbol === undefined || timeframe === undefined) return ret;
+    if (symbol !== null && (symbol.length < 1 || symbol.length > 128 || /[\u0000-\u001f]/.test(symbol))) {
+      this.err("the symbol of outside() must be 1 to 128 printable characters", b[0]!);
+      return ret;
+    }
+    if (timeframe !== null && parseTimeframe(timeframe) === null) {
+      this.err(`the timeframe "${timeframe}" is not written like 5m, 15m, 1h, 4h, 1d or 1w`, b[2]!);
+      return ret;
+    }
+    if (symbol === null && timeframe === null) {
+      this.err("outside() needs a symbol or a timeframe; this chart's own series are close, open, high, low and volume", c);
+      return ret;
+    }
+    const field = (b[1] ? (this.constVal(b[1]) as string | undefined) : undefined) ?? "close";
+    c.feed = feedKey(symbol, timeframe);
+    c.own = timeframe !== null;
+    if (!this.plan.dependencies.some((d) => d.symbol === symbol && d.timeframe === timeframe && d.field === field)) {
+      this.plan.dependencies.push({ symbol, field: field as Dependency["field"], timeframe });
+      const feeds = feedsOf(this.plan.dependencies).length;
+      if (feeds > this.limits.maxFeeds) this.err(`a script may read at most ${this.limits.maxFeeds} outside series (distinct symbol and timeframe pairs)`, c);
+    }
+    return ret;
   }
 
   private hline(c: Call, b: (Expr | null)[]): Ty {

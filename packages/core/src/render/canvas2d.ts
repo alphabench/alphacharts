@@ -4,7 +4,7 @@
 // batched into one Path2D per colour.
 
 import { LOD_C, LOD_COLOR, LOD_H, LOD_L, LOD_O } from "../data/lod.js";
-import { COL_C, COL_COLOR, COL_H, COL_L, COL_O, COL_V, type DataChange, type SeriesData } from "../data/model.js";
+import { COL_BAR_COLOR, COL_C, COL_COLOR, COL_H, COL_L, COL_O, COL_V, type DataChange, type SeriesData } from "../data/model.js";
 import type { PriceScale } from "../scale/price-scale.js";
 import type { TimeScale } from "../scale/time-scale.js";
 import { cssColor } from "./color.js";
@@ -40,7 +40,7 @@ function eachUnit(v: DrawView2D, level: number, fn: UnitFn): void {
     const st = d.store;
     const ohlc = d.shape === "ohlc";
     const O = st.cols[ohlc ? COL_O : COL_V]!, H = st.cols[ohlc ? COL_H : COL_V]!, L = st.cols[ohlc ? COL_L : COL_V]!, C = st.cols[ohlc ? COL_C : COL_V]!;
-    const COL = ohlc ? undefined : st.cols[COL_COLOR];
+    const COL = ohlc ? st.cols[COL_BAR_COLOR] : st.cols[COL_COLOR];
     const a = Math.max(v.lo - 1, st.first), b = Math.min(v.hi + 1, st.end - 1);
     for (let i = a; i <= b; i++) {
       const p = st.head + (i - st.first);
@@ -78,12 +78,21 @@ export class Candles2D extends Base<CandleStyle> {
     const level = levelOf(v);
     const [bw, ww] = barWidths(v.time.spacing, v.dpr, level, 0.8);
     const bodyUp = new Path2D(), bodyDown = new Path2D(), wickUp = new Path2D(), wickDown = new Path2D();
-    eachUnit(v, level, (x, op, h, l, c) => {
+    // bars with their own colour: one path per colour (body and wick alike), drawn after the plain ones
+    let own: Map<number, Path2D> | undefined;
+    eachUnit(v, level, (x, op, h, l, c, color) => {
       const left = Math.floor(x - bw / 2 + 0.5);
       const up = c >= op;
       const yh = snap(Y(v, h)), yl = Math.max(snap(Y(v, l)), yh + 1);
-      (up ? wickUp : wickDown).rect(left + (bw - ww) / 2, yh, ww, yl - yh);
       const yt = snap(Y(v, Math.max(op, c))), yb = Math.max(snap(Y(v, Math.min(op, c))), yt + 1);
+      if (color !== 0) {
+        let p = (own ??= new Map()).get(color);
+        if (!p) own.set(color, (p = new Path2D()));
+        p.rect(left + (bw - ww) / 2, yh, ww, yl - yh);
+        p.rect(left, yt, bw, yb - yt);
+        return;
+      }
+      (up ? wickUp : wickDown).rect(left + (bw - ww) / 2, yh, ww, yl - yh);
       (up ? bodyUp : bodyDown).rect(left, yt, bw, yb - yt);
     });
     const ctx = v.ctx;
@@ -95,6 +104,7 @@ export class Candles2D extends Base<CandleStyle> {
     ctx.fill(bodyUp);
     ctx.fillStyle = o.downColor;
     ctx.fill(bodyDown);
+    if (own) for (const [color, p] of own) { ctx.fillStyle = cssColor(color); ctx.fill(p); }
   }
 }
 
@@ -103,8 +113,13 @@ export class Bars2D extends Base<BarStyle> {
     const level = levelOf(v);
     const [bw, t] = barWidths(v.time.spacing, v.dpr, level, 0.8);
     const up = new Path2D(), down = new Path2D();
-    eachUnit(v, level, (x, op, h, l, c) => {
-      const p = c >= op ? up : down;
+    let own: Map<number, Path2D> | undefined;
+    eachUnit(v, level, (x, op, h, l, c, color) => {
+      let p = c >= op ? up : down;
+      if (color !== 0) {
+        p = (own ??= new Map()).get(color) ?? new Path2D();
+        own.set(color, p);
+      }
       const left = Math.floor(x - bw / 2 + 0.5);
       const mid = left + (bw - t) / 2;
       const yh = snap(Y(v, h)), yl = Math.max(snap(Y(v, l)), yh + 1);
@@ -116,6 +131,7 @@ export class Bars2D extends Base<BarStyle> {
     v.ctx.fill(up);
     v.ctx.fillStyle = o.downColor;
     v.ctx.fill(down);
+    if (own) for (const [color, p] of own) { v.ctx.fillStyle = cssColor(color); v.ctx.fill(p); }
   }
 }
 
@@ -179,9 +195,35 @@ function stroke(v: DrawView2D, path: Path2D, color: string, width: number): void
   ctx.stroke(path);
 }
 
+/**
+ * A line whose points carry their own colours: each segment, drawn from the previous unit to this one, takes this
+ * unit's colour (0 = the series colour), one path per colour. Used only when the series may hold coloured points.
+ */
+function colouredLine(v: DrawView2D, level: number, color: string, width: number): void {
+  const byColor = new Map<number, Path2D>();
+  let px = 0, py = 0, have = false;
+  eachUnit(v, level, (x, o, h, l, c, col) => {
+    let p = byColor.get(col);
+    if (!p) byColor.set(col, (p = new Path2D()));
+    // zoomed out a unit is a bucket: its envelope, in the order the plain path walks it
+    const ys = level === 0 ? [Y(v, c)] : [Y(v, o), Y(v, h), Y(v, l), Y(v, c)];
+    if (have) {
+      p.moveTo(px, py);
+      p.lineTo(x, ys[0]!);
+    }
+    if (level !== 0) for (let k = 1; k < ys.length; k++) { if (k === 1) p.moveTo(x, ys[0]!); p.lineTo(x, ys[k]!); }
+    px = x;
+    py = ys[ys.length - 1]!;
+    have = true;
+  });
+  for (const [col, p] of byColor) stroke(v, p, col === 0 ? color : cssColor(col), width);
+}
+
 export class Line2D extends Base<LineStyle> {
   draw(v: DrawView2D, o: LineStyle): void {
-    stroke(v, linePath(v, levelOf(v), "c").path, o.color, o.lineWidth);
+    const level = levelOf(v);
+    if (v.data.pointColors) colouredLine(v, level, o.color, o.lineWidth);
+    else stroke(v, linePath(v, level, "c").path, o.color, o.lineWidth);
   }
 }
 
@@ -198,6 +240,7 @@ export class Area2D extends Base<AreaStyle> {
     g.addColorStop(1, o.bottomColor);
     v.ctx.fillStyle = g;
     v.ctx.fill(area);
-    stroke(v, linePath(v, level, "c").path, o.lineColor, o.lineWidth);
+    if (v.data.pointColors) colouredLine(v, level, o.lineColor, o.lineWidth);
+    else stroke(v, linePath(v, level, "c").path, o.lineColor, o.lineWidth);
   }
 }

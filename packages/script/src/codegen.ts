@@ -17,6 +17,8 @@ import type { Call, Expr, Stmt, Sym } from "./ast.js";
 import { ScriptError, type Span } from "./diag.js";
 import { SIGS, type Sig } from "./builtins.js";
 import type { Plan, PlotSpec } from "./check.js";
+import type { Dependency } from "./feeds.js";
+import { CHART_DOM, CONST_DOM } from "./check.js";
 import { DEFAULT_LIMITS, MAX_HISTORY, type Limits } from "./limits.js";
 
 type Ev = (i: number) => number;
@@ -61,7 +63,17 @@ export function generate(plan: Plan, source: string, limits: Limits = DEFAULT_LI
     if ("input" in sp.color) colorInputs.find((c) => c.key === (sp.color as { input: string }).input)!.plotKeys.push(sp.key);
     const base = { key: sp.key, title: sp.title };
     switch (sp.kind) {
-      case "line": columns.push(sp.key); colOfPlot.set(idx, sp.key); plots.push({ kind: "line", ...base, col: sp.key, color, ...(sp.width !== undefined && { width: sp.width }), ...(sp.offset !== undefined && { offset: sp.offset }) }); break;
+      case "line": {
+        columns.push(sp.key);
+        // a colour that depends on the bar rides along as a second column right after the line's own
+        const when = sp.colorWhen ? `${sp.key}~when` : undefined;
+        if (when) columns.push(when);
+        colOfPlot.set(idx, sp.key);
+        plots.push({ kind: "line", ...base, col: sp.key, color, ...(sp.width !== undefined && { width: sp.width }), ...(sp.offset !== undefined && { offset: sp.offset }), ...(when && { colorBy: { col: when, color: sp.colorWhen!.color } }) });
+        break;
+      }
+      case "barcolor": columns.push(sp.key); plots.push({ kind: "barcolor", ...base, col: sp.key, color }); break;
+      case "bgcolor": columns.push(sp.key); plots.push({ kind: "bgcolor", ...base, col: sp.key, color }); break;
       case "histogram": columns.push(sp.key); plots.push({ kind: "histogram", ...base, col: sp.key, color, ...(sp.colorDown && { colorDown: sp.colorDown }) }); break;
       case "area": columns.push(sp.key); plots.push({ kind: "area", ...base, col: sp.key, color }); break;
       case "markers": columns.push(sp.key); plots.push({ kind: "markers", ...base, col: sp.key, shape: sp.shape as "circle", position: sp.position as "above", color, ...(sp.offset !== undefined && { offset: sp.offset }) }); break;
@@ -77,6 +89,7 @@ export function generate(plan: Plan, source: string, limits: Limits = DEFAULT_LI
     inputs: inputDefs,
     needs: plan.needs,
     pane: plan.overlay ? "overlay" : "new",
+    ...(plan.scale === "left" && { scale: "left" as const }),
     columns,
     plots,
     build: (g, p) => new Builder(g, p, plan, limits).build(),
@@ -95,15 +108,61 @@ class Builder {
   private S: Float64Array;
   private readonly ctx = { steps: 0 };
   private tr: Col | null = null;
+  /**
+   * Where expressions are being built: the chart's graph, or an outside series' own graph (`key`) while a window or
+   * history of its values is built on its own bars.
+   */
+  private fx: { g: Graph | null; key: string | null };
+  /** An outside series' column, by the column, read through the join onto the chart's bars. */
+  private readonly joinedCols = new Map<Col, Col>();
+  private readonly sameCols = new Map<string, Col>();
 
   constructor(private readonly g: Graph | null, private readonly p: Params, private readonly plan: Plan, private readonly limits: Limits) {
+    this.fx = { g, key: null };
     this.S = new Float64Array(plan.slots);
     for (const s of plan.body) if (s.k === "decl" && s.sym) this.inits.set(s.sym, s.init);
   }
 
   private G(): Graph {
-    if (!this.g) throw new ScriptError("a series is not available here");
-    return this.g;
+    if (!this.fx.g) throw new ScriptError("a series is not available here");
+    return this.fx.g;
+  }
+
+  /** The key of the outside series an expression is computed on, or null (the chart's bars, or none). */
+  private feedDom(e: Expr): string | null {
+    const d = e.dom;
+    return d !== undefined && d !== CHART_DOM && d !== CONST_DOM ? d : null;
+  }
+
+  private inFeed<T>(key: string, fn: () => T): T {
+    const saved = this.fx;
+    this.fx = { g: this.g!.feed(key).graph, key };
+    try { return fn(); } finally { this.fx = saved; }
+  }
+
+  /**
+   * Expression `e`, which lives on outside series `key`'s own bars, read on the chart's bars: its windows and histories
+   * are built on the series' graph, and the result is joined by time (indicators/src/engine/feed.ts).
+   */
+  private joinedCol(key: string, e: Expr): Col {
+    const inner = this.inFeed(key, () => this.colOf(e));
+    let c = this.joinedCols.get(inner);
+    if (!c) this.joinedCols.set(inner, (c = this.G().joined(key, inner)));
+    return c;
+  }
+
+  /**
+   * An `outside(...)` call as a column: inside its own series' graph its raw field; on the chart's bars (a series on the
+   * chart's own timeframe) its field read through the join.
+   */
+  private rawCol(c: Call): Col {
+    const fld = c.bound![1];
+    const field = (fld && fld.k === "str" ? fld.value : "close") as Dependency["field"];
+    if (this.fx.key !== null) return this.G()[field];
+    const memo = `${c.feed}\u0002${field}`;
+    let col = this.sameCols.get(memo);
+    if (!col) this.sameCols.set(memo, (col = this.G().external(c.feed!, field)));
+    return col;
   }
 
   // ---- program -------------------------------------------------------------------
@@ -116,11 +175,16 @@ class Builder {
         case "decl": {
           const sym = s.sym!;
           if (sym.kind === "state") exec.push(s);
-          else if (sym.kind === "pure") this.pure.set(sym, this.colOf(s.init));
+          else if (sym.kind === "pure") {
+            // a value on an outside series' own bars is kept there; reading it on the chart joins it
+            const fk = this.feedDom(s.init);
+            this.pure.set(sym, fk ? this.inFeed(fk, () => this.colOf(s.init)) : this.colOf(s.init));
+          }
           break;
         }
         case "tuple": {
-          const cols = this.hoist(s.init as Call);
+          const fk = this.feedDom(s.init);
+          const cols = fk ? this.inFeed(fk, () => this.hoist(s.init as Call)) : this.hoist(s.init as Call);
           s.syms!.forEach((sym, k) => this.pure.set(sym, cols[k]!));
           break;
         }
@@ -132,12 +196,18 @@ class Builder {
     const out: Col[] = [];
     for (const sp of this.plan.plots) {
       if (sp.kind === "hline" || sp.kind === "fill") continue;
-      out.push(sp.kind === "markers" ? this.markers(sp) : this.colOf(sp.expr!));
+      if (sp.kind === "markers" || sp.kind === "barcolor" || sp.kind === "bgcolor") { out.push(this.markers(sp)); continue; }
+      out.push(this.colOf(sp.expr!));
+      if (sp.colorWhen) out.push(this.colOf(sp.colorWhen.cond));
     }
-    if (g.cols.length > this.limits.maxColumns) throw new ScriptError(`the script needs ${g.cols.length} columns; the limit is ${this.limits.maxColumns}`);
+    // the columns an outside series' own graph holds count too (its six bar columns and whatever is computed on them)
+    let cols = g.cols.length;
+    for (const f of g.feeds.values()) cols += f.graph.cols.length;
+    if (cols > this.limits.maxColumns) throw new ScriptError(`the script needs ${cols} columns; the limit is ${this.limits.maxColumns}`);
     return out;
   }
 
+  /** One for a bar where the condition holds, absent elsewhere (markers, barcolor, bgcolor); with an absolute location, the value itself. */
   private markers(sp: PlotSpec): Col {
     const e = sp.expr!;
     const f = this.ev(e, "col");
@@ -225,6 +295,9 @@ class Builder {
 
   /** The column holding a series expression (materialised once). */
   colOf(e: Expr): Col {
+    const fk = this.feedDom(e);
+    if (fk && this.fx.key === null) return this.joinedCol(fk, e);
+    if (e.k === "call" && e.fn === "outside") return this.rawCol(e);
     const g = this.G();
     if (e.k === "id" && e.sym) {
       const s = e.sym;
@@ -391,6 +464,11 @@ class Builder {
 
   ev(e: Expr, mode: Mode): Ev {
     const S = this.S;
+    const fk = this.feedDom(e);
+    if (fk && this.fx.key === null) {
+      const c = this.joinedCol(fk, e);
+      return (i) => c.v[i]!;
+    }
     switch (e.k) {
       case "num": { const v = e.value; return () => v; }
       case "bool": { const v = e.value ? 1 : 0; return () => v; }
@@ -482,6 +560,10 @@ class Builder {
   private callEv(c: Call, mode: Mode): Ev {
     const sig = SIGS.get(c.fn!)!;
     const b = c.bound!;
+    if (sig.name === "outside") {
+      const col = this.rawCol(c);
+      return (i) => col.v[i]!;
+    }
     if (this.isHoisted(c)) {
       const col = this.hoist(c)[0]!;
       return (i) => col.v[i]!;

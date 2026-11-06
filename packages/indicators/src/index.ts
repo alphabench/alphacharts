@@ -2,6 +2,8 @@ export * from "./types.js";
 export { Graph, Col, Node, SOURCE_NAMES } from "./engine/graph.js";
 export type { Ref, SourceName } from "./engine/graph.js";
 export { StudyEngine, resolveParams, runStudy } from "./engine/study.js";
+export { Feed, FEED_FIELDS, joinFeed } from "./engine/feed.js";
+export type { FeedAlign, FeedBar, FeedBars, FeedChange, FeedConfig, FeedData, FeedField } from "./engine/feed.js";
 export { registerStudy, registerStudies, getStudy, listStudies, validateDef } from "./registry.js";
 export { defineStudy } from "./define.js";
 export { addStudy, installStudies, StudiesPlugin, Study, PLUGIN_ID } from "./chart/studies.js";

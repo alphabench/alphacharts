@@ -14,6 +14,7 @@
 // Columns are replaced when the graph grows (`reserve`); node bodies therefore
 // read `col.v` at the start of each run and never cache it across runs.
 
+import { Feed, type FeedField } from "./feed.js";
 import { eligible, kernels } from "./kernels.js";
 
 export type Ref = Col | number;
@@ -49,6 +50,8 @@ export class Graph {
   readonly close: Col;
   readonly volume: Col;
   private readonly sources = new Map<string, Node>();
+  /** Outside series by key: bars given by the host, joined onto this graph's bars by `external`. */
+  readonly feeds = new Map<string, Feed>();
 
   constructor(cap = 0) {
     this.cap = cap;
@@ -144,6 +147,38 @@ export class Graph {
     }
     this.sources.set(name, nd);
     return nd;
+  }
+
+  // ---- outside series -----------------------------------------------------------
+
+  /** The feed `key` (created empty on first use: its bars arrive from the host, and until they do every join is absent). */
+  feed(key: string): Feed {
+    let f = this.feeds.get(key);
+    if (!f) this.feeds.set(key, (f = new Feed()));
+    return f;
+  }
+
+  /** Field `field` of feed `key` joined onto this graph's bars (see feed.ts for the two joins). NaN where the join finds no bar. */
+  external(key: string, field: FeedField): Node {
+    return this.joined(key, field);
+  }
+
+  /**
+   * A column of feed `key`'s own graph (its base columns by name, or anything computed on its bars) read through the
+   * join: at each bar of this graph, the value at the feed row the join finds, NaN when it finds none.
+   */
+  joined(key: string, col: Col | FeedField): Node {
+    const f0 = this.feed(key);
+    const time = this.time;
+    return this.node((s, a, b) => {
+      const t = time.v, v = s.v;
+      const f = this.feeds.get(key) ?? f0;
+      const c = typeof col === "string" ? f.graph[col] : col;
+      for (let i = a; i < b; i++) {
+        const j = f.lookup(t[i]!);
+        v[i] = j < 0 ? NaN_ : c.v[j]!;
+      }
+    });
   }
 
   // ---- elementwise ------------------------------------------------------------

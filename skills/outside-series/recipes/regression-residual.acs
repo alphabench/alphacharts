@@ -1,0 +1,8 @@
+indicator("Residual of price on another instrument")
+len = input.int(50, "Length", minval=3, maxval=500)
+x = outside("AAA")
+mx = ta.sma(x, len)
+my = ta.sma(close, len)
+slope = (ta.sma(x * close, len) - mx * my) / ta.variance(x, len)
+plot(close - (my + slope * (x - mx)), "Residual", color.blue)
+hline(0, "Fit", color.gray, hline.style_dashed)

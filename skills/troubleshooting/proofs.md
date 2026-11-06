@@ -665,7 +665,7 @@ plot(close)
 
 <!-- skill: invalid: a color here must be a constant (color.red, #rrggbb, color.new(...)) or an input.color variable -->
 ```alphacharts
-plot(close, color=close > open ? color.green : color.red)
+plot(close, color = true ? color.green : color.red)
 ```
 
 <!-- skill: invalid: a script may draw at most 64 plots -->
@@ -957,4 +957,64 @@ y52 = nosuch
 y53 = nosuch
 y54 = nosuch
 plot(close)
+```
+
+<!-- skill: invalid: bgcolor shades the pane the script draws in, and with overlay=false the script has a pane only if it plots a line, histogram or area: add a plot(...), or use indicator(..., overlay=true) to shade the price chart -->
+```alphacharts
+bgcolor(close > open, color.red)
+```
+
+<!-- skill: invalid: both colors of a color that depends on the bar must be constants (color.red, #rrggbb, color.new(...)), not an input.color -->
+```alphacharts
+c = input.color(color.red)
+plot(close, color = close > open ? c : color.blue)
+```
+
+<!-- skill: invalid: a color that depends on the bar is for line plots; histogram and area take a constant color (a histogram can use color_down for negative values) -->
+```alphacharts
+plot(close, style = plot.style_histogram, color = close > open ? color.green : color.red)
+```
+
+<!-- skill: invalid: barcolor needs a bool condition, got series float -->
+```alphacharts
+plot(close)
+barcolor(close, color.red)
+```
+
+<!-- skill: invalid: bgcolor needs a bool condition, got series float -->
+```alphacharts
+plot(close)
+bgcolor(close, color.red)
+```
+
+<!-- skill: invalid: outside() needs a symbol or a timeframe; this chart's own series are close, open, high, low and volume -->
+```alphacharts
+plot(outside())
+```
+
+<!-- skill: invalid: the symbol of outside() must be a string literal, or na for this chart's, not a computed value -->
+```alphacharts
+s = "X"
+plot(outside(s))
+```
+
+<!-- skill: invalid: the timeframe of outside() must be a string literal like "1d", or na for this chart's, not a computed value -->
+```alphacharts
+tf = input.string("1d", options=["1d", "1w"])
+plot(outside("X", timeframe = tf))
+```
+
+<!-- skill: invalid: the symbol of outside() must be 1 to 128 printable characters -->
+```alphacharts
+plot(outside(""))
+```
+
+<!-- skill: invalid: the timeframe "5x" is not written like 5m, 15m, 1h, 4h, 1d or 1w -->
+```alphacharts
+plot(outside("X", timeframe = "5x"))
+```
+
+<!-- skill: invalid: a script may read at most 8 outside series (distinct symbol and timeframe pairs) -->
+```alphacharts
+plot(outside("A1") + outside("A2") + outside("A3") + outside("A4") + outside("A5") + outside("A6") + outside("A7") + outside("A8") + outside("A9"))
 ```

@@ -27,9 +27,25 @@ export class ColumnDeque {
   length = 0;
   private capacity: number;
 
-  constructor(private readonly specs: readonly ColumnSpec[], capacity = MIN_CAPACITY) {
+  private readonly specs: ColumnSpec[];
+
+  constructor(specs: readonly ColumnSpec[], capacity = MIN_CAPACITY) {
+    this.specs = [...specs];
     this.capacity = Math.max(MIN_CAPACITY, capacity);
     this.cols = specs.map((s) => filled(s, this.capacity));
+  }
+
+  /** Add a column over the current range, filled with its fill value. Existing columns and indices are untouched. */
+  addColumn(spec: ColumnSpec): number {
+    this.specs.push(spec);
+    this.cols.push(filled(spec, this.capacity));
+    return this.cols.length - 1;
+  }
+
+  /** Drop the last column (the one `addColumn` returned last). */
+  dropColumn(): void {
+    this.specs.pop();
+    this.cols.pop();
   }
 
   /** One past the last absolute index. */

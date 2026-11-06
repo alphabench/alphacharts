@@ -80,11 +80,11 @@
       "domain": "plots-and-panes",
       "title": "Plots and panes",
       "path": "plots-and-panes/SKILL.md",
-      "description": "Drawing a script's output: plot, plot styles, hline, fill, plotshape, overlay versus own pane, colours as constants, input.* controls, and colour that changes along a line with two gapped plots.",
+      "description": "Drawing a script's output: plot, plot styles, hline, fill, plotshape, overlay versus own pane, colours as constants, input.* controls, and a line shown only where a condition holds with two gapped plots.",
       "load_when": [
         "The request is about how something looks: line style, histogram, shaded band, markers, levels, colours.",
         "Adding user-adjustable settings (input.*).",
-        "Colouring a line by a condition."
+        "Showing a line only where a condition holds."
       ],
       "depends_on": [
         "alphacharts-core",
@@ -97,6 +97,73 @@
       ],
       "checks": [
         "examples/two-colour-line.expected.mjs"
+      ]
+    },
+    {
+      "name": "alphacharts-colour-and-shading",
+      "domain": "colour-and-shading",
+      "title": "Colour and shading",
+      "path": "colour-and-shading/SKILL.md",
+      "description": "Colour that depends on the bar: barcolor to colour candles, bgcolor to shade the background of a pane, a line coloured by a condition, and indicator(scale=\"left\") to draw a series of another magnitude on the left axis.",
+      "load_when": [
+        "The request is to colour candles or bars where a condition holds.",
+        "Shading the price chart or an indicator pane where a condition holds.",
+        "Colouring a line by a condition, or drawing a series on the left axis."
+      ],
+      "depends_on": [
+        "alphacharts-core",
+        "alphacharts-script-language",
+        "alphacharts-plots-and-panes"
+      ],
+      "api_version": "0.x",
+      "status": "stable",
+      "assets": [],
+      "checks": []
+    },
+    {
+      "name": "alphacharts-outside-series",
+      "domain": "outside-series",
+      "title": "Outside series",
+      "path": "outside-series/SKILL.md",
+      "description": "Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.",
+      "load_when": [
+        "The request involves a second instrument: against the index, spread, ratio, relative strength, beta, correlation, the sector.",
+        "The request names another timeframe: RSI on the hourly, daily levels on an intraday chart, daily returns.",
+        "Previous day's high, low or close."
+      ],
+      "depends_on": [
+        "alphacharts-core",
+        "alphacharts-script-language",
+        "alphacharts-studies",
+        "alphacharts-plots-and-panes"
+      ],
+      "api_version": "0.x",
+      "status": "stable",
+      "assets": [],
+      "checks": [
+        "recipes/helpers.mjs",
+        "recipes/kalman-beta.acs",
+        "recipes/kalman-beta.expected.mjs",
+        "recipes/mtf-rsi.acs",
+        "recipes/mtf-rsi.expected.mjs",
+        "recipes/previous-day-levels.acs",
+        "recipes/previous-day-levels.expected.mjs",
+        "recipes/ratio-sma.acs",
+        "recipes/ratio-sma.expected.mjs",
+        "recipes/regression-residual.acs",
+        "recipes/regression-residual.expected.mjs",
+        "recipes/relative-strength.acs",
+        "recipes/relative-strength.expected.mjs",
+        "recipes/return-minus-sector.acs",
+        "recipes/return-minus-sector.expected.mjs",
+        "recipes/rolling-beta.acs",
+        "recipes/rolling-beta.expected.mjs",
+        "recipes/rolling-correlation.acs",
+        "recipes/rolling-correlation.expected.mjs",
+        "recipes/rolling-sharpe-daily.acs",
+        "recipes/rolling-sharpe-daily.expected.mjs",
+        "recipes/spread-zscore.acs",
+        "recipes/spread-zscore.expected.mjs"
       ]
     },
     {
@@ -187,5 +254,5 @@
       ]
     }
   ],
-  "language_sha256": "99907b9ff9e3db06b59c3f497fe42d64c4a218b655f62422dd3b9e1358dcc97a"
+  "language_sha256": "dcb19fcc55b59ac949aad8000eb3bcc8f3d40b6bb8c0d3131b5f85a79cc404c1"
 }

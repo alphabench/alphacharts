@@ -1,0 +1,12 @@
+indicator("Kalman hedge ratio")
+q = input.float(0.0001, "Process variance", minval=0.0000001, maxval=1, step=0.0001)
+r = input.float(1.0, "Observation variance", minval=0.0001, maxval=1000, step=0.1)
+x = outside("AAA")
+var float beta = 1.0
+var float p = 1.0
+if not na(x) and not na(close)
+    pp = p + q
+    k = pp * x / (x * x * pp + r)
+    beta := beta + k * (close - beta * x)
+    p := (1 - k * x) * pp
+plot(beta, "Beta", color.purple)

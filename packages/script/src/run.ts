@@ -5,11 +5,12 @@
 import { addStudy, type Study, type StudyDef } from "@alphacharts/indicators";
 import type { Chart, Series, SeriesType } from "@alphacharts/core";
 import { compile, type CompileOk } from "./compile.js";
+import { alignFor, feedsOf, type FeedRef } from "./feeds.js";
 import { LineMap, ScriptError, type Diagnostic } from "./diag.js";
 import { ScriptRunner } from "./runner.js";
 import { withBridge } from "./sandbox.js";
 import type { Limits } from "./limits.js";
-import type { InputValue, WorkerLike } from "@alphacharts/indicators";
+import type { FeedBar, FeedBars, InputValue, WorkerLike } from "@alphacharts/indicators";
 
 type SourceSeries = Series<"candles" | "bars" | "line" | "area" | "histogram">;
 type VolumeSeries = Series<"histogram" | "line" | "area">;
@@ -28,6 +29,11 @@ export interface RunScriptOptions {
   /** Creates the worker, from the host's bundler (`new Worker(new URL("@alphacharts/script/worker", import.meta.url), { type: "module" })`). Required unless `runner` is given: the package never guesses where its worker lives. */
   workerFactory?: () => WorkerLike;
   limits?: Partial<Limits>;
+  /**
+   * Length of one bar of the source series, ms. Required when the script reads outside series (`compile().plan.dependencies`):
+   * it decides whether each joins on exact time (same length) or on the bar that has finished (longer).
+   */
+  intervalMs?: number;
   id?: string;
   /** Called when the script fails at run time (budget, runtime error, worker failure). */
   onError?: (d: Diagnostic) => void;
@@ -36,9 +42,26 @@ export interface RunScriptOptions {
 export interface ScriptHandle {
   readonly study: Study;
   readonly compiled: CompileOk;
+  /** The outside series the script reads (what to load and pass to `setSeries`), empty for a script that reads none. */
+  readonly feeds: readonly FeedRef[];
+  /**
+   * Give the script the bars of outside series `key` (one of `feeds[i].key`), in that series' own time (UTC ms, strictly
+   * increasing), replacing what it had, and compute again. The script keeps its own copy.
+   */
+  setSeries(key: string, bars: FeedBars): void;
+  /**
+   * A live bar of outside series `key`: the same time as its last bar revises it, a later time appends. Only the chart's
+   * last bar is evaluated again, and only when it sees a different bar of that series; otherwise nothing is computed or
+   * redrawn. Does nothing until `setSeries` has given the series.
+   */
+  pushSeries(key: string, bar: FeedBar): void;
   /** Last run-time failure, if any. */
   error: Diagnostic | null;
-  setInputs(partial: Readonly<Record<string, InputValue>>): void;
+  /**
+   * Change inputs: those in `partial` take their value, the others keep theirs, and the keys in `reset` go back to the
+   * script's defaults (colour inputs included). Outside series the script was given stay.
+   */
+  setInputs(partial: Readonly<Record<string, InputValue>>, reset?: readonly string[]): void;
   remove(): void;
   ready(): Promise<void>;
   toJSON(): SavedScript;
@@ -76,6 +99,10 @@ export function runScript(chart: Chart, source: SourceSeries, text: string, inpu
     if (colorKeys.has(k)) colors[k] = String(v);
     else schema[k] = v;
   }
+  const feeds = feedsOf(r.plan.dependencies);
+  if (feeds.length > 0 && !(opts.intervalMs! > 0)) throw new TypeError("this script reads outside series: pass options.intervalMs, the length of one bar of the chart, in milliseconds");
+  const feedRef = new Map(feeds.map((f) => [f.key, f]));
+  const loaded = new Set<string>();
   const id = opts.id ?? `script${++counter}`;
   let study: Study | null = null;
   let handleRef: { error: Diagnostic | null } = { error: null };
@@ -118,14 +145,32 @@ export function runScript(chart: Chart, source: SourceSeries, text: string, inpu
   const handle: ScriptHandle = {
     study,
     compiled: r,
+    feeds,
+    setSeries(key, bars) {
+      const f = feedRef.get(key);
+      if (!f) throw new RangeError(`this script reads no outside series "${key}" (it reads: ${feeds.map((x) => JSON.stringify(x.key)).join(", ") || "none"})`);
+      study!.setFeed(key, bars, alignFor(f.timeframe, opts.intervalMs!));
+      loaded.add(key);
+      study!.ready().catch(report);
+    },
+    pushSeries(key, bar) {
+      if (!feedRef.has(key)) throw new RangeError(`this script reads no outside series "${key}"`);
+      if (!loaded.has(key)) return;
+      study!.pushFeedBar(key, bar);
+    },
     get error() { return handleRef.error; },
     set error(v) { handleRef.error = v; },
-    setInputs(partial) {
+    setInputs(partial, reset = []) {
       const rest: Record<string, InputValue> = {};
+      for (const k of reset) {
+        const c = r.colorInputs.find((x) => x.key === k);
+        if (c) { colors[k] = c.default; colorOf(k, c.default); }
+      }
       for (const [k, v] of Object.entries(partial)) {
         if (colorKeys.has(k)) { colors[k] = String(v); colorOf(k, String(v)); } else rest[k] = v;
       }
-      if (Object.keys(rest).length > 0) { handleRef.error = null; study!.setInputs(rest); study!.ready().catch(report); }
+      const dropped = reset.filter((k) => !colorKeys.has(k));
+      if (Object.keys(rest).length > 0 || dropped.length > 0) { handleRef.error = null; study!.setInputs(rest, dropped); study!.ready().catch(report); }
     },
     remove() {
       study!.remove();

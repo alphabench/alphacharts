@@ -58,7 +58,7 @@ Signatures are the checker's own table: `name(parameter:kind...)`. `?` marks an 
 
 ## Declarations and output
 
-- `indicator(title:string, shorttitle?:string, overlay?:bool)` -> nothing
+- `indicator(title:string, shorttitle?:string, overlay?:bool, scale?:string)` -> nothing
 - `plot(series:series, title?:string, color?:color, linewidth?:int[1..8], style?:enum {plot.style_line|plot.style_histogram|plot.style_area}, offset?:int[-5000..5000], color_down?:color)` -> plot handle
 - `hline(price:float, title?:string, color?:color, linestyle?:enum {hline.style_solid|hline.style_dashed|hline.style_dotted})` -> nothing
 - `fill(plot1:plot, plot2:plot, color?:color, title?:string)` -> nothing

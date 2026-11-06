@@ -4,6 +4,7 @@
 
 import { ALL_STUDIES } from "@alphacharts/indicators/all";
 import type { InputDef, StudyDef } from "@alphacharts/indicators";
+import type { FeedField } from "@alphacharts/indicators";
 import type { Ty } from "./ast.js";
 
 export const FLOAT_S: Ty = { b: "float", q: "series" };
@@ -16,6 +17,9 @@ export const tuple = (elems: Ty[]): Ty => ({ b: "tuple", q: "series", elems });
 function nullProto<T extends object>(o: T): T {
   return Object.assign(Object.create(null) as T, o);
 }
+
+/** The fields of an outside series a script can read. */
+export const OUTSIDE_FIELDS = ["open", "high", "low", "close", "volume"] as const satisfies readonly FeedField[];
 
 export const NAMESPACES: ReadonlySet<string> = new Set(["ta", "math", "color", "input", "plot", "shape", "location", "hline", "str"]);
 
@@ -165,11 +169,17 @@ for (const def of ALL_STUDIES) {
 
 // ---- plotting and declarations ---------------------------------------------------------
 
-add("indicator", [{ name: "title", kind: "string" }, { name: "shorttitle", kind: "string", opt: true }, { name: "overlay", kind: "bool", opt: true }], t("void"), "special");
+add("indicator", [{ name: "title", kind: "string" }, { name: "shorttitle", kind: "string", opt: true }, { name: "overlay", kind: "bool", opt: true }, { name: "scale", kind: "string", opt: true, oneOf: ["left", "right"] }], t("void"), "special");
 add("plot", [S("series"), { name: "title", kind: "string", opt: true }, { name: "color", kind: "color", opt: true }, I("linewidth", { opt: true, min: 1, max: 8 }), { name: "style", kind: "enum", oneOf: ENUMS.plotStyle, opt: true }, I("offset", { opt: true, min: -5000, max: 5000 }), { name: "color_down", kind: "color", opt: true }], t("plot"), "special");
 add("hline", [N("price"), { name: "title", kind: "string", opt: true }, { name: "color", kind: "color", opt: true }, { name: "linestyle", kind: "enum", oneOf: ENUMS.lineStyle, opt: true }], t("void"), "special");
 add("fill", [{ name: "plot1", kind: "plot" }, { name: "plot2", kind: "plot" }, { name: "color", kind: "color", opt: true }, { name: "title", kind: "string", opt: true }], t("void"), "special");
 add("plotshape", [{ name: "series", kind: "any" }, { name: "title", kind: "string", opt: true }, { name: "style", kind: "enum", oneOf: ENUMS.shape, opt: true }, { name: "location", kind: "enum", oneOf: ENUMS.location, opt: true }, { name: "color", kind: "color", opt: true }, I("offset", { opt: true, min: -5000, max: 5000 })], t("void"), "special");
+// bar colours and pane shading: output statements like plot(); the condition is a bool series, the colour a constant
+add("barcolor", [{ name: "condition", kind: "any" }, { name: "color", kind: "color" }], t("void"), "special");
+add("bgcolor", [{ name: "condition", kind: "any" }, { name: "color", kind: "color" }], t("void"), "special");
+// a number series of another instrument and/or another timeframe, joined onto this chart's bars by the host's bars
+// (symbol and timeframe are string literals or na; the checker reads them, the host loads them)
+add("outside", [{ name: "symbol", kind: "any", opt: true }, { name: "field", kind: "string", opt: true, oneOf: OUTSIDE_FIELDS }, { name: "timeframe", kind: "any", opt: true }], FLOAT_S, "special");
 add("color.new", [{ name: "color", kind: "color" }, N("transp", { min: 0, max: 100 })], t("color"), "special");
 
 // inputs: `name = input.x(defval, title, ...)` — the whole right-hand side of a top-level declaration

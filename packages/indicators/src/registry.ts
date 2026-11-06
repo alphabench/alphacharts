@@ -40,7 +40,8 @@ export function validateDef(def: StudyDef): void {
     if (keys.has(p.key)) throw new Error(`${def.id}: duplicate plot key "${p.key}"`);
     keys.add(p.key);
     switch (p.kind) {
-      case "line": case "histogram": case "area": case "markers": need(p.col, p.key); break;
+      case "line": need(p.col, p.key); if (p.colorBy) need(p.colorBy.col, p.key); break;
+      case "histogram": case "area": case "markers": case "barcolor": case "bgcolor": need(p.col, p.key); break;
       case "band": need(p.upper, p.key); need(p.lower, p.key); break;
       case "fill": need(p.a, p.key); need(p.b, p.key); break;
       case "zigzag": need(p.price, p.key); need(p.back, p.key); break;

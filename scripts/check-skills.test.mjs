@@ -138,19 +138,19 @@ describe("script examples", () => {
 
   it("an invalid example that compiles", T, async () => {
     const d = tree();
-    edit(join(d, "core/SKILL.md"), "plot(close, color = close > ta.sma(close, 20) ? color.green : color.red)", "plot(close, color = color.green)");
-    expectError(await errs(d), "core/SKILL.md", "marked invalid but compiled and ran");
+    edit(join(d, "studies/SKILL.md"), "plot(ta.rsi(close, period=14))", "plot(ta.rsi(close, length=14))");
+    expectError(await errs(d), "studies/SKILL.md", "marked invalid but compiled and ran");
   });
 
   it("an invalid example with the wrong diagnostic", T, async () => {
     const d = tree();
-    edit(join(d, "core/SKILL.md"), "<!-- skill: invalid: argument \"color\" of plot must be a literal or an input, not a series value -->", "<!-- skill: invalid: argument \"color\" of plot must be a colour -->");
-    expectError(await errs(d), "core/SKILL.md", "not with the diagnostic it names");
+    edit(join(d, "studies/SKILL.md"), "<!-- skill: invalid: ta.rsi has no parameter \"period\" (parameters: source, length) -->", "<!-- skill: invalid: ta.rsi has no parameter \"window\" -->");
+    expectError(await errs(d), "studies/SKILL.md", "not with the diagnostic it names");
   });
 
   it("an invalid marker that names no diagnostic", T, async () => {
     const d = tree();
-    edit(join(d, "core/SKILL.md"), "<!-- skill: invalid: argument \"color\" of plot must be a literal or an input, not a series value -->", "<!-- skill: invalid: -->");
+    edit(join(d, "studies/SKILL.md"), "<!-- skill: invalid: ta.rsi has no parameter \"period\" (parameters: source, length) -->", "<!-- skill: invalid: -->");
     expectError(await errs(d), "must name the diagnostic");
   });
 
@@ -184,6 +184,27 @@ describe("script examples", () => {
     const d = tree();
     edit(join(d, "quant-recipes/recipes/cumulative-volume-delta.expected.mjs"), "return { CVD: total, \"Rolling delta\": rolling };", "return { CVD: total };");
     expectError(await errs(d), "does not check it");
+  });
+
+  // scripts that read outside series run on seeded second instruments, and their fixtures get the reference join
+  it("an outside-series recipe whose value is wrong", T, async () => {
+    const d = tree();
+    edit(join(d, "outside-series/recipes/ratio-sma.acs"), "close / outside(\"IDX\")", "close / outside(\"AAA\")");
+    expectError(await errs(d), "recipes/ratio-sma.acs", "differs from the fixture");
+  });
+
+  it("an outside-series recipe on the wrong side of the join rule", T, async () => {
+    const d = tree();
+    // a daily bar shown on its own day (the fixture follows the rule: only a finished day)
+    edit(join(d, "outside-series/recipes/previous-day-levels.expected.mjs"), "ctx.outside(null, \"high\", \"1d\")", "ctx.outside(null, \"low\", \"1d\")");
+    expectError(await errs(d), "recipes/previous-day-levels.acs", "differs from the fixture");
+  });
+
+  it("an indicator computed on the wrong bars", T, async () => {
+    const d = tree();
+    // the RSI of hourly bars read on the chart is not the RSI of the chart's own series
+    edit(join(d, "outside-series/recipes/mtf-rsi.acs"), "ta.rsi(outside(timeframe = \"1h\"), len)", "ta.rsi(outside(timeframe = \"1h\") + 0 * close, len)");
+    expectError(await errs(d), "recipes/mtf-rsi.acs", "differs from the fixture");
   });
 
   it("an embedded copy of a recipe that drifted", T, async () => {

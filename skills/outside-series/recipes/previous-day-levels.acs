@@ -1,0 +1,4 @@
+indicator("Previous day high, low and close", overlay=true)
+plot(outside(timeframe = "1d", field = "high"), "Previous high", color.green)
+plot(outside(timeframe = "1d", field = "low"), "Previous low", color.red)
+plot(outside(timeframe = "1d", field = "close"), "Previous close", color.gray)

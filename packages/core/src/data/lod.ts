@@ -26,8 +26,13 @@ export interface LodSource {
   readonly h: number;
   readonly l: number;
   readonly c: number;
-  /** Column of a packed RGBA colour per row, if the series has one. */
-  readonly color?: number;
+  /** Column of a packed RGBA colour per row, if the series has one. Set when the column is added; the owner then rebuilds the pyramid. */
+  color?: number;
+  /**
+   * Which colour a bucket takes: "high" (default) that of the row that made its high; "any" the last non-zero colour of
+   * its rows, so a highlighted bar still shows when 8 or more bars share a pixel.
+   */
+  colorMode?: "high" | "any";
 }
 
 export const LOD_O = 0;
@@ -162,6 +167,7 @@ export class Lod {
     const s = this.src.store;
     const O = s.cols[this.src.o]!, H = s.cols[this.src.h]!, L = s.cols[this.src.l]!, C = s.cols[this.src.c]!;
     const COL = this.src.color === undefined ? undefined : s.cols[this.src.color]!;
+    const any = this.src.colorMode === "any";
     const off = s.head - s.first;
     const r0 = Math.max(bucket << k, s.first);
     const r1 = Math.min((bucket + 1) << k, s.end);
@@ -174,8 +180,9 @@ export class Lod {
       const rh = H[p]!;
       if (rh > h) {
         h = rh;
-        if (COL) color = COL[p]!;
+        if (COL && !any) color = COL[p]!;
       }
+      if (COL && any && COL[p]! !== 0) color = COL[p]!;
       const rl = L[p]!;
       if (rl < l) l = rl;
       c = C[p]!;
@@ -187,6 +194,7 @@ export class Lod {
     let o = Number.NaN, h = Number.NEGATIVE_INFINITY, l = Number.POSITIVE_INFINITY, c = Number.NaN, color = 0;
     const CO = child.cols[LOD_O]!, CH = child.cols[LOD_H]!, CL = child.cols[LOD_L]!, CC = child.cols[LOD_C]!;
     const CCOL = child.cols[LOD_COLOR];
+    const any = this.src.colorMode === "any";
     for (let cb = bucket << 1; cb <= (bucket << 1) + 1; cb++) {
       if (!child.has(cb)) continue;
       const p = child.pos(cb);
@@ -196,8 +204,9 @@ export class Lod {
       const ch = CH[p]!;
       if (ch > h) {
         h = ch;
-        if (CCOL) color = CCOL[p]!;
+        if (CCOL && !any) color = CCOL[p]!;
       }
+      if (CCOL && any && CCOL[p]! !== 0) color = CCOL[p]!;
       const cl = CL[p]!;
       if (cl < l) l = cl;
       c = CC[p]!;

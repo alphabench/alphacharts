@@ -43,6 +43,11 @@ export type PlotDef =
       offset?: number;
       /** Join across absent bars (drawn on the overlay). */
       connect?: boolean;
+      /**
+       * Per-point colour: where column `col` is present and not zero, the line segment arriving at that bar is drawn in
+       * `color` instead of the plot's own. The column is an ordinary one (a 0/1 condition), computed with the rest.
+       */
+      colorBy?: { col: string; color: string };
     })
   | (PlotBase & { kind: "histogram"; col: string; color: string; colorDown?: string })
   | (PlotBase & { kind: "area"; col: string; color: string })
@@ -66,6 +71,17 @@ export type PlotDef =
       /** Draw the value as text (pattern scores) instead of a shape. */
       text?: boolean;
     })
+  /**
+   * Colours the candles (or OHLC bars) of the study's source series on every bar where column `col` is present and
+   * not zero. Several barcolor plots (and several studies) compose: the latest one that applies to a bar wins; a bar none
+   * applies to keeps its up/down colours. Needs an OHLC source.
+   */
+  | (PlotBase & { kind: "barcolor"; col: string; color: string })
+  /**
+   * Shades the background of the study's pane (the source's pane for an overlay) on every bar where column `col` is
+   * present and not zero. Takes no part in autoscale.
+   */
+  | (PlotBase & { kind: "bgcolor"; col: string; color: string })
   /** ZigZag: `price` at the confirmation bar and `back` bars to the pivot; joined by straight lines. */
   | (PlotBase & { kind: "zigzag"; price: string; back: string; color: string; width?: number });
 
@@ -83,6 +99,11 @@ export interface StudyDef {
   needs: StudyNeeds;
   /** Where it is drawn: on the source's pane or in a pane of its own. */
   pane: "overlay" | "new";
+  /**
+   * Which price scale its series use: "right" (default) or the chart's "left" axis, so a series of another magnitude
+   * shares the pane without flattening the price. Either side needs the chart to show that axis to be read.
+   */
+  scale?: "right" | "left";
   /** Names of the computed columns, in the order `build` returns them. */
   columns: readonly string[];
   plots: readonly PlotDef[];
