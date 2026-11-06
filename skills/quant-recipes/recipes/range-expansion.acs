@@ -1,0 +1,8 @@
+indicator("Range expansion flag", overlay=true)
+len = input.int(20, "Average length", minval=2, maxval=500)
+mult = input.float(1.5, "Multiple", minval=0.5, maxval=10, step=0.1)
+rng = high - low
+avg = ta.sma(rng, len)
+flag = na(avg) ? na : (rng > mult * avg ? 1 : 0)
+plot(flag, "Flag", color.orange, style=plot.style_histogram)
+plotshape(flag == 1, "Wide bar", shape.triangleup, location.belowbar, color.orange)

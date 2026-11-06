@@ -1,0 +1,11 @@
+indicator("Rolling beta and correlation on the series' own lag")
+len = input.int(30, "Length", minval=3, maxval=500)
+lag = input.int(1, "Lag", minval=1, maxval=50)
+r = close / close[1] - 1
+rl = r[lag]
+cov = ta.sma(r * rl, len) - ta.sma(r, len) * ta.sma(rl, len)
+beta = cov / ta.variance(rl, len)
+corr = cov / (ta.stdev(r, len) * ta.stdev(rl, len))
+plot(beta, "Beta", color.blue)
+plot(corr, "Correlation", color.orange)
+hline(0, "Zero", color.gray)

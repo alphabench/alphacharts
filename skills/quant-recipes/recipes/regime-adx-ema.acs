@@ -1,0 +1,8 @@
+indicator("Regime: ADX strength, EMA side")
+len = input.int(14, "ADX length", minval=2, maxval=200)
+trend = input.int(25, "ADX trend level", minval=1, maxval=100)
+span = input.int(50, "EMA length", minval=2, maxval=500)
+[adx, plusdi, minusdi] = ta.adx(len)
+e = ta.ema(close, span)
+regime = na(adx) or na(e) ? na : (adx > trend ? (close > e ? 1 : -1) : 0)
+plot(regime, "Regime", color.blue, style=plot.style_histogram)

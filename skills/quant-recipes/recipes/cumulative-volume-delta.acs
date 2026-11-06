@@ -1,0 +1,7 @@
+indicator("Cumulative volume delta from bar direction (approximation)")
+len = input.int(20, "Rolling length", minval=2, maxval=500)
+delta = close > open ? volume : close < open ? -volume : 0
+var float total = 0
+total += delta
+plot(total, "CVD", color.blue)
+plot(ta.sum(delta, len), "Rolling delta", color.orange, style=plot.style_histogram)

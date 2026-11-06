@@ -1,0 +1,7 @@
+indicator("Autocorrelation of returns, lag 1")
+len = input.int(30, "Length", minval=3, maxval=500)
+r = close / close[1] - 1
+r1 = r[1]
+ac = (ta.sma(r * r1, len) - ta.sma(r, len) * ta.sma(r1, len)) / (ta.stdev(r, len) * ta.stdev(r1, len))
+plot(ac, "Autocorrelation", color.purple)
+hline(0, "Zero", color.gray)

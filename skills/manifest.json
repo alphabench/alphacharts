@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "package": "alphacharts",
+  "skills": [
+    {
+      "name": "alphacharts-core",
+      "domain": "core",
+      "title": "Core",
+      "path": "core/SKILL.md",
+      "description": "Decide how to answer a chart request: a built-in study, a computed series, or a refusal; overlay or own pane; what the script language cannot do. Load this first.",
+      "load_when": [
+        "Any request to draw, add or change an indicator on one chart.",
+        "Deciding between a built-in study, a computed series and a refusal.",
+        "Choosing overlay or an own pane, or explaining what the language cannot do."
+      ],
+      "depends_on": [],
+      "api_version": "0.x",
+      "status": "stable",
+      "assets": [],
+      "checks": []
+    },
+    {
+      "name": "alphacharts-script-language",
+      "domain": "script-language",
+      "title": "Script language",
+      "path": "script-language/SKILL.md",
+      "description": "The whole script language: types and qualifiers, no coercion, series and history, na, state and var, loops, inputs, the grammar, limits and what is refused. Load before writing any script that is more than one study call.",
+      "load_when": [
+        "Writing a computed series, anything with var, loops, x[n] history or na handling.",
+        "A diagnostic mentions types, state or history.",
+        "Looking up a math function, a kernel (ta.sma, ta.stdev, ta.highest) or a builtin series."
+      ],
+      "depends_on": [
+        "alphacharts-core"
+      ],
+      "api_version": "0.x",
+      "status": "stable",
+      "assets": [
+        "grammar.md",
+        "examples/kernels.acs",
+        "reference/builtins.md"
+      ],
+      "checks": [
+        "examples/kernels.expected.mjs"
+      ]
+    },
+    {
+      "name": "alphacharts-studies",
+      "domain": "studies",
+      "title": "Studies",
+      "path": "studies/SKILL.md",
+      "description": "How to call any built-in study as ta.<id>: the index by purpose, the calling rules, and per-family references with every parameter, default, range, option and output. Load before writing a ta.<id> call.",
+      "load_when": [
+        "The request names a standard indicator (RSI, MACD, Bollinger, ADX, VWAP, Supertrend, a candlestick pattern).",
+        "Writing any ta.<id> call and needing its exact parameters or outputs.",
+        "Checking whether a study exists."
+      ],
+      "depends_on": [
+        "alphacharts-core",
+        "alphacharts-script-language"
+      ],
+      "api_version": "0.x",
+      "status": "stable",
+      "assets": [
+        "reference/overlap.md",
+        "reference/momentum.md",
+        "reference/volatility.md",
+        "reference/volume.md",
+        "reference/price.md",
+        "reference/statistic.md",
+        "reference/cycle.md",
+        "reference/tv.md",
+        "reference/pattern.md",
+        "reference/math.md"
+      ],
+      "checks": []
+    },
+    {
+      "name": "alphacharts-plots-and-panes",
+      "domain": "plots-and-panes",
+      "title": "Plots and panes",
+      "path": "plots-and-panes/SKILL.md",
+      "description": "Drawing a script's output: plot, plot styles, hline, fill, plotshape, overlay versus own pane, colours as constants, input.* controls, and colour that changes along a line with two gapped plots.",
+      "load_when": [
+        "The request is about how something looks: line style, histogram, shaded band, markers, levels, colours.",
+        "Adding user-adjustable settings (input.*).",
+        "Colouring a line by a condition."
+      ],
+      "depends_on": [
+        "alphacharts-core",
+        "alphacharts-script-language"
+      ],
+      "api_version": "0.x",
+      "status": "stable",
+      "assets": [
+        "examples/two-colour-line.acs"
+      ],
+      "checks": [
+        "examples/two-colour-line.expected.mjs"
+      ]
+    },
+    {
+      "name": "alphacharts-quant-recipes",
+      "domain": "quant-recipes",
+      "title": "Quant recipes",
+      "path": "quant-recipes/SKILL.md",
+      "description": "Worked, numerically verified scripts for quant measures: z-score of returns, realised volatility, HV ratio, rolling Sharpe, beta and correlation on a series' own lag, autocorrelation, ADX/EMA regime, distance in ATR units, range expansion, breakout share, cumulative volume delta, session VWAP, a Kalman-style filter.",
+      "load_when": [
+        "The request is a statistic or state machine on one instrument's bars rather than a named indicator.",
+        "Volatility, Sharpe, z-score, autocorrelation, regime, filter or volume-delta requests.",
+        "Adapting a verified formula instead of deriving one."
+      ],
+      "depends_on": [
+        "alphacharts-core",
+        "alphacharts-script-language",
+        "alphacharts-studies",
+        "alphacharts-plots-and-panes"
+      ],
+      "api_version": "0.x",
+      "status": "stable",
+      "assets": [],
+      "checks": [
+        "recipes/helpers.mjs",
+        "recipes/atr-distance.acs",
+        "recipes/atr-distance.expected.mjs",
+        "recipes/autocorrelation-lag1.acs",
+        "recipes/autocorrelation-lag1.expected.mjs",
+        "recipes/cumulative-volume-delta.acs",
+        "recipes/cumulative-volume-delta.expected.mjs",
+        "recipes/hv-ratio.acs",
+        "recipes/hv-ratio.expected.mjs",
+        "recipes/kalman-filter.acs",
+        "recipes/kalman-filter.expected.mjs",
+        "recipes/lag-regression.acs",
+        "recipes/lag-regression.expected.mjs",
+        "recipes/range-expansion.acs",
+        "recipes/range-expansion.expected.mjs",
+        "recipes/realised-vol.acs",
+        "recipes/realised-vol.expected.mjs",
+        "recipes/regime-adx-ema.acs",
+        "recipes/regime-adx-ema.expected.mjs",
+        "recipes/rolling-sharpe.acs",
+        "recipes/rolling-sharpe.expected.mjs",
+        "recipes/session-anchored-vwap.acs",
+        "recipes/session-anchored-vwap.expected.mjs",
+        "recipes/up-break-share.acs",
+        "recipes/up-break-share.expected.mjs",
+        "recipes/zscore-returns.acs",
+        "recipes/zscore-returns.expected.mjs"
+      ]
+    },
+    {
+      "name": "alphacharts-troubleshooting",
+      "domain": "troubleshooting",
+      "title": "Troubleshooting",
+      "path": "troubleshooting/SKILL.md",
+      "description": "Every diagnostic the compiler and the runtime can emit, with its cause and fix; the common ones here, the rest by phase in the catalogue files.",
+      "load_when": [
+        "A compile or run diagnostic came back for a script.",
+        "A script compiles but shows nothing, all gaps, or the wrong scale."
+      ],
+      "depends_on": [
+        "alphacharts-core",
+        "alphacharts-script-language"
+      ],
+      "api_version": "0.x",
+      "status": "stable",
+      "assets": [
+        "catalogue/syntax.md",
+        "catalogue/names-and-types.md",
+        "catalogue/calls.md",
+        "catalogue/output-and-inputs.md",
+        "catalogue/limits-and-runtime.md"
+      ],
+      "checks": [
+        "proofs.md"
+      ]
+    }
+  ],
+  "language_sha256": "e528ab3929cc12f11b54f9f70157b5b4aeca67100cd85a34593ae9f4bf043e8d"
+}

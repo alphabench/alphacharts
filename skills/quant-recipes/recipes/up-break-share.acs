@@ -1,0 +1,6 @@
+indicator("Share of bars closing above the previous high")
+len = input.int(20, "Length", minval=2, maxval=500)
+above = close > high[1] ? 1 : 0
+share = 100 * ta.sum(above, len) / len
+plot(share, "Percent", color.green)
+hline(50, "Half", color.gray, hline.style_dashed)

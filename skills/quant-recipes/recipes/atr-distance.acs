@@ -1,0 +1,5 @@
+indicator("Distance from SMA in ATR units")
+len = input.int(20, "Length", minval=2, maxval=500)
+dist = (close - ta.sma(close, len)) / ta.atr(len)
+plot(dist, "Distance", color.blue)
+hline(0, "Zero", color.gray)

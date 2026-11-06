@@ -1,0 +1,7 @@
+indicator("Z-score of returns")
+len = input.int(20, "Length", minval=2, maxval=500)
+ret = close / close[1] - 1
+z = (ret - ta.sma(ret, len)) / ta.stdev(ret, len)
+plot(z, "Z", color.blue)
+hline(2, "Plus 2", color.gray, hline.style_dashed)
+hline(-2, "Minus 2", color.gray, hline.style_dashed)

@@ -1,0 +1,8 @@
+indicator("Average coloured by direction", overlay=true)
+len = input.int(20, "Length", minval=2, maxval=500)
+m = ta.sma(close, len)
+rising = m > m[1]
+up = rising or rising[1] ? m : na
+down = not rising or not rising[1] ? m : na
+plot(up, "Rising", color.green, linewidth=2)
+plot(down, "Falling", color.red, linewidth=2)

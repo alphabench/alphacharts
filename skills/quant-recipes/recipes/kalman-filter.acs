@@ -1,0 +1,10 @@
+indicator("Kalman-style filter of the close", overlay=true)
+q = input.float(0.05, "Process noise", minval=0.0001, maxval=1000)
+r = input.float(4, "Measurement noise", minval=0.0001, maxval=1000)
+var float est = close
+var float err = 1
+pred = err + q
+gain = pred / (pred + r)
+est := est + gain * (close - est)
+err := (1 - gain) * pred
+plot(est, "Filter", color.blue)

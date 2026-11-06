@@ -1,0 +1,43 @@
+# Syntax: the lexer and the parser
+
+Each row: the message (`{...}` stands for text that varies), its cause, the fix. `[host]` marks a message a script cannot produce itself.
+
+- `'while' is not supported: loops must be bounded, use 'for i = a to b'` — There are no unbounded loops. Fix: `for i = a to b`, or a recursion in `var` state across bars.
+- `'switch' is not supported: use if / else` — No switch. Fix: `if` / `else if` / `else`.
+- `functions are not supported` — No user functions. Fix: inline the expression, or repeat it; use a `var` variable to reuse a value.
+- `'return' is not supported` — No functions, so no return. Fix: delete it.
+- `'import' is not supported` — Scripts cannot import. Fix: delete it; everything built in is already available.
+- `'export' is not supported` — Scripts cannot export. Fix: delete it.
+- `'break' is not supported: loops are bounded` — Loops are bounded and cannot exit early. Fix: guard the body with `if`, or shorten the bounds.
+- `'continue' is not supported` — No early next-iteration. Fix: wrap the body in `if`.
+- `'class' is not supported` — No classes. Fix: use plain variables.
+- `'eval' is not part of the language` — Scripts cannot evaluate text. Fix: write the formula directly.
+- `'this' is not part of the language` — No objects. Fix: delete it.
+- `there is no 'null'; use na` — Missing values are `na`. Fix: `na`, or `float x = na` for a typed one.
+- `there is no 'undefined'; use na` — Missing values are `na`. Fix: `na`.
+- `'constructor' is a reserved name` — Reserved word. Fix: rename the variable.
+- `'prototype' is a reserved name` — Reserved word. Fix: rename the variable.
+- `'__proto__' is a reserved name` — Reserved word. Fix: rename the variable.
+- `tab characters are not allowed; indent with spaces` — A tab was used to indent. Fix: indent with spaces (four is conventional).
+- `indentation does not match any outer block` — A dedent landed between two block levels. Fix: return to the exact column of an enclosing block.
+- `invalid number "{...}"` — A digit run continues into letters (`12abc`). Fix: put a space or operator between them, or rename.
+- `number "{text}" is out of range` — The literal does not fit a finite number. Fix: use a smaller value.
+- `unknown escape "\{...}"` — Only `\n \t \\ \" \'` are escapes in a string. Fix: remove the backslash.
+- `unterminated string` — A string has no closing quote on its line. Fix: close it with the same quote character.
+- `invalid color "{...}": use #RRGGBB or #RRGGBBAA` — A `#` colour must have 6 or 8 hex digits. Fix: `#rrggbb` or `#rrggbbaa`, or `color.red`.
+- `unexpected character {...}` — A character outside the language (`$`, `@`, non-ASCII...). Fix: remove it; names are ASCII.
+- `unclosed bracket` — A `(` or `[` is never closed. Fix: add the matching `)` or `]`; check nested calls.
+- `expected {what}, found {...}` — The parser needed a specific token (`)`, `=`, `]`...) and found another. Fix: add the missing token at the reported column.
+- `unexpected indent` — A line is indented without a block opener above it. Fix: remove the indent, or open a block with `if` / `for`.
+- `unexpected {...}; expected end of line` — Two statements (or a leftover token) sit on one line. Fix: put each statement on its own line.
+- `expected end of line before the indented block, found {...}` — Something follows the condition on the same line as `if` / `for`. Fix: end the line, then indent the body.
+- `expected an indented block` — `if`, `else` or `for` has no indented body. Fix: indent at least one statement under it.
+- `a block needs at least one statement` — The body is empty, often because a statement in it failed to parse. Fix: fix the earlier error in the block first.
+- `expected a name, found {...}` — A tuple declaration holds something that is not a name. Fix: `[a, b] = ta.macd(close)`, names only.
+- `this expression has no effect; a statement is a declaration, an assignment, if, for or a call` — A bare value or operator is a whole statement. Fix: declare it (`x = ...`) or call something with it.
+- `expected a variable name, found {...}` — `var` or a type is not followed by a name. Fix: `var float x = 0`.
+- `expected a loop variable name, found {...}` — `for` needs a counter name. Fix: `for i = 1 to 10`.
+- `expected "to", found {...}` — The loop range is written without `to`. Fix: `for i = 1 to 10`.
+- `expression is nested too deeply` — More than 100 levels of parentheses or operators. Fix: split it into named variables.
+- `comparisons do not chain; combine them with 'and'` — `a < b < c` is not allowed. Fix: `a < b and b < c`.
+- `expected a name after ".", found {...}` — A dot with nothing after it. Fix: complete the name, such as `ta.sma`.

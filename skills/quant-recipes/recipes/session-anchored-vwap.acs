@@ -1,0 +1,12 @@
+indicator("VWAP restarting each session day", overlay=true)
+off = input.int(0, "UTC offset of the session, minutes", minval=-720, maxval=840)
+day = math.floor((time + off * 60000) / 86400000)
+fresh = day != day[1]
+var float pv = 0
+var float vol = 0
+if fresh
+    pv := 0
+    vol := 0
+pv += hlc3 * volume
+vol += volume
+plot(pv / vol, "VWAP", color.blue)

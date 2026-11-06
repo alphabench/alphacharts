@@ -13,9 +13,14 @@
     "bench": "pnpm -C bench bench",
     "bench:compare": "pnpm -C bench compare",
     "bench:compare-report": "node scripts/compare-report.mjs",
-    "visual": "pnpm -C bench visual"
+    "visual": "pnpm -C bench visual",
+    "check:skills": "node scripts/check-skills.mjs",
+    "gen:skills": "node scripts/gen-skill-reference.mjs",
+    "gen:skills:check": "node scripts/gen-skill-reference.mjs --check",
+    "test:skills": "vitest run scripts/check-skills.test.mjs"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "5.0.2"
   }
 }
