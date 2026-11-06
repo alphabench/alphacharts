@@ -115,6 +115,13 @@ export const INVALID: string[] = [
   "a = 1\nb = 2 +\nc = (3\nplot(close)",
   "import x\nplot(close)",
   "plot(close)\nplot(close,",
+  "x = 0\nx := 0.0\nplot(x)",
+  "var int n = 0\nn := 1.0\nplot(n)",
+  "plot(ta.sma(close, 14.0))",
+  "plot(ta.sma(close, 1e1))",
+  "var int a = -1\na := ta.sma(close, 5)\nplot(a)",
+  "plot(ta.linreg(close, 1))",
+  "s = close > open ? \"a\" : \"b\"\nplot(close)",
 ];
 
 export const VALID: string[] = [
@@ -203,4 +210,11 @@ export const VALID: string[] = [
   "plot(1e3 + .5 + 2.)",
   "e = ta.ema(close, 5)\nplot(e)\nplot(e[1])",
   "var float prev = na\nplot(nz(prev))\nprev := close",
+  "var x = 0.0\nx := x + 0.5\nplot(x)",
+  "var float pv = 0.0\npv += hlc3 * volume\nplot(pv)",
+  "var x = 1.\nx *= 0.5\nplot(x)",
+  "var x = 1e3\nx := x + 1\nplot(x)",
+  "var int anchor = -1\nanchor := bar_index - ta.lowestbars(low, 5)\nplot(anchor)",
+  "int k = ta.highestbars(high, 5)\nplot(k)",
+  "plot(ta.linreg(close, 2))",
 ];

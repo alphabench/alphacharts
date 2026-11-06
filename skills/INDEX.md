@@ -11,7 +11,7 @@ request needs: read the entry below, load the skills it names, and follow their 
 
 ## Core
 
-Decide how to answer a chart request: a built-in study, a computed series, or a refusal; overlay or own pane; what the script language cannot do. Load this first.
+Decide how to answer a chart request: a built-in study, a computed series, or a refusal; overlay or own pane; what the script language cannot do.
 
 Name: `alphacharts-core`  
 Path: [core/SKILL.md](core/SKILL.md)  
@@ -75,7 +75,7 @@ Load when:
 
 ## Quant recipes
 
-Worked, numerically verified scripts for quant measures: z-score of returns, realised volatility, HV ratio, rolling Sharpe, beta and correlation on a series' own lag, autocorrelation, ADX/EMA regime, distance in ATR units, range expansion, breakout share, cumulative volume delta, session VWAP, a Kalman-style filter.
+Worked, numerically verified scripts for quant measures: z-score of returns, realised volatility, HV ratio, rolling Sharpe, beta and correlation on a series' own lag, autocorrelation, ADX/EMA regime, distance in ATR units, range expansion, breakout share, cumulative volume delta, session VWAP and the previous session's VWAP, swing highs and lows, VWAP anchored at a swing low, opening range, a Kalman-style filter.
 
 Name: `alphacharts-quant-recipes`  
 Path: [quant-recipes/SKILL.md](quant-recipes/SKILL.md)  

@@ -340,7 +340,7 @@ class Parser {
   private primary(): Expr {
     const t = this.tok;
     switch (t.kind) {
-      case "num": this.next(); return { k: "num", value: t.value!, from: t.from, to: t.to };
+      case "num": this.next(); return { k: "num", value: t.value!, float: /[.eE]/.test(t.text), from: t.from, to: t.to };
       case "str": this.next(); return { k: "str", value: t.text, from: t.from, to: t.to };
       case "color": this.next(); return { k: "color", value: t.text, from: t.from, to: t.to };
       case "ident": this.next(); return { k: "id", name: t.text, from: t.from, to: t.to };

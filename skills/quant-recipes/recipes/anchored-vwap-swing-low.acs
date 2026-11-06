@@ -1,0 +1,16 @@
+indicator("VWAP anchored at the last swing low", overlay=true)
+left = input.int(5, "Bars to the left", minval=1, maxval=200)
+right = input.int(5, "Bars to the right (the confirmation lag)", minval=1, maxval=200)
+isLow = low[right] == ta.lowest(low, left + right + 1)
+var float pv = na
+var float vol = na
+if isLow
+    pv := 0.0
+    vol := 0.0
+    for k = 0 to right
+        pv += hlc3[k] * volume[k]
+        vol += volume[k]
+else
+    pv += hlc3 * volume
+    vol += volume
+plot(pv / vol, "Anchored VWAP", color.purple)

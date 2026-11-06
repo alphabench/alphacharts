@@ -101,7 +101,7 @@ plot(total, "sum")
 **Inputs.** `name = input.int(defval, "Title", minval=, maxval=)` is the whole right-hand side of a top-level declaration;
 `name` is the input's key. Kinds are `input.int`, `input.float`, `input.bool`, `input.string` (needs `options=[...]`),
 `input.source` (default one of `close open high low hl2 hlc3 ohlc4 hlcc4`) and `input.color`. Bounds and defaults are
-literals. A string exists only as an input compared with a constant; a string series (`s = c ? "a" : "b"`) compiles but fails when the script runs, used or not.
+literals. A string exists only as an input compared with a constant; a string chosen per bar (`s = c ? "a" : "b"` with `c` a series) is refused at compile time.
 
 **Strings and colours.** `==` and `!=` work on strings and colours that are constants or inputs; there are no other string
 operations.
@@ -125,7 +125,7 @@ The signatures are generated from the compiler: [builtins.md](reference/builtins
 
 Semantics, each checked against a plain-JavaScript recomputation in [kernels.acs](examples/kernels.acs): `ta.stdev` and
 `ta.variance` divide by n; `ta.ema` and `ta.rma` start from the SMA of the first `length` values; `ta.highestbars` and
-`ta.lowestbars` count bars since the extreme (0 is this bar); `ta.linreg` is the least-squares line read at the last bar;
+`ta.lowestbars` count bars since the extreme (0 is this bar) and are `int` (na until the window is full, and an index by an `na` fails at run time); `ta.linreg` is the least-squares line read at the last bar;
 `ta.wma` weights the newest bar `length`; `ta.change(source, length)` is `source - source[length]`; `ta.atr` is Wilder's, first value at bar
 `length`; `ta.bb` uses the population deviation, `basis` is the SMA.
 
@@ -168,26 +168,37 @@ for i = 0 to 9
 plot(count, "Up bars", color.green, style=plot.style_histogram)
 ```
 
-`ta.linreg` is the one kernel whose length starts at 2, and the compiler does not know:
+`ta.linreg` is the one kernel whose length starts at 2 (a line through one point is undefined), and the compiler says so:
 
-<!-- skill: invalid: the length of ta.linreg must be an integer between 2 and 5000, got 1 -->
+<!-- skill: invalid: argument "length" of ta.linreg must be between 2 and 5000, got 1 -->
 ```alphacharts
 plot(ta.linreg(close, 1))
 ```
 
-The float-literal trap, and its fix:
+A number written with a dot or an exponent (`0.0`, `1.`, `1e3`) is a float, whatever its value; a whole number (`0`, `-1`) is an int.
+So `var x = 0.0` starts a float and takes fractions later:
 
-<!-- skill: invalid: cannot assign series float to int "x" (declare it float: e.g. x = 0.0) -->
 ```alphacharts
 var x = 0.0
 x := x + 0.5
 plot(x)
 ```
 
+An int variable takes no float, and there is no `int()` conversion. Declare the variable float (`float x = 0.0` or `var float x = 0.0`):
+
+<!-- skill: invalid: cannot assign series float to int "a" (declare it float: float a = 0.0, or var float a = 0.0; there is no int() conversion) -->
 ```alphacharts
-var float x = 0
-x += 0.5
-plot(x)
+var int a = -1
+a := ta.sma(close, 5)
+plot(a)
+```
+
+What is an int: whole-number literals, `bar_index`, `input.int`, `ta.highestbars` and `ta.lowestbars`, and `+ - *` of ints (`/` gives a float). So the bar where the last low of 5 bars was made is an `int`:
+
+```alphacharts
+var int anchor = -1
+anchor := bar_index - ta.lowestbars(low, 5)
+plot(anchor, "Bar of the 5-bar low")
 ```
 
 ## 6. Composition
@@ -200,6 +211,7 @@ return series that can be used in formulas and in `?:`. The output statements co
 - Limits: kernel `length` and study periods 1 to 5000 (some studies start at 2); history offset 0 to 1,000,000; 10,000
   iterations per loop; 2,000,000 loop steps per bar; 64 plots; 512 columns; 10,000,000 bars; source 200,000 characters;
   expression nesting 100; at most 50 errors are reported.
+- Nested windows add up: an average (`ta.sma(source, 1500)`) of a 4,500-bar volatility series needs 6,000 bars; a script draws nothing until its whole warm-up is loaded.
 - `na` never becomes 0 unless `nz` or a TA-Lib definition says so (candlestick patterns return 0 for no pattern).
 - A name may be declared once; `x := e` is the only way to change it. Inputs, loop counters, tuple outputs and built-ins
   cannot be assigned.
@@ -212,11 +224,12 @@ return series that can be used in formulas and in `?:`. The output statements co
 
 - `plot(close > open)`: bool is not a number. Write `plot(close > open ? 1 : 0)`.
 - `if close`: the condition must be bool. Write `if close > open`.
-- `int n = 2.5` or `n = input.int(5.5)`: no narrowing.
+- `int n = 2.5` or `n = input.int(5.5)`: no narrowing. A float literal is not an int argument either: `ta.sma(close, 14.0)` is refused, write `14`.
+- `var int a = -1` then `a := math.floor(x)` or `a := ta.sma(...)`: refused. Make `a` a `float`; only `bar_index`, `ta.highestbars`, `ta.lowestbars` and int arithmetic are ints.
 - A `ta.*` length that changes per bar: it must be a literal or an input (or an expression of those).
 - `ta.sma(source, length)` with a `var` variable as the source: see Pure and state above.
-- `s = close > open ? "up" : "down"`: strings are not series; the script compiles and fails when it runs.
-- `ta.linreg(close, 1)`: the compiler accepts a length of 1 and the run refuses it.
+- `s = close > open ? "up" : "down"`: strings are not series; the compiler refuses a string chosen per bar.
+- `ta.linreg(close, 1)`: the length starts at 2.
 - Reading `x[1]` of a loop-local value: assign it to a top-level variable first.
 
 ## 9. Validation

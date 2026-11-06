@@ -172,8 +172,3 @@ export class ScriptRunner implements StudyRunner {
     this.listeners.clear();
   }
 }
-
-/** The default worker: dist/worker.js next to this module (a bundler rewrites the URL). */
-export function defaultWorkerFactory(): WorkerLike {
-  return new Worker(new URL("./sandbox-worker.js", import.meta.url), { type: "module" }) as unknown as WorkerLike;
-}

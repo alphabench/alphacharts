@@ -27,6 +27,7 @@ Each row: the message (`{...}` stands for text that varies), its cause, the fix.
 - `"{e.op}" needs bool operands, got {...} and {...}` — `and` / `or` with a number or series operand. Fix: compare each side: `x > 0 and y > 0`.
 - `cannot compare {...} with {...}` — Mixed types in `==` or `!=`. Fix: compare like with like; a number with a bool needs `c ? 1 : 0`.
 - `strings and colors can only be compared as constants or inputs` — A string or colour that varies per bar was compared. Fix: strings exist only as constants and inputs.
+- `a string cannot depend on a series: the condition of ?: must be a constant or an input (a string is a label, not a value that changes per bar)` — A string was chosen by a per-bar condition. Fix: strings are labels; use a constant or an input, and choose numbers or colours per bar.
 - `the branches of ?: have different types: {...} and {...}` — The two results differ in type. Fix: make both numbers (or both bool); use `na` for a missing branch.
 - `only a series can be indexed with [ ], this is {...}` — `[n]` on a constant, input, tuple or string. Fix: index a series (a price, a study output, a computed value).
 - `history [ ] needs a plain series or a top-level variable; a block variable, loop counter or an expression of those has no earlier values. Assign the value to a top-level variable first` — `x[n]` on a block variable, loop counter or an expression of changing variables. Fix: assign it to a top-level variable first, then index that.

@@ -171,7 +171,12 @@ class Checker {
     if (ity.b === "tuple") { this.err(`this call returns ${ity.elems!.length} values; destructure them: [a, b, ...] = ...`, s.init); ty = ERR; }
     if (s.type) {
       const want = t(s.type as Ty["b"], "const");
-      if (ty !== ERR && !this.assignable(want, ty)) this.err(`cannot assign ${show(ty)} to ${s.type} "${s.name}"`, s.init);
+      if (ty !== ERR && !this.assignable(want, ty)) {
+        if (want.b === "int" && ty.b === "float") {
+          const fix = ` (declare it float: float ${s.name} = 0.0, or var float ${s.name} = 0.0; there is no int() conversion)`
+          this.err(`cannot assign ${show(ty)} to ${s.type} "${s.name}"${fix}`, s.init)
+        } else this.err(`cannot assign ${show(ty)} to ${s.type} "${s.name}"`, s.init)
+      }
       ty = { b: want.b, q: ty === ERR ? "series" : ty.q };
     } else if (ty.b === "na" && ty !== ERR) {
       this.err(`cannot infer the type of "${s.name}" from na; declare it, e.g. float ${s.name} = na`, s.init);
@@ -228,7 +233,12 @@ class Checker {
       if (!isNum(sym.ty) || !isNum(vt)) { this.err(`"${s.op}" needs numbers, got ${show(sym.ty)} and ${show(vt)}`, s); return; }
       want = { b: sym.ty.b === "int" && vt.b === "int" && s.op !== "/=" ? "int" : "float", q: "series" };
     }
-    if (!this.assignable(sym.ty, want)) this.err(`cannot assign ${show(want)} to ${sym.ty.b} "${s.name}"${sym.ty.b === "int" && want.b === "float" ? " (declare it float: e.g. x = 0.0)" : ""}`, s.value);
+    if (!this.assignable(sym.ty, want)) {
+      if (sym.ty.b === "int" && want.b === "float") {
+        const fix = ` (declare it float: float ${s.name} = 0.0, or var float ${s.name} = 0.0; there is no int() conversion)`
+        this.err(`cannot assign ${show(want)} to ${sym.ty.b} "${s.name}"${fix}`, s.value)
+      } else this.err(`cannot assign ${show(want)} to ${sym.ty.b} "${s.name}"`, s.value)
+    }
   }
 
   private ifStmt(s: If): void {
@@ -289,7 +299,7 @@ class Checker {
 
   private expr_(e: Expr): Ty {
     switch (e.k) {
-      case "num": return t(Number.isInteger(e.value) && !/[.eE]/.test(String(e.value)) ? "int" : "float");
+      case "num": return t(e.float || !Number.isInteger(e.value) ? "float" : "int");
       case "str": return t("string");
       case "bool": return t("bool");
       case "color": return t("color");
@@ -385,6 +395,10 @@ class Checker {
     if (a.b === "na") return { b: b.b, q };
     if (b.b === "na") return { b: a.b, q };
     if (isNum(a) && isNum(b)) return { b: a.b === "int" && b.b === "int" ? "int" : "float", q };
+    if (a.b === "string" && b.b === "string" && q === "series") {
+      this.err("a string cannot depend on a series: the condition of ?: must be a constant or an input (a string is a label, not a value that changes per bar)", e);
+      return ERR;
+    }
     if (a.b === b.b) return { b: a.b, q };
     this.err(`the branches of ?: have different types: ${show(a)} and ${show(b)}`, e);
     return ERR;

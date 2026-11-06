@@ -34,9 +34,9 @@ Subpaths: `.` (engine, runner, plugin), `./studies` (every study as a named expo
   (O(1) for recursive and running-sum nodes, O(period) for window scans), and a revision recomputes from committed
   state. Warm-up is NaN; absent values never become 0 (except where TA-Lib defines 0, noted in the study's reference).
   setData/prepend on the source recompute fully.
-- **Runner** (`src/runner.ts`): `createRunner(ids)` gives a `WorkerRunner` (arrays transferred, chunks of 65,536
+- **Runner** (`src/runner.ts`): `createRunner(ids, factory)` gives a `WorkerRunner` on the worker `factory` makes (the host's bundler spells the worker URL out; the package never guesses it) (arrays transferred, chunks of 65,536
   bars so a `cancel` is serviced within a chunk; protocol documented in the file header) or the `InlineRunner`
-  when Workers are unavailable. The worker returns every graph column; the main thread adopts them and keeps
+  when no factory is given or the worker would not start. The worker returns every graph column; the main thread adopts them and keeps
   streaming ticks. Studies not built in (defined at runtime) run inline (`canRun`).
 - **Chart integration** (`src/chart/studies.ts`): one core series per drawn plot (pane = the source's for overlays,
   the lowest free pane otherwise), the rest drawn on the overlay (fills, markers, ZigZag, lines shifted back in time

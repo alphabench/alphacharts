@@ -30,7 +30,8 @@ interface Base_ extends Span {
   st?: boolean;
 }
 
-export interface NumLit extends Base_ { k: "num"; value: number }
+/** `float` is how the literal was written: with a dot or an exponent (0.0, 1., 1e3) it is a float whatever its value. */
+export interface NumLit extends Base_ { k: "num"; value: number; float: boolean }
 export interface StrLit extends Base_ { k: "str"; value: string }
 export interface BoolLit extends Base_ { k: "bool"; value: boolean }
 export interface ColorLit extends Base_ { k: "color"; value: string }

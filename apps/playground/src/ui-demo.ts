@@ -100,7 +100,7 @@ export async function run(app: HTMLElement, params: URLSearchParams): Promise<vo
     datafeed: feed, symbol: params.get("symbol") ?? "ALPHA", interval: params.get("interval") ?? "5m", theme, locale: params.get("locale") ?? "en", ...(params.get("dir") === "rtl" ? { dir: "rtl" as const } : {}), storage,
     layout: params.get("layout") ?? "1", timeZone: "Asia/Kolkata",
     // ?script=1: the real script editor and sandboxed runner.
-    ...(params.get("script") === "1" ? { scriptEditor: createScriptEditorAdapter(), scriptRunner: createScriptRunAdapter() } : {}),
+    ...(params.get("script") === "1" ? { scriptEditor: createScriptEditorAdapter(), scriptRunner: createScriptRunAdapter({ workerFactory: () => new Worker(new URL("../../../packages/script/src/sandbox-worker.ts", import.meta.url), { type: "module" }) as never }) } : {}),
   });
   window.__app = ctl;
   await ctl.ready;

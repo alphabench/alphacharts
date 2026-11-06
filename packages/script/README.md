@@ -10,15 +10,18 @@ import { compile, runScript, ScriptRunner, restoreScript } from "@alphacharts/sc
 import { createScriptEditorAdapter } from "@alphacharts/script/editor"; // CodeMirror 6, this subpath only
 
 const r = compile(source);                    // { ok: true, study, inputs, colorInputs, ... } | { ok: false, diagnostics }
-const h = runScript(chart, candles, source, { len: 14 }, { volume });   // sandboxed; returns a handle
+const h = runScript(chart, candles, source, { len: 14 }, { volume, workerFactory });   // sandboxed; returns a handle
 h.setInputs({ len: 21 }); h.study.setVisible(false); h.remove();
 h.toJSON();                                   // { source, inputs, series ids, visible }  -> restoreScript(chart, saved)
 ```
 
+`compile(...).plan` is the checked program as data for the host app (`{ overlay, needs, plots: [{kind, title, expr}], body }`; `needs` is `"ohlcv"`
+when the script reads volume). Its nodes are the syntax tree with names resolved (`id.sym` is one object per variable, `ty` on every expression);
+it is read-only and shared with the compiled study.
+
 `compile` never executes anything: it lexes, parses, checks and builds closures from the syntax tree. `runScript`
 throws `ScriptDiagnosticsError` (with `.diagnostics`) when the script does not compile, and runs the computation
-(batch and every tick) in the worker (`@alphacharts/script/worker`; pass `workerFactory` when a bundler needs the
-URL spelled out, as the playground does). A run-time failure (budget, runtime error, killed worker) goes to
+(batch and every tick) in the worker (`@alphacharts/script/worker`; pass `workerFactory`, `() => new Worker(new URL("@alphacharts/script/worker", import.meta.url), { type: "module" })`, or a shared `runner`: the package never guesses where its worker lives). A run-time failure (budget, runtime error, killed worker) goes to
 `onError(diagnostic)` and `handle.error`; the study stops following the source until inputs change.
 `compile(...).study` can also be given to `addStudy` directly (trusted code only: it then runs on the calling thread).
 
@@ -38,7 +41,7 @@ plotshape(ta.crossover(close, up), "Break", shape.triangleup, location.belowbar,
 
 - **Blocks** by indentation (spaces; tabs are an error). Lines inside `()` / `[]` continue. `//` comments.
 - **Types**: `int float bool string color`, each with a qualifier: *const* (literal), *input* (known when the study is
-  built) and *series* (varies per bar). Declarations infer; `float x = na` declares an `na` of a type. Nothing coerces:
+  built) and *series* (varies per bar). Declarations infer; `float x = na` declares an `na` of a type. A number written with a dot or an exponent (`0.0`, `1.`, `1e3`) is a float, whatever its value; there is no `int()`. `ta.highestbars/lowestbars`, `bar_index` and `input.int` are int. Nothing coerces:
   a number is not a condition, a bool is not a number (use `?:`), `int` does not silently take a float.
 - **Series and history**: every name is a series with implicit bar iteration; `x[n]` is `n` bars back (`na` before the
   first). `n` may be an expression; it must be an integer in 0..1,000,000 (checked at run time when dynamic).

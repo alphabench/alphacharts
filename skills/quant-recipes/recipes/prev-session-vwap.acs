@@ -1,0 +1,15 @@
+indicator("Previous session's VWAP", overlay=true)
+off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, maxval=840)
+day = math.floor((time + off * 60000) / 86400000)
+fresh = day != day[1]
+var float pv = 0.0
+var float vol = 0.0
+var float prevVwap = na
+if fresh
+    prevVwap := pv / vol
+    pv := 0.0
+    vol := 0.0
+pv += hlc3 * volume
+vol += volume
+plot(pv / vol, "Session VWAP", color.blue)
+plot(prevVwap, "Previous session VWAP", color.orange)

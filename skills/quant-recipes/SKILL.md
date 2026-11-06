@@ -3,7 +3,7 @@ name: alphacharts-quant-recipes
 description: >
     Worked, numerically verified scripts for quant measures: z-score of returns, realised volatility, HV ratio, rolling Sharpe,
     beta and correlation on a series' own lag, autocorrelation, ADX/EMA regime, distance in ATR units, range expansion,
-    breakout share, cumulative volume delta, session VWAP, a Kalman-style filter.
+    breakout share, cumulative volume delta, session VWAP and the previous session's VWAP, swing highs and lows, VWAP anchored at a swing low, opening range, a Kalman-style filter.
 version: 1.0
 api_version: 0.x
 depends_on:
@@ -30,9 +30,9 @@ Conventions every recipe follows:
 - Rolling statistics use the kernels. `ta.stdev` and `ta.variance` divide by n (population). For the sample deviation
   multiply by `math.sqrt(n / (n - 1))`.
 - A rolling window containing `na` is `na`, so a statistic of returns first appears at bar `length`.
-- Annualise by the square root of the bars per year (`math.sqrt`). Bars per year is bars per session times sessions per
-  year, so it depends on the chart's bar size: 252 is right for daily bars only. On a 5-minute chart with 75 bars a
-  session it is 75 * 252. Set the `Bars per year` input to the chart's own value and say which you used.
+- Annualise by the square root of the bars per year (`math.sqrt`). One convention everywhere: 252 trading days a year,
+  so bars per year = bars per session * 252. Daily bars: 252. A 5-minute NSE chart (75 bars a session): 75 * 252 = 18,900.
+  Set the `Bars per year` input to that value for the chart's bar size and say which you used.
 - A period the trader names in days or sessions ("60-day volatility") is counted in bars by the script. On daily bars the
   length is that number; on an intraday chart it is the number of days times the bars per session, when that fits the
   length limits, and the reply says the conversion. Never let the number of days stand as a number of bars.
@@ -55,11 +55,14 @@ Conventions every recipe follows:
 | Regime | -1, 0, 1 | ADX above a level, side by EMA |
 | Distance in ATR | (close - SMA) / ATR | Wilder ATR, its own length |
 | Previous session's high, low, close | three stepped lines | any bar size, daily included |
-| Opening range of the session | stepped high and low from the first minutes | needs the exchange clock |
+| Opening range of the session | stepped high and low from the first minutes after the session's first bar | no session start typed in |
 | Range expansion | 1 when the bar's range exceeds a multiple of its average | flag and markers |
 | Breakout share | percent of bars closing above the previous high | |
 | Cumulative volume delta | running sum of signed volume | approximation, see below |
-| Session VWAP | VWAP restarting at each UTC-shifted day | `time` is milliseconds |
+| Session VWAP | VWAP restarting at each exchange-clock day | `time` is milliseconds |
+| Previous session's VWAP | the finished session's VWAP, held as a level | not `vwap[1]` |
+| Swing highs and lows | last and previous swing level, held | known `right` bars late |
+| VWAP anchored at the last swing low | VWAP from the swing low's bar | uses the swing recipe |
 | Kalman-style filter | recursive estimate of the close | `var` state |
 
 ## 4. Standard workflow
@@ -224,8 +227,9 @@ plot(total, "CVD", color.blue)
 plot(ta.sum(delta, len), "Rolling delta", color.orange, style=plot.style_histogram)
 ```
 
-**VWAP restarting each session.** A session here is the calendar day of `time` (UTC milliseconds) shifted by `off` minutes;
-set `off` to minus the session start, in minutes after 00:00 UTC (a session starting 03:00 UTC is `off = -180`), so that day boundaries fall where the session starts, or to the exchange clock's offset from UTC (east positive) so that they fall at its midnight. `ta.vwap(source, anchor, bandMult,
+**VWAP restarting each session.** A session here is the calendar day of `time` (UTC milliseconds) shifted by `off` minutes. `off` is the
+exchange clock's offset from UTC, east positive, and matters only for a session that crosses 00:00 UTC (leave 0 for NSE, BSE, MCX
+and US cash sessions, which all sit inside one UTC day). Never write a session start such as 555; do not type one into it. `ta.vwap(source, anchor, bandMult,
 utcOffsetMinutes)` does the same with week, month and year anchors and bands.
 
 <!-- skill: file: recipes/session-anchored-vwap.acs -->
@@ -242,6 +246,84 @@ if fresh
 pv += hlc3 * volume
 vol += volume
 plot(pv / vol, "VWAP", color.blue)
+```
+
+**Previous session's VWAP.** The VWAP of the session that just finished, held as a level for the whole of the next one. Add up price times
+volume and volume per session, and when a new session starts keep the finished session's ratio before the sums restart. `vwap[1]` is the
+previous BAR's VWAP, which on a 5-minute chart is a line that looks plausible and is wrong. If the instrument has no volume (an index)
+the ratio is `na` and the line draws nothing: say so instead of plotting a substitute.
+
+<!-- skill: file: recipes/prev-session-vwap.acs -->
+```alphacharts
+indicator("Previous session's VWAP", overlay=true)
+off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, maxval=840)
+day = math.floor((time + off * 60000) / 86400000)
+fresh = day != day[1]
+var float pv = 0.0
+var float vol = 0.0
+var float prevVwap = na
+if fresh
+    prevVwap := pv / vol
+    pv := 0.0
+    vol := 0.0
+pv += hlc3 * volume
+vol += volume
+plot(pv / vol, "Session VWAP", color.blue)
+plot(prevVwap, "Previous session VWAP", color.orange)
+```
+
+**Swing highs and lows.** A bar is a swing high when it is the highest of the `left` bars before it, itself and the `right` bars after it.
+So it can only be known `right` bars later, and every level below appears with that lag: the marker is on the confirming bar, not on the
+swing. The test is `high[right] == ta.highest(high, left + right + 1)`: the window ends on the current bar and the candidate sits `right`
+bars back in it. There is no swing function (`ta.pivot_points` is the floor-trader pivot level of a session, not a swing). The last and the previous swing levels are held in `var` and step at each new swing. The default is `left = right = 5`; say so in the reply.
+
+<!-- skill: file: recipes/swing-points.acs -->
+```alphacharts
+indicator("Swing highs and lows", overlay=true)
+left = input.int(5, "Bars to the left", minval=1, maxval=200)
+right = input.int(5, "Bars to the right (the confirmation lag)", minval=1, maxval=200)
+isHigh = high[right] == ta.highest(high, left + right + 1)
+isLow = low[right] == ta.lowest(low, left + right + 1)
+var float lastHigh = na
+var float prevHigh = na
+var float lastLow = na
+var float prevLow = na
+if isHigh
+    prevHigh := lastHigh
+    lastHigh := high[right]
+if isLow
+    prevLow := lastLow
+    lastLow := low[right]
+plot(lastHigh, "Last swing high", color.red)
+plot(prevHigh, "Previous swing high", color.maroon)
+plot(lastLow, "Last swing low", color.green)
+plot(prevLow, "Previous swing low", color.teal)
+plotshape(isHigh, "Swing high confirmed", shape.triangledown, location.abovebar, color.red)
+plotshape(isLow, "Swing low confirmed", shape.triangleup, location.belowbar, color.green)
+```
+
+**VWAP anchored at the last swing low.** The average runs from the swing low's own bar to the current bar and restarts at each new
+swing low. The swing is confirmed `right` bars after it, so the line starts then, and the loop adds the `right` bars between the
+swing and the confirming bar so the average does count the swing bar itself.
+
+<!-- skill: file: recipes/anchored-vwap-swing-low.acs -->
+```alphacharts
+indicator("VWAP anchored at the last swing low", overlay=true)
+left = input.int(5, "Bars to the left", minval=1, maxval=200)
+right = input.int(5, "Bars to the right (the confirmation lag)", minval=1, maxval=200)
+isLow = low[right] == ta.lowest(low, left + right + 1)
+var float pv = na
+var float vol = na
+if isLow
+    pv := 0.0
+    vol := 0.0
+    for k = 0 to right
+        pv += hlc3[k] * volume[k]
+        vol += volume[k]
+else
+    pv += hlc3 * volume
+    vol += volume
+plot(pv / vol, "Anchored VWAP", color.purple)
 ```
 
 **Previous session's high, low and close.** A new session starts where the day number changes: the calendar day of `time`
@@ -275,28 +357,29 @@ plot(prevLow, "Previous low", color.red)
 plot(prevClose, "Previous close", color.blue)
 ```
 
-**Opening range of the session.** The high and low of the bars whose minute of the exchange day falls in the first `span`
-minutes after `start`. They build up during the range and then stay level until the next session, which is what "extend
-the high and low" means on a chart. Set `off` and `start` to the exchange (the minute of the day is the time shifted by
-`off`, taken within one day). It works at any bar size that divides the range; on daily bars no bar falls in it.
+**Opening range of the session.** The high and low of the bars in the first `span` minutes after the session's first bar. They build up
+during the range and then stay level until the next session, which is what "extend the high and low" means on a chart. The session's
+first bar is the bar where the day number changes, and the range is measured from that bar's own `time`, so no session start is typed in:
+it is right on NSE (09:15), MCX (09:00) and anywhere else a preset is applied. Never write a session start such as 555 (09:15): on an
+exchange that opens at another time the range silently covers the wrong bars. It works at any bar size that divides the range; on
+daily bars the first bar alone is in it. The first session loaded is usually partial and draws nothing, because its first bar is not
+a session start.
 
 <!-- skill: file: recipes/opening-range.acs -->
 ```alphacharts
 indicator("Opening range of the session", overlay=true)
 off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, maxval=840)
-start = input.int(555, "Session start, minutes after local midnight", minval=0, maxval=1439)
 span = input.int(30, "Range length, minutes", minval=1, maxval=600)
-local = time + off * 60000
-day = math.floor(local / 86400000)
-minute = math.floor((local - day * 86400000) / 60000)
-inRange = minute >= start and minute < start + span
+day = math.floor((time + off * 60000) / 86400000)
 fresh = day != day[1]
+var float sessionStart = na
 var float orHigh = na
 var float orLow = na
 if fresh
+    sessionStart := time
     orHigh := na
     orLow := na
-if inRange
+if time - sessionStart < span * 60000
     orHigh := na(orHigh) ? high : math.max(orHigh, high)
     orLow := na(orLow) ? low : math.min(orLow, low)
 plot(orHigh, "Opening range high", color.green)
@@ -337,6 +420,7 @@ recipe's level against price by making it `overlay=true` only when it is in pric
 
 - Population deviation everywhere; the first value of a rolling statistic is at bar `length` for returns (one bar later than
   for prices).
+- A swing is known only `right` bars after it happened: a level from the swing recipe is never available on the swing bar, and the last `right` bars of a chart have no confirmed swing yet.
 - `var` state starts at the first loaded bar. A chart that loads more history later can change a cumulative value.
 - A script does not know which bar is the last one or how many bars are loaded. "The last 100 bars" or "the last three
   touches" cannot be cut off exactly: draw the measure on every loaded bar and say that the limit is not applied.
@@ -348,9 +432,12 @@ recipe's level against price by making it `overlay=true` only when it is in pric
 
 - Dividing by the sample deviation by hand and the population one again.
 - Using `ta.sma` on a `var` accumulator (refused) instead of keeping a second accumulator.
-- Annualising with the wrong bars-per-year for the interval (252 on intraday bars), or counting "days" as bars.
+- Annualising with the wrong bars-per-year for the interval (bars per session * 252; plain 252 is for daily bars), or counting "days" as bars.
 - One `len` input shared by two different parameters.
 - Detecting a new day by a fall in the time of day: it never fires on daily bars.
+- A swing written as `high[right] == ta.highest(high, left + right + 1)[right]`: that window ends `right` bars back, so it never sees the bars after the candidate and finds a new high instead of a swing. Write `high[right] == ta.highest(high, left + right + 1)`. There is no swing function to call.
+- `plot(vwap[1], "Previous session VWAP")`: that is the previous bar's VWAP. Keep the finished session's VWAP in a `var` when the day changes (previous-session recipe).
+- A session start typed as a number of minutes (`start = 555`): it is wrong on every exchange that opens at another time. Measure from the session's first bar.
 - Calling the cumulative volume delta order flow; it is a bar-direction approximation.
 
 ## 9. Validation

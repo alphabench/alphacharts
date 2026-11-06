@@ -20,7 +20,7 @@ export interface ScriptRunAdapter {
  * Each run gets its own sandboxed worker (disposed with it), the script's
  * default inputs, and the volume series when the chart has one.
  */
-export function createScriptRunAdapter(opts: Omit<RunScriptOptions, "volume" | "onError" | "runner"> = {}): ScriptRunAdapter {
+export function createScriptRunAdapter(opts: Omit<RunScriptOptions, "volume" | "onError" | "runner" | "workerFactory"> & { workerFactory: NonNullable<RunScriptOptions["workerFactory"]> }): ScriptRunAdapter {
   return {
     run(target, code, onRuntimeError) {
       try {

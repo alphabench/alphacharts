@@ -398,7 +398,7 @@
   "x = 0\nfor k = 1 to 3\n    x := ta.sma(close, k)\nplot(x)",
   [
    "3:24 argument \"length\" of ta.sma must be a literal or an input, not a series value",
-   "3:10 cannot assign series float to int \"x\" (declare it float: e.g. x = 0.0)"
+   "3:10 cannot assign series float to int \"x\" (declare it float: float x = 0.0, or var float x = 0.0; there is no int() conversion)"
   ]
  ],
  [
@@ -538,7 +538,7 @@
  [
   "x = 1\nx := 1.5\nplot(x)",
   [
-   "2:6 cannot assign float to int \"x\" (declare it float: e.g. x = 0.0)"
+   "2:6 cannot assign float to int \"x\" (declare it float: float x = 0.0, or var float x = 0.0; there is no int() conversion)"
   ]
  ],
  [
@@ -550,7 +550,7 @@
  [
   "int x = 1.5\nplot(close)",
   [
-   "1:9 cannot assign float to int \"x\""
+   "1:9 cannot assign float to int \"x\" (declare it float: float x = 0.0, or var float x = 0.0; there is no int() conversion)"
   ]
  ],
  [
@@ -686,6 +686,48 @@
   [
    "2:12 unclosed bracket",
    "2:12 expected an expression, found end of line"
+  ]
+ ],
+ [
+  "x = 0\nx := 0.0\nplot(x)",
+  [
+   "2:6 cannot assign float to int \"x\" (declare it float: float x = 0.0, or var float x = 0.0; there is no int() conversion)"
+  ]
+ ],
+ [
+  "var int n = 0\nn := 1.0\nplot(n)",
+  [
+   "2:6 cannot assign float to int \"n\" (declare it float: float n = 0.0, or var float n = 0.0; there is no int() conversion)"
+  ]
+ ],
+ [
+  "plot(ta.sma(close, 14.0))",
+  [
+   "1:20 argument \"length\" of ta.sma must be an int, got float"
+  ]
+ ],
+ [
+  "plot(ta.sma(close, 1e1))",
+  [
+   "1:20 argument \"length\" of ta.sma must be an int, got float"
+  ]
+ ],
+ [
+  "var int a = -1\na := ta.sma(close, 5)\nplot(a)",
+  [
+   "2:6 cannot assign series float to int \"a\" (declare it float: float a = 0.0, or var float a = 0.0; there is no int() conversion)"
+  ]
+ ],
+ [
+  "plot(ta.linreg(close, 1))",
+  [
+   "1:23 argument \"length\" of ta.linreg must be between 2 and 5000, got 1"
+  ]
+ ],
+ [
+  "s = close > open ? \"a\" : \"b\"\nplot(close)",
+  [
+   "1:5 a string cannot depend on a series: the condition of ?: must be a constant or an input (a string is a label, not a value that changes per bar)"
   ]
  ]
 ]

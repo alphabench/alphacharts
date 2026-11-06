@@ -38,7 +38,7 @@ The common messages are listed here. Everything else is in the catalogue, by pha
 - `expected an expression, found {...}` — A value is missing: often a trailing operator, an empty argument or an unfinished line. Fix: complete the expression at the reported column.
 - `"{name}" is a built-in name and cannot be redeclared` — The name belongs to a series, namespace or function (`close`, `volume`, `ta`, `plot`, `nz`...). Fix: rename the variable.
 - `this call returns {...} values; destructure them: [a, b, ...] = ...` — A study or `ta.bb` returns several columns. Fix: `[a, b, c] = ta.<id>(...)` with exactly that many names, in the listed order.
-- `cannot assign {...} to {sym.ty.b} "{s.name}" (declare it float: e.g. x = 0.0)` — A variable fixed as int received a fraction (a literal such as `0.0` is an int). Fix: declare it float: `var float x = 0`.
+- `cannot assign {...} to {s.type} "{s.name}" (declare it float: float {s.name} = 0.0, or var float {s.name} = 0.0; there is no int() conversion)` — A variable fixed as int received a float (a literal with a dot or exponent, such as `0.0`, is a float; a series float such as `ta.sma(...)` never fits an int). Fix: declare it float, `var float x = 0.0`; there is no `int()`.
 - `the condition of if must be bool, got {...}` — A number was used as a condition. Fix: compare it, `if x > 0`.
 - `unknown name "{e.name}"` — The name is not declared before this line and is not built in. Fix: declare it above, or fix the spelling; check the builtins reference.
 - `unknown name "{e.obj.name}.{e.name}"` — The namespace has no such member. Fix: check the spelling against the builtins and studies references (`color.red`, `shape.circle`, `ta.sma`).

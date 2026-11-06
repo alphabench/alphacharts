@@ -1,0 +1,21 @@
+indicator("Swing highs and lows", overlay=true)
+left = input.int(5, "Bars to the left", minval=1, maxval=200)
+right = input.int(5, "Bars to the right (the confirmation lag)", minval=1, maxval=200)
+isHigh = high[right] == ta.highest(high, left + right + 1)
+isLow = low[right] == ta.lowest(low, left + right + 1)
+var float lastHigh = na
+var float prevHigh = na
+var float lastLow = na
+var float prevLow = na
+if isHigh
+    prevHigh := lastHigh
+    lastHigh := high[right]
+if isLow
+    prevLow := lastLow
+    lastLow := low[right]
+plot(lastHigh, "Last swing high", color.red)
+plot(prevHigh, "Previous swing high", color.maroon)
+plot(lastLow, "Last swing low", color.green)
+plot(prevLow, "Previous swing low", color.teal)
+plotshape(isHigh, "Swing high confirmed", shape.triangledown, location.abovebar, color.red)
+plotshape(isLow, "Swing low confirmed", shape.triangleup, location.belowbar, color.green)

@@ -2,7 +2,7 @@
 name: alphacharts-core
 description: >
     Decide how to answer a chart request: a built-in study, a computed series, or a refusal; overlay or own pane; what the
-    script language cannot do. Load this first.
+    script language cannot do.
 version: 1.0
 api_version: 0.x
 depends_on: []
@@ -13,7 +13,7 @@ status: stable
 
 ## 1. When to use this skill
 
-Load it first for any request to draw, add or change an indicator on one chart. It decides the approach and names the
+This text is always in your instructions; load the other skills together, in one step. It applies to any request to draw, add or change an indicator on one chart. It decides the approach and names the
 other skills to load. It does not teach syntax (script-language), study parameters (studies) or styling (plots-and-panes).
 
 ## 2. Domain overview
@@ -94,6 +94,7 @@ signatures; plots-and-panes supplies the output statements; quant-recipes holds 
 
 - Every number comes from the bars. The bars of a window that is not yet full are `na` and draw as gaps, not zero.
 - `ta.stdev` and `ta.variance` divide by n (population).
+- A window plus an average of it needs window + average bars of history: a 20-bar z-score of returns averaged over 50 bars first has a value at bar 70. A script that needs more bars than are loaded draws nothing at all. Say how many bars it needs, and keep a request that is long (a 4,500-bar window) shorter than the history the chart can load.
 - `time` is UTC milliseconds.
 - A script is at most 200,000 characters, 64 plots and 512 computed columns.
 
@@ -103,6 +104,7 @@ signatures; plots-and-panes supplies the output statements; quant-recipes holds 
 - Guessing study parameters, as in `ta.stoch(close, 14)`: read the reference first.
 - Putting price-scale and oscillator values in one script.
 - Hard-coding a level nobody gave.
+- Stacking a window on an average of it (a 200-bar average of a 100-bar statistic) without counting the bars it needs.
 
 ## 9. Validation
 

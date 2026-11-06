@@ -3,9 +3,31 @@
 import type { StudyDef } from "@alphacharts/indicators";
 import { Reporter, type Diagnostic } from "./diag.js";
 import { parse } from "./parser.js";
-import { check, type InputSpec, type Plan } from "./check.js";
+import { check, type InputSpec, type Plan, type PlotSpec } from "./check.js";
+import type { Expr, Stmt } from "./ast.js";
 import { generate, type ColorInput } from "./codegen.js";
 import { DEFAULT_LIMITS, type Limits } from "./limits.js";
+
+/** One output statement of the script. `expr` is the series plotted (plot, plotshape) or the price of an hline; fill has none. */
+export interface PlotView {
+  kind: PlotSpec["kind"];
+  title: string;
+  expr: Expr | null;
+}
+
+/**
+ * What the script means, read off the checked syntax tree (nothing is executed). Read-only: the tree is shared with the
+ * compiled study, do not change it. Names are resolved: an `id` node's `sym` is the declaration it refers to (same object for every use
+ * and every assignment of one variable), `ty` is every expression's type, `call.fn` the resolved function name ("ta.sma").
+ */
+export interface ScriptPlan {
+  overlay: boolean;
+  /** The most the script reads: "value" (close/time only), "ohlc", or "ohlcv" when it reads volume (the `volume` series or a study that does). */
+  needs: Plan["needs"];
+  plots: readonly PlotView[];
+  /** Top-level statements, in order. */
+  body: readonly Stmt[];
+}
 
 export interface CompileOk {
   ok: true;
@@ -17,6 +39,7 @@ export interface CompileOk {
   /** Warnings only. */
   diagnostics: Diagnostic[];
   source: string;
+  plan: ScriptPlan;
 }
 export interface CompileFailed {
   ok: false;
@@ -36,5 +59,5 @@ export function compile(source: string, limits: Limits = DEFAULT_LIMITS): Compil
   if (rep.errorCount === 0 && plan && plan.plots.length === 0) rep.error("the script draws nothing: add plot(...)", { from: 0, to: Math.min(source.length, 1) });
   if (rep.errorCount > 0 || !plan) return { ok: false, diagnostics: rep.list };
   const { def, colorInputs } = generate(plan, source, limits);
-  return { ok: true, study: def, colorInputs, inputs: plan.inputs, title: plan.title, diagnostics: rep.list, source };
+  return { ok: true, study: def, colorInputs, inputs: plan.inputs, title: plan.title, diagnostics: rep.list, source, plan: { overlay: plan.overlay, needs: plan.needs, plots: plan.plots.map((p) => ({ kind: p.kind, title: p.title, expr: p.expr ?? null })), body: plan.body } };
 }

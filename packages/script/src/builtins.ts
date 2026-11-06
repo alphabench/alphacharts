@@ -130,7 +130,11 @@ add("na", [S("x")], BOOL_S, "special");
 add("math.sum", [S("source"), LEN], FLOAT_S, "kernel");
 
 // ta.* kernels on the graph
-for (const k of ["sma", "ema", "wma", "rma", "highest", "lowest", "highestbars", "lowestbars", "stdev", "variance", "sum", "linreg"]) add(`ta.${k}`, [S("source"), LEN], FLOAT_S, "kernel");
+for (const k of ["sma", "ema", "wma", "rma", "highest", "lowest", "stdev", "variance", "sum"]) add(`ta.${k}`, [S("source"), LEN], FLOAT_S, "kernel");
+// bars since the extreme: a whole number (or na until the window is full), so it types int and can be an offset or an int variable's value
+for (const k of ["highestbars", "lowestbars"]) add(`ta.${k}`, [S("source"), LEN], INT_S, "kernel");
+// a line through one point is undefined: the least length is 2
+add("ta.linreg", [S("source"), I("length", { min: 2, max: 5000 })], FLOAT_S, "kernel");
 add("ta.atr", [LEN], FLOAT_S, "kernel", { needs: "ohlc" });
 add("ta.change", [S("source"), I("length", { opt: true, min: 1, max: 5000 })], FLOAT_S, "special");
 for (const k of ["crossover", "crossunder", "cross"]) add(`ta.${k}`, [S("a"), S("b")], BOOL_S, "special");

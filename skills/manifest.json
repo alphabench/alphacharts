@@ -7,7 +7,7 @@
       "domain": "core",
       "title": "Core",
       "path": "core/SKILL.md",
-      "description": "Decide how to answer a chart request: a built-in study, a computed series, or a refusal; overlay or own pane; what the script language cannot do. Load this first.",
+      "description": "Decide how to answer a chart request: a built-in study, a computed series, or a refusal; overlay or own pane; what the script language cannot do.",
       "load_when": [
         "Any request to draw, add or change an indicator on one chart.",
         "Deciding between a built-in study, a computed series and a refusal.",
@@ -104,7 +104,7 @@
       "domain": "quant-recipes",
       "title": "Quant recipes",
       "path": "quant-recipes/SKILL.md",
-      "description": "Worked, numerically verified scripts for quant measures: z-score of returns, realised volatility, HV ratio, rolling Sharpe, beta and correlation on a series' own lag, autocorrelation, ADX/EMA regime, distance in ATR units, range expansion, breakout share, cumulative volume delta, session VWAP, a Kalman-style filter.",
+      "description": "Worked, numerically verified scripts for quant measures: z-score of returns, realised volatility, HV ratio, rolling Sharpe, beta and correlation on a series' own lag, autocorrelation, ADX/EMA regime, distance in ATR units, range expansion, breakout share, cumulative volume delta, session VWAP and the previous session's VWAP, swing highs and lows, VWAP anchored at a swing low, opening range, a Kalman-style filter.",
       "load_when": [
         "The request is a statistic or state machine on one instrument's bars rather than a named indicator.",
         "Volatility, Sharpe, z-score, autocorrelation, regime, filter or volume-delta requests.",
@@ -121,6 +121,8 @@
       "assets": [],
       "checks": [
         "recipes/helpers.mjs",
+        "recipes/anchored-vwap-swing-low.acs",
+        "recipes/anchored-vwap-swing-low.expected.mjs",
         "recipes/atr-distance.acs",
         "recipes/atr-distance.expected.mjs",
         "recipes/autocorrelation-lag1.acs",
@@ -137,6 +139,8 @@
         "recipes/opening-range.expected.mjs",
         "recipes/prev-session-levels.acs",
         "recipes/prev-session-levels.expected.mjs",
+        "recipes/prev-session-vwap.acs",
+        "recipes/prev-session-vwap.expected.mjs",
         "recipes/range-expansion.acs",
         "recipes/range-expansion.expected.mjs",
         "recipes/realised-vol.acs",
@@ -147,6 +151,8 @@
         "recipes/rolling-sharpe.expected.mjs",
         "recipes/session-anchored-vwap.acs",
         "recipes/session-anchored-vwap.expected.mjs",
+        "recipes/swing-points.acs",
+        "recipes/swing-points.expected.mjs",
         "recipes/up-break-share.acs",
         "recipes/up-break-share.expected.mjs",
         "recipes/zscore-returns.acs",
@@ -181,5 +187,5 @@
       ]
     }
   ],
-  "language_sha256": "e528ab3929cc12f11b54f9f70157b5b4aeca67100cd85a34593ae9f4bf043e8d"
+  "language_sha256": "99907b9ff9e3db06b59c3f497fe42d64c4a218b655f62422dd3b9e1358dcc97a"
 }

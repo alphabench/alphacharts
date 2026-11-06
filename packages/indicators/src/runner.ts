@@ -160,14 +160,14 @@ export function serveWorker(
 }
 
 /**
- * A worker runner when Workers exist and start, otherwise the inline fallback.
- * `factory` creates the worker (default: dist/worker.js next to this module).
+ * A worker runner on the worker `factory` creates, otherwise (no factory, or the worker would not start) the inline fallback.
+ * The package never guesses where its worker lives: the host's bundler spells the URL out,
+ * `() => new Worker(new URL("@alphacharts/indicators/worker", import.meta.url), { type: "module" })`.
  */
 export function createRunner(builtinIds: ReadonlySet<string>, factory?: () => WorkerLike): StudyRunner {
   try {
-    if (typeof Worker === "undefined" && !factory) return new InlineRunner();
-    const w = factory ? factory() : (new Worker(new URL("./worker.js", import.meta.url), { type: "module" }) as unknown as WorkerLike);
-    return new WorkerRunner(w, (d) => builtinIds.has(d.id));
+    if (!factory) return new InlineRunner();
+    return new WorkerRunner(factory(), (d) => builtinIds.has(d.id));
   } catch {
     return new InlineRunner();
   }

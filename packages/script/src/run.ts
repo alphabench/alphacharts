@@ -6,7 +6,7 @@ import { addStudy, type Study, type StudyDef } from "@alphacharts/indicators";
 import type { Chart, Series, SeriesType } from "@alphacharts/core";
 import { compile, type CompileOk } from "./compile.js";
 import { LineMap, ScriptError, type Diagnostic } from "./diag.js";
-import { ScriptRunner, defaultWorkerFactory } from "./runner.js";
+import { ScriptRunner } from "./runner.js";
 import { withBridge } from "./sandbox.js";
 import type { Limits } from "./limits.js";
 import type { InputValue, WorkerLike } from "@alphacharts/indicators";
@@ -25,7 +25,7 @@ export interface RunScriptOptions {
   volume?: VolumeSeries;
   /** Share one runner (one worker) between scripts. Default: a private one that `remove()` disposes. */
   runner?: ScriptRunner;
-  /** Creates the worker (default: dist/worker.js next to the package's index). */
+  /** Creates the worker, from the host's bundler (`new Worker(new URL("@alphacharts/script/worker", import.meta.url), { type: "module" })`). Required unless `runner` is given: the package never guesses where its worker lives. */
   workerFactory?: () => WorkerLike;
   limits?: Partial<Limits>;
   id?: string;
@@ -67,7 +67,8 @@ export function runScript(chart: Chart, source: SourceSeries, text: string, inpu
   const r = compile(text);
   if (!r.ok) throw new ScriptDiagnosticsError(r.diagnostics);
   const ownRunner = !opts.runner;
-  const runner = opts.runner ?? new ScriptRunner(opts.workerFactory ?? defaultWorkerFactory, opts.limits);
+  if (!opts.runner && !opts.workerFactory) throw new Error("runScript needs a workerFactory or a runner: the package does not guess where its worker lives");
+  const runner = opts.runner ?? new ScriptRunner(opts.workerFactory!, opts.limits);
   const colorKeys = new Set(r.colorInputs.map((c) => c.key));
   const schema: Record<string, InputValue> = {};
   const colors: Record<string, string> = {};
@@ -138,7 +139,7 @@ export function runScript(chart: Chart, source: SourceSeries, text: string, inpu
 }
 
 /** Recreate a saved script (SavedScript from `toJSON`) on a chart that holds its series. */
-export function restoreScript(chart: Chart, saved: SavedScript, opts: RunScriptOptions = {}): ScriptHandle {
+export function restoreScript(chart: Chart, saved: SavedScript, opts: RunScriptOptions): ScriptHandle {
   if (saved?.version !== 1 || typeof saved.source !== "string") throw new TypeError("unrecognised saved script");
   const byId = new Map(chart.series().map((s) => [s.options().id, s]));
   const src = byId.get(saved.series);

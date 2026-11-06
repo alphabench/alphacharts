@@ -44,12 +44,12 @@ Signatures are the checker's own table: `name(parameter:kind...)`. `?` marks an 
 - `ta.rma(source:series, length:int[1..5000])` -> series float
 - `ta.highest(source:series, length:int[1..5000])` -> series float
 - `ta.lowest(source:series, length:int[1..5000])` -> series float
-- `ta.highestbars(source:series, length:int[1..5000])` -> series float
-- `ta.lowestbars(source:series, length:int[1..5000])` -> series float
 - `ta.stdev(source:series, length:int[1..5000])` -> series float
 - `ta.variance(source:series, length:int[1..5000])` -> series float
 - `ta.sum(source:series, length:int[1..5000])` -> series float
-- `ta.linreg(source:series, length:int[1..5000])` -> series float
+- `ta.highestbars(source:series, length:int[1..5000])` -> series int
+- `ta.lowestbars(source:series, length:int[1..5000])` -> series int
+- `ta.linreg(source:series, length:int[2..5000])` -> series float
 - `ta.change(source:series, length?:int[1..5000])` -> series float
 - `ta.crossover(a:series, b:series)` -> series bool
 - `ta.crossunder(a:series, b:series)` -> series bool

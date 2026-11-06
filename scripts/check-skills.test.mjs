@@ -132,8 +132,8 @@ describe("script examples", () => {
 
   it("an example that compiles but fails when run", T, async () => {
     const d = tree();
-    edit(join(d, "core/SKILL.md"), "plot(100 * (close / ta.sma(close, len) - 1), \"Distance\", color.blue)", "s = close > open ? \"up\" : \"down\"\nplot(100 * (close / ta.sma(close, len) - 1), \"Distance\", color.blue)");
-    expectError(await errs(d), "core/SKILL.md", "example does not run", "not a number");
+    edit(join(d, "core/SKILL.md"), "plot(100 * (close / ta.sma(close, len) - 1), \"Distance\", color.blue)", "plot(close[bar_index - 5], \"Early\")\nplot(100 * (close / ta.sma(close, len) - 1), \"Distance\", color.blue)");
+    expectError(await errs(d), "core/SKILL.md", "example does not run", "history offset");
   });
 
   it("an invalid example that compiles", T, async () => {

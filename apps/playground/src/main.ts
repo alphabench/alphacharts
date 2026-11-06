@@ -289,7 +289,7 @@ async function run(): Promise<void> {
       const { chart, c: c0, v: v0 } = candlesWithVolume(app, d);
       let c = c0, v = v0; // rebound after a layout restore
       const timing: Record<string, number> = {};
-      const runner = params.get("worker") === "1" ? createRunner(new Set(ALL_STUDIES.map((s) => s.id))) : undefined;
+      const runner = params.get("worker") === "1" ? createRunner(new Set(ALL_STUDIES.map((s) => s.id)), () => new Worker(new URL("../../../packages/indicators/src/worker.ts", import.meta.url), { type: "module" }) as never) : undefined;
       registerAllStudies();
       installStudies(chart, runner ? { runner } : {});
       const t0 = performance.now();

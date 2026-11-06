@@ -15,8 +15,8 @@ Each row: the message (`{...}` stands for text that varies), its cause, the fix.
 - `{inp.key} of {sig.name} must be a number{...}{...}, got {v}` — A computed study parameter is outside its range. Fix: keep within the reference range.
 - `{sig.name}: {...}` — The study itself rejected its parameters. Fix: use values from the reference. [host]
 - `this string cannot be evaluated here` — Internal: a string reached numeric code. [host]
-- `the history offset must be an integer between 0 and {MAX_HISTORY}, got {v}` — A dynamic offset `x[n]` was negative, fractional or over 1,000,000 on some bar. Fix: clamp it, `math.max(0, ...)`.
-- `a string or color is not a number` — A string series was used as a number. Fix: strings exist only as constants; compare them and use `?:` for numbers.
+- `the history offset must be an integer between 0 and {MAX_HISTORY}, got {v}` — A dynamic offset `x[n]` was negative, fractional, `na` (for instance `ta.lowestbars` before its window is full) or over 1,000,000 on some bar. Fix: clamp it, `math.max(0, ...)`.
+- `a string or color is not a number` — A string series was used as a number. Fix: strings exist only as constants; compare them and use `?:` for numbers. [host]
 - `a string is not a number` — Same, for a string. Fix: as above. [host]
 - `this name has no numeric value` — Internal: a name without a value was read. [host]
 - `unknown operator {e.op}` — Internal: operator not handled. [host]

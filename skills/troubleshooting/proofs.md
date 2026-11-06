@@ -362,7 +362,7 @@ plot(close)
 plot("a" + 1)
 ```
 
-<!-- skill: invalid: cannot assign float to int "x" (declare it float: e.g. x = 0.0) -->
+<!-- skill: invalid: cannot assign float to int "x" (declare it float: float x = 0.0, or var float x = 0.0; there is no int() conversion) -->
 ```alphacharts
 x = 1
 x := 1.5
@@ -460,7 +460,7 @@ plot(close)
 ```alphacharts
 c = input.string("a", options=["a"])
 plot(close)
-x = (close > open ? "a" : "b") == c
+x = (close > open ? color.red : color.green) == color.red
 ```
 
 <!-- skill: invalid: "*" needs numbers, got bool and int (a bool is not a number: use a ternary) -->
@@ -641,7 +641,7 @@ plot(a)
 
 <!-- skill: invalid: this must be a string literal -->
 ```alphacharts
-t = close > open ? "a" : "b"
+t = input.string("a", options=["a"])
 plot(close, t)
 ```
 
@@ -882,7 +882,7 @@ n = input.int(2000000)
 plot(close[n])
 ```
 
-<!-- skill: invalid: a string or color is not a number -->
+<!-- skill: invalid: a string cannot depend on a series: the condition of ?: must be a constant or an input (a string is a label, not a value that changes per bar) -->
 ```alphacharts
 s = close > open ? "up" : "down"
 plot(close)
