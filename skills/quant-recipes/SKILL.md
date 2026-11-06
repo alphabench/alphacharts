@@ -62,6 +62,7 @@ Conventions every recipe follows:
 | Cumulative volume delta | running sum of signed volume | approximation, see below |
 | Session VWAP | VWAP restarting at each exchange-clock day | `time` is milliseconds |
 | Previous session's VWAP | the finished session's VWAP, held as a level | not `vwap[1]` |
+| Gap from the previous close | percent from the last bar of the previous session to the session's first open, held all day | session-day rule; no daily series |
 | Swing highs and lows | last and previous swing level, held | known `right` bars late |
 | VWAP anchored at the last swing low | VWAP from the swing low's bar | uses the swing recipe |
 | Kalman-style filter | recursive estimate of the close | `var` state |
@@ -387,6 +388,30 @@ plot(orHigh, "Opening range high", color.green)
 plot(orLow, "Opening range low", color.red)
 ```
 
+**Gap from the previous close to today's open.** The session's first open against the close of the bar before it, in percent, held for
+the whole session. Both come from the chart's own bars at the bar where the day number changes (the same rule as the previous session's
+levels), so it is right on every bar size and on a daily chart, where each bar is a session. Today's open is never taken from a daily
+series: `outside(timeframe = "1d", field = "open")` is yesterday's open, because only finished days are visible (outside-series). The first
+session loaded has no previous close and draws nothing. "Highlight a gap over 1%" is the `bgcolor` where the size of the gap passes the input.
+
+<!-- skill: file: recipes/gap.acs -->
+```alphacharts
+indicator("Gap from the previous close to today's open")
+off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, maxval=840)
+minGap = input.float(1.0, "Smallest gap to highlight, percent", minval=0.0, maxval=50.0)
+day = math.floor((time + off * 60000) / 86400000)
+fresh = day != day[1]
+var float prevClose = na
+var float todayOpen = na
+if fresh
+    prevClose := close[1]
+    todayOpen := open
+gap = 100 * (todayOpen / prevClose - 1)
+plot(gap, "Gap, percent", color.blue)
+bgcolor(math.abs(gap) > minGap, color.new(color.orange, 85))
+hline(0, "Even", color.gray, hline.style_dashed)
+```
+
 **Kalman-style filter.** Predict `err + q`, gain `pred / (pred + r)`, correct the estimate, shrink the error. Larger `q` or
 smaller `r` follows price faster. `q` and `r` are in price-squared units, so scale them to the instrument.
 
@@ -423,8 +448,9 @@ recipe's level against price by making it `overlay=true` only when it is in pric
   for prices).
 - A swing is known only `right` bars after it happened: a level from the swing recipe is never available on the swing bar, and the last `right` bars of a chart have no confirmed swing yet.
 - `var` state starts at the first loaded bar. A chart that loads more history later can change a cumulative value.
-- A script does not know which bar is the last one or how many bars are loaded. "The last 100 bars" or "the last three
-  touches" cannot be cut off exactly: draw the measure on every loaded bar and say that the limit is not applied.
+- A script does not know which bar is the last one or how many bars are loaded. "The last three touches" or "the last 100
+  bars" of a marker is `plotshape(series, ..., last=3)` or `within=100` (plots-and-panes). A line, a fill or a colour
+  cannot be cut that way: draw the measure on every loaded bar and say that the limit is not applied.
 - Not possible here: tick-level
   order flow, a Kalman filter with a matrix state, and any measure that needs an array.
 - `ta.correl(source, length, "open")` correlates with a built-in series of the same chart only.

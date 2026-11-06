@@ -33,10 +33,15 @@ puts the script's series on the chart's left axis (see colour-and-shading). `ind
   `hline.style_solid`, `hline.style_dashed` or `hline.style_dotted`. A level that depends on bars is a `plot`.
 - `fill(plot1, plot2, color, title)` shades between two line plots, given as handles `p = plot(...)`. Histograms, areas,
   hlines and markers cannot be filled, and the two plots must differ.
-- `plotshape(series, title, style, location, color, offset)` marks bars. With a bool series it marks bars where it is true
+- `plotshape(series, title, style, location, color, offset, last, within)` marks bars. With a bool series it marks bars where it is true
   (`location.abovebar` or `location.belowbar`). With a number series it marks that price (`location.absolute`), and `na`
   leaves the bar unmarked. Styles: `shape.circle shape.square shape.diamond shape.triangleup shape.triangledown
   shape.arrowup shape.arrowdown shape.xcross shape.cross`.
+- `last=3` keeps only the three newest marks, and `within=100` only marks on the final 100 bars (1 to 5000, integer
+  literals; together, the marks of the final `within` bars that are also among the newest `last`). The cut is made from the
+  finished marks every time they are drawn, so a new bar that marks pushes the oldest out, the forming bar's own mark comes
+  and goes with its condition, and older marks never flicker. `last` and `within` apply to markers only: a line, a fill,
+  `barcolor` and `bgcolor` cannot be cut to the last N bars.
 
 **Colours are constants.** `color.aqua color.black color.blue color.fuchsia color.gray color.green color.lime color.maroon
 color.navy color.olive color.orange color.purple color.red color.silver color.teal color.white color.yellow`, a hex
@@ -103,6 +108,20 @@ plotshape(ta.crossunder(close, m), "Cross down", shape.triangledown, location.ab
 plotshape(ta.highest(high, len) == high ? high : na, "New high", shape.circle, location.absolute, color.orange)
 ```
 
+Only the newest marks: the last three times the close fell through the lower band, and every close outside the bands in
+the final 100 bars:
+
+```alphacharts
+indicator("Band touches", overlay=true)
+len = input.int(20, "Length", minval=2, maxval=500)
+mult = input.float(2.0, "Deviations", minval=0.1, maxval=10.0)
+[mid, up, lo] = ta.bb(close, len, mult)
+plot(up, "Upper", color.gray)
+plot(lo, "Lower", color.gray)
+plotshape(close < lo, "Last three touches", shape.circle, location.belowbar, color.red, last=3)
+plotshape(close > up or close < lo, "Outside, last 100 bars", shape.xcross, location.abovebar, color.orange, within=100)
+```
+
 Not possible, with the diagnostics:
 
 <!-- skill: invalid: argument "plot2" of fill must be a plot handle: p = plot(...) -->
@@ -115,6 +134,17 @@ fill(p, close)
 ```alphacharts
 if close > open
     plot(close)
+```
+
+<!-- skill: invalid: argument "last" of plotshape must be between 1 and 5000, got 0 -->
+```alphacharts
+plotshape(close > open, "Up", shape.circle, location.belowbar, color.green, last=0)
+```
+
+<!-- skill: invalid: this must be a number literal -->
+```alphacharts
+n = input.int(3, "Marks", minval=1, maxval=50)
+plotshape(close > open, "Up", shape.circle, location.belowbar, color.green, last=n)
 ```
 
 <!-- skill: invalid: argument "series" of plot must be a number series, got series bool -->
@@ -143,6 +173,7 @@ a bool or a price; combine a pattern study with a comparison, `ta.cdl_hammer() >
 - `plot` inside `if` or `for`: output is top-level only.
 - `fill` between a histogram, an area or an `hline`: line plots only.
 - `plotshape` of a price without `location.absolute`: a number needs the absolute location, a bool the bar locations.
+- Writing `last=n` with an `input.int` `n`, `last=0`, or `last` on `plot`: it is an integer literal from 1 to 5000, on `plotshape` only. A request for "the last three" of anything that is not a mark (a line, a shaded region) cannot be cut: say so.
 
 ## 9. Validation
 

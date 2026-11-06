@@ -34,6 +34,7 @@ import {
 import { Feed, type FeedBar, type FeedBars, type FeedConfig } from "../engine/feed.js";
 import { StudyEngine, resolveParams } from "../engine/study.js";
 import { getStudy } from "../registry.js";
+import { markerFloor } from "./marker-floor.js";
 import { CancelledError, type StudyRunner } from "../runner.js";
 import type { BarColumns, BarInput, InputValue, Params, PlotDef, StudyDef } from "../types.js";
 
@@ -751,7 +752,9 @@ export class Study {
     ctx.font = "10px system-ui, sans-serif";
     ctx.textAlign = "center";
     let drawn = 0;
-    for (let j = lo; j < hi && drawn < 4000; j++) {
+    // `last` / `within` cut the marks to the newest ones, judged over every bar, not only the visible ones.
+    const first = Math.max(lo, markerFloor(col, n, plot));
+    for (let j = first; j < hi && drawn < 4000; j++) {
       const v = col[j]!;
       if (v !== v || (plot.text && v === 0)) continue;
       const b = j + off;

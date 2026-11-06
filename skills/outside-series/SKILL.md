@@ -273,6 +273,13 @@ are in [studies](../studies/SKILL.md): any `ta.<id>` that takes a `source` takes
   daily bars. Do not pass the chart's `close` to it.
 - Expecting today's daily bar on an intraday bar: only finished days are visible. Say so; "today so far" is the chart's own
   `high` and `low` from the day's first bar.
+- Today's open, or any of today's values, from a daily series: `outside(timeframe = "1d", field = "open")` on an intraday
+  chart is **yesterday's** open, and on a daily chart it is the chart's own bar. Today's open is the open of the chart's
+  first bar of the session, found by the change of the day number (the gap recipe in quant-recipes). The **previous** close
+  is the one thing the daily series gives: `outside(timeframe = "1d")` on an intraday chart, or `close[1]` at the first bar
+  of the session on any bar size.
+- A new day detected as `time / 86400000 != time[1] / 86400000`: without `math.floor` the division is a fraction, so it is
+  true on every bar. A day number is `math.floor((time + off * 60000) / 86400000)`.
 - Typing a symbol the user did not give, or a code in the wrong form: use their words.
 - A `timeframe` shorter than the chart's.
 - Rebasing with `rs[len]` when the first bars are `na`: the line starts `len` bars after both series exist.

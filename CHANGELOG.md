@@ -5,6 +5,8 @@
 - `core`: per-bar colour for candles and bars (`Series.setBarColors`, `clearBarColors`, `OhlcBar.color`, `ColumnarOhlc.color`), per-segment colour on lines, the `BarShading` primitive.
 - `indicators`: studies read outside series (`Study.setFeed`, `pushFeedBar`), `barcolor` / `bgcolor` plots, `colorBy` on lines, `StudyDef.scale`.
 - `script`: `outside(symbol, field, timeframe)`, `barcolor`, `bgcolor`, a colour that depends on the bar, `indicator(scale=)`, `plan.dependencies`, `handle.setSeries` / `pushSeries`.
+- `drawings`: `readOnly` option: a plugin the host drives by code takes no press, key or cursor.
+- `script`, `indicators`: `plotshape(..., last=N, within=M)` keeps only the newest marks; `markerFloor`.
 - `skills`: `colour-and-shading` and `outside-series`.
 
 ## core 0.1.1

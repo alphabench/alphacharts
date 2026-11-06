@@ -62,7 +62,7 @@ Signatures are the checker's own table: `name(parameter:kind...)`. `?` marks an 
 - `plot(series:series, title?:string, color?:color, linewidth?:int[1..8], style?:enum {plot.style_line|plot.style_histogram|plot.style_area}, offset?:int[-5000..5000], color_down?:color)` -> plot handle
 - `hline(price:float, title?:string, color?:color, linestyle?:enum {hline.style_solid|hline.style_dashed|hline.style_dotted})` -> nothing
 - `fill(plot1:plot, plot2:plot, color?:color, title?:string)` -> nothing
-- `plotshape(series:any, title?:string, style?:enum {shape.circle|shape.square|shape.diamond|shape.triangleup|shape.triangledown|shape.arrowup|shape.arrowdown|shape.xcross|shape.cross}, location?:enum {location.abovebar|location.belowbar|location.absolute}, color?:color, offset?:int[-5000..5000])` -> nothing
+- `plotshape(series:any, title?:string, style?:enum {shape.circle|shape.square|shape.diamond|shape.triangleup|shape.triangledown|shape.arrowup|shape.arrowdown|shape.xcross|shape.cross}, location?:enum {location.abovebar|location.belowbar|location.absolute}, color?:color, offset?:int[-5000..5000], last?:int[1..5000], within?:int[1..5000])` -> nothing
 - `color.new(color:color, transp:float[0..100])` -> color
 
 ## Inputs

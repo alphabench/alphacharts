@@ -498,3 +498,35 @@ describe("anchoring", () => {
     expect(line.k === "line" && line.x1).toBe(v.timeToX(d.anchors[0]!.time) + shift);
   });
 });
+
+describe("readOnly: drawings the host places by code", () => {
+  it("never takes a press, key or cursor, though a drawing sits right under it", () => {
+    const { p } = plugin({ readOnly: true });
+    const d = p.add({ tool: "horizontalLine", anchors: [k(50, 110)], locked: true });
+    const at = px(d.anchors[0]!);
+    expect(p.pointer(ptr("down", at.x, at.y))).toBe(false);
+    expect(p.pointer(ptr("move", at.x, at.y))).toBe(false);
+    expect(p.pointer(ptr("up", at.x, at.y))).toBe(false);
+    expect(p.pointer(ptr("click", at.x, at.y))).toBe(false);
+    expect(p.pointer(ptr("dblclick", at.x, at.y))).toBe(false);
+    expect(p.cursor(0, at.x, at.y)).toBeNull();
+    expect(p.key(key("Delete"))).toBe(false);
+    expect(p.key(key("Escape"))).toBe(false);
+    expect(p.selection()).toEqual([]);
+    expect(p.list()).toHaveLength(1);
+  });
+
+  it("takes no tool", () => {
+    const { p } = plugin({ readOnly: true });
+    expect(() => p.setTool("trendLine")).toThrow(/read-only/);
+  });
+
+  it("is still drawn and still changed by code", () => {
+    const { p } = plugin({ readOnly: true });
+    const d = p.add({ tool: "horizontalLine", anchors: [k(50, 110)] });
+    p.update(d.id, { anchors: [k(50, 111)] });
+    expect(p.list()[0]!.anchors[0]!.price).toBe(111);
+    p.remove([d.id]);
+    expect(p.list()).toHaveLength(0);
+  });
+});

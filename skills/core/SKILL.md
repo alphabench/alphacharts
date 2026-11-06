@@ -31,8 +31,9 @@ chart's own bars. There are three answers:
 The language reads the chart's own bars (`open high low close volume time`) and, through `outside(...)`, the bars of
 another instrument or another timeframe. It can colour candles, shade the background and colour a line per bar. It cannot
 do: user functions, arrays, string operations, `while` or `break`, labels, lines or boxes, alerts or orders, and it cannot
-know which bar is the last, so "the last N bars" cannot be cut off exactly. Say so plainly; do not fake one with a near
-miss. Day and session logic from `time` is possible (quant-recipes: previous session, opening range).
+know which bar is the last, so a line, a fill or a colour cannot be cut to "the last N bars". Markers can:
+`plotshape(close < low[1], last=3)` keeps the three newest marks and `plotshape(close < low[1], within=100)` the marks on the final 100 bars
+(plots-and-panes). Say plainly what cannot be cut; do not fake one with a near miss. Day and session logic from `time` is possible (quant-recipes: previous session, opening range).
 
 One script draws into one place. `indicator("Title", overlay=true)` draws on the price scale: moving averages, bands,
 channels, VWAP, SAR, levels. The default `overlay=false` gives an own pane: oscillators, ratios, z-scores, volume,

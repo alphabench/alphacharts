@@ -35,6 +35,12 @@ export interface DrawingsOptions {
   magnet?: MagnetMode;
   /** Stay in the tool after a drawing is finished. */
   continuous?: boolean;
+  /**
+   * Display only, for drawings the host places by code: the plugin never takes a pointer press, key or cursor, so
+   * nothing it draws can be hit, selected, moved or deleted, and the chart (pan, zoom, its own handles above it)
+   * gets every event as if no drawing were there. `setTool` throws. `add`, `update`, `remove` and `fromJSON` still work.
+   */
+  readOnly?: boolean;
   /** Templates and favourites storage. */
   store?: LayoutStore;
   /** A tool failed to draw or a gesture produced an invalid drawing. Default: console.error. */
@@ -389,6 +395,7 @@ export class DrawingsPlugin implements ChartPlugin {
   }
 
   setTool(id: string | null): void {
+    if (id !== null && this.options.readOnly) throw new Error("drawings: a read-only plugin takes no tool");
     if (id !== null) this.toolDef(id);
     this.creating = null;
     if (this.tool === id) return;
@@ -762,6 +769,7 @@ export class DrawingsPlugin implements ChartPlugin {
   // ---- pointer -------------------------------------------------------------------------
 
   pointer(e: PluginPointer): boolean {
+    if (this.options.readOnly) return false;
     this.last = { pane: e.pane, x: e.x, y: e.y, time: e.time, price: e.price, pointerType: e.pointerType };
     switch (e.type) {
       case "down": return this.onDown(e);
@@ -1026,6 +1034,7 @@ export class DrawingsPlugin implements ChartPlugin {
   }
 
   cursor(pane: number, x: number, y: number): string | null {
+    if (this.options.readOnly) return null;
     if (this.tool || this.creating) return "crosshair";
     if (this.drag) return this.drag.kind === "move" ? "move" : "pointer";
     if (!this.api) return null;
@@ -1037,6 +1046,7 @@ export class DrawingsPlugin implements ChartPlugin {
   // ---- keyboard -------------------------------------------------------------------------
 
   key(e: KeyboardEvent): boolean {
+    if (this.options.readOnly) return false;
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key;
     if (k === "Escape") {

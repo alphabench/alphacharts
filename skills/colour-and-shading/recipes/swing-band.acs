@@ -1,0 +1,12 @@
+indicator("Band between the last two swing highs", overlay=true)
+left = input.int(5, "Bars to the left", minval=1, maxval=200)
+right = input.int(5, "Bars to the right (the confirmation lag)", minval=1, maxval=200)
+isHigh = high[right] == ta.highest(high, left + right + 1)
+var float lastHigh = na
+var float prevHigh = na
+if isHigh
+    prevHigh := lastHigh
+    lastHigh := high[right]
+latest = plot(lastHigh, "Latest swing high", color.red)
+previous = plot(prevHigh, "Previous swing high", color.maroon)
+fill(latest, previous, color.new(color.red, 85), "Between the two swing highs")

@@ -118,7 +118,11 @@
       "api_version": "0.x",
       "status": "stable",
       "assets": [],
-      "checks": []
+      "checks": [
+        "recipes/helpers.mjs",
+        "recipes/swing-band.acs",
+        "recipes/swing-band.expected.mjs"
+      ]
     },
     {
       "name": "alphacharts-outside-series",
@@ -196,6 +200,8 @@
         "recipes/autocorrelation-lag1.expected.mjs",
         "recipes/cumulative-volume-delta.acs",
         "recipes/cumulative-volume-delta.expected.mjs",
+        "recipes/gap.acs",
+        "recipes/gap.expected.mjs",
         "recipes/hv-ratio.acs",
         "recipes/hv-ratio.expected.mjs",
         "recipes/kalman-filter.acs",
@@ -254,5 +260,5 @@
       ]
     }
   ],
-  "language_sha256": "dcb19fcc55b59ac949aad8000eb3bcc8f3d40b6bb8c0d3131b5f85a79cc404c1"
+  "language_sha256": "ca541db8236b0155c5a2b9087b99e22053a9a5d123628a65997ac3b3f20864a3"
 }

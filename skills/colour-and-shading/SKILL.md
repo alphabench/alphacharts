@@ -96,6 +96,27 @@ indicator("RSI on the left axis", overlay=true, scale="left")
 plot(ta.rsi(close, 14), "RSI", color.purple)
 ```
 
+Shading the region between two levels that step as new swings are confirmed ("between the two most recent swing highs"): hold the
+latest and the previous swing high in `var` state, plot both as lines, and `fill` them. Both are known `right` bars after the swing, so
+the band appears with that lag; a swing is 5 bars a side unless the trader says other (quant-recipes has the swing recipe in full).
+No drawing is needed: a region between two computed levels is a `fill`.
+
+<!-- skill: file: recipes/swing-band.acs -->
+```alphacharts
+indicator("Band between the last two swing highs", overlay=true)
+left = input.int(5, "Bars to the left", minval=1, maxval=200)
+right = input.int(5, "Bars to the right (the confirmation lag)", minval=1, maxval=200)
+isHigh = high[right] == ta.highest(high, left + right + 1)
+var float lastHigh = na
+var float prevHigh = na
+if isHigh
+    prevHigh := lastHigh
+    lastHigh := high[right]
+latest = plot(lastHigh, "Latest swing high", color.red)
+previous = plot(prevHigh, "Previous swing high", color.maroon)
+fill(latest, previous, color.new(color.red, 85), "Between the two swing highs")
+```
+
 What a condition that never holds draws (the column is `na` on every bar):
 
 <!-- skill: expect: {"Bar color 1": {"all": "na"}, "Background 2": {"all": 1}} -->

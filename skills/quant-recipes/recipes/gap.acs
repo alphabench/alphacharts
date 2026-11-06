@@ -1,0 +1,14 @@
+indicator("Gap from the previous close to today's open")
+off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, maxval=840)
+minGap = input.float(1.0, "Smallest gap to highlight, percent", minval=0.0, maxval=50.0)
+day = math.floor((time + off * 60000) / 86400000)
+fresh = day != day[1]
+var float prevClose = na
+var float todayOpen = na
+if fresh
+    prevClose := close[1]
+    todayOpen := open
+gap = 100 * (todayOpen / prevClose - 1)
+plot(gap, "Gap, percent", color.blue)
+bgcolor(math.abs(gap) > minGap, color.new(color.orange, 85))
+hline(0, "Even", color.gray, hline.style_dashed)

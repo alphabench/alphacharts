@@ -70,6 +70,10 @@ export type PlotDef =
       offset?: number;
       /** Draw the value as text (pattern scores) instead of a shape. */
       text?: boolean;
+      /** Keep only the most recent `last` marked bars. Decided from the finished columns each time they are drawn, so a tick or a batch gives the same marks. */
+      last?: number;
+      /** Keep only marks on the final `within` bars. */
+      within?: number;
     })
   /**
    * Colours the candles (or OHLC bars) of the study's source series on every bar where column `col` is present and

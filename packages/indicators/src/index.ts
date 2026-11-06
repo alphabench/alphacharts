@@ -8,6 +8,7 @@ export { registerStudy, registerStudies, getStudy, listStudies, validateDef } fr
 export { defineStudy } from "./define.js";
 export { addStudy, installStudies, StudiesPlugin, Study, PLUGIN_ID } from "./chart/studies.js";
 export type { AddStudyOptions, PlotStyle } from "./chart/studies.js";
+export { markerFloor } from "./chart/marker-floor.js";
 export { InlineRunner, WorkerRunner, createRunner, serveWorker, CancelledError, CHUNK } from "./runner.js";
 export type { StudyRunner, RunRequest, RunResult, WorkerLike } from "./runner.js";
 export { enableWasm, disableWasm } from "./wasm.js";

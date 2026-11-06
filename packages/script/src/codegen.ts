@@ -76,7 +76,7 @@ export function generate(plan: Plan, source: string, limits: Limits = DEFAULT_LI
       case "bgcolor": columns.push(sp.key); plots.push({ kind: "bgcolor", ...base, col: sp.key, color }); break;
       case "histogram": columns.push(sp.key); plots.push({ kind: "histogram", ...base, col: sp.key, color, ...(sp.colorDown && { colorDown: sp.colorDown }) }); break;
       case "area": columns.push(sp.key); plots.push({ kind: "area", ...base, col: sp.key, color }); break;
-      case "markers": columns.push(sp.key); plots.push({ kind: "markers", ...base, col: sp.key, shape: sp.shape as "circle", position: sp.position as "above", color, ...(sp.offset !== undefined && { offset: sp.offset }) }); break;
+      case "markers": columns.push(sp.key); plots.push({ kind: "markers", ...base, col: sp.key, shape: sp.shape as "circle", position: sp.position as "above", color, ...(sp.offset !== undefined && { offset: sp.offset }), ...(sp.last !== undefined && { last: sp.last }), ...(sp.within !== undefined && { within: sp.within }) }); break;
       case "hline": plots.push({ kind: "hline", ...base, value: (p: Params) => new Builder(null, p, plan, limits).simpleNumber(sp.expr!), color, style: (sp.lineStyle ?? "dashed") as "dashed" }); break;
       case "fill": plots.push({ kind: "fill", ...base, a: colOfPlot.get(sp.a!)!, b: colOfPlot.get(sp.b!)!, color }); break;
     }

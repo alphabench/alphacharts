@@ -50,6 +50,10 @@ export interface PlotSpec {
   b?: number;
   shape?: string;
   position?: string;
+  /** plotshape: only the most recent `last` marked bars keep their mark. */
+  last?: number;
+  /** plotshape: only marks on the final `within` bars are kept. */
+  within?: number;
   span: Span;
 }
 
@@ -859,7 +863,9 @@ class Checker {
       else if (xt.b !== "bool" && !isNum(xt)) this.err(`plotshape needs a bool or a number, got ${show(xt)}`, x);
     }
     const offset = this.int(b[5]);
-    this.plan.plots.push({ kind: "markers", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[4], "#2962ff"), expr: x, shape, position: loc, ...(offset !== undefined && { offset }), span: c });
+    const last = this.int(b[6]);
+    const within = this.int(b[7]);
+    this.plan.plots.push({ kind: "markers", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[4], "#2962ff"), expr: x, shape, position: loc, ...(offset !== undefined && { offset }), ...(last !== undefined && { last }), ...(within !== undefined && { within }), span: c });
     return t("void");
   }
 
