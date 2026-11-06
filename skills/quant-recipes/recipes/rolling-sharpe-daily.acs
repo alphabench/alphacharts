@@ -1,0 +1,7 @@
+indicator("Rolling Sharpe of daily returns")
+len = input.int(10, "Days", minval=3, maxval=250)
+ann = input.int(252, "Days per year", minval=1, maxval=400)
+d = outside(timeframe = "1d")
+r = d / d[1] - 1
+plot(ta.sma(r, len) / ta.stdev(r, len) * math.sqrt(ann), "Sharpe", color.blue)
+hline(0, "Zero", color.gray, hline.style_dashed)

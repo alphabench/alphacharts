@@ -91,7 +91,7 @@ Load when:
 
 ## Outside series
 
-Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, beta-adjusted price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.
+Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads, relative strength, beta, beta-adjusted price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, daily returns and N-day statistics (Sharpe, volatility) on an intraday chart, previous-day levels, and the exact rules that decide which of its bars a chart bar sees.
 
 Name: `alphacharts-outside-series`  
 Path: [outside-series/SKILL.md](outside-series/SKILL.md)  
@@ -107,7 +107,7 @@ Load when:
 
 ## Quant recipes
 
-Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous session's high, low, close and VWAP, opening range, swing highs and lows, VWAP from a swing, z-score, realised volatility, rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any such value, also when the request is to colour or highlight it.
+Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous session's high, low, close and VWAP, opening range, swing highs and lows, VWAP from a swing, z-score, realised volatility, rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any such value, also when the request is to colour or highlight it. A window in days or a daily return ("60-day volatility", "10-day Sharpe") on an intraday chart is read on daily bars: the daily forms of the Sharpe and volatility recipes are here, and outside-series has the rule.
 
 Name: `alphacharts-quant-recipes`  
 Path: [quant-recipes/SKILL.md](quant-recipes/SKILL.md)  
@@ -120,6 +120,7 @@ Load when:
 - The request is a statistic or state machine on one instrument's bars rather than a named indicator.
 - Volatility, Sharpe, z-score, autocorrelation, regime, filter or volume-delta requests.
 - Adapting a verified formula instead of deriving one.
+- A window in days or a daily return on an intraday chart: the daily forms of Sharpe and volatility.
 
 ## Troubleshooting
 

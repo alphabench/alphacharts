@@ -4,7 +4,9 @@ description: >
     Verified formulas to adapt, for statistics and session levels on one instrument's bars: gap from the previous close, previous
     session's high, low, close and VWAP, opening range, swing highs and lows, VWAP from a swing, z-score, realised volatility,
     rolling Sharpe, beta, autocorrelation, regime, ATR distance, range expansion, volume delta, Kalman filter. Load it for any
-    such value, also when the request is to colour or highlight it.
+    such value, also when the request is to colour or highlight it. A window in days or a daily return ("60-day volatility",
+    "10-day Sharpe") on an intraday chart is read on daily bars: the daily forms of the Sharpe and volatility recipes are here,
+    and outside-series has the rule.
 version: 1.0
 api_version: 0.x
 depends_on:
@@ -20,7 +22,13 @@ status: stable
 ## 1. When to use this skill
 
 Load it when the request is a statistic or a state machine on one instrument's bars rather than a named indicator. Adapt
-the closest recipe: change the inputs and titles, keep the formula. Each script below is compiled, run, and compared with
+the closest recipe: change the inputs and titles, keep the formula.
+
+**Days are daily bars.** When the request names days or daily returns ("10-day volatility", "Sharpe of daily returns over 60 days")
+and the chart is not a daily chart, do not count chart bars: the recipes below on `close` compute on the chart's own bars, so
+"60 days" would be 60 bars of 5 minutes. Use the daily forms (**Rolling Sharpe, daily form** and **HV ratio, daily form**),
+which read `outside(timeframe = "1d")` and count days. On a daily chart `close` is already a day. The rules for the daily
+series are in [outside-series](../outside-series/SKILL.md); say in the reply that the windows are read on daily bars. Each script below is compiled, run, and compared with
 an independent plain-JavaScript calculation on seeded bars, so the arithmetic is the stated one.
 
 ## 2. Domain overview
@@ -51,7 +59,9 @@ Conventions every recipe follows:
 | Z-score of returns | z in standard deviations | zero deviation gives `na` |
 | Realised volatility | percent, annualised | log returns |
 | HV ratio | short over long volatility | annualisation cancels |
-| Rolling Sharpe | annualised, zero risk-free rate | simple returns |
+| Rolling Sharpe | annualised, zero risk-free rate | simple returns, on the chart's own bars |
+| Rolling Sharpe, daily form | annualised, zero risk-free rate | daily returns of any chart, `outside(timeframe = "1d")` |
+| HV ratio, daily form | short over long volatility in days | any chart, `outside(timeframe = "1d")` |
 | Beta and correlation on own lag | slope and Pearson r of `r` on `r[lag]` | `lag` input |
 | Autocorrelation lag 1 | Pearson r of `r` and `r[1]` | |
 | Regime | -1, 0, 1 | ADX above a level, side by EMA |
@@ -127,6 +137,36 @@ r = close / close[1] - 1
 sharpe = ta.sma(r, len) / ta.stdev(r, len) * math.sqrt(ann)
 plot(sharpe, "Sharpe", color.teal)
 hline(0, "Zero", color.gray)
+```
+
+**Rolling Sharpe, daily form.** For "daily returns" or a number of days on an intraday chart: the returns and the window are
+over daily bars, so `len` is a number of days and `ann` is 252. A day is visible only once it has finished, so the last value
+is that of the last finished day. On a daily chart use the recipe above on `close`.
+
+<!-- skill: file: recipes/rolling-sharpe-daily.acs -->
+```alphacharts
+indicator("Rolling Sharpe of daily returns")
+len = input.int(10, "Days", minval=3, maxval=250)
+ann = input.int(252, "Days per year", minval=1, maxval=400)
+d = outside(timeframe = "1d")
+r = d / d[1] - 1
+plot(ta.sma(r, len) / ta.stdev(r, len) * math.sqrt(ann), "Sharpe", color.blue)
+hline(0, "Zero", color.gray, hline.style_dashed)
+```
+
+**HV ratio, daily form.** "The 10-day over the 30-day volatility" on an intraday chart: log returns of daily bars, windows in
+days. The ratio needs no annualisation. On a daily chart use the HV ratio above on `close`.
+
+<!-- skill: file: recipes/hv-ratio-daily.acs -->
+```alphacharts
+indicator("HV ratio in days (short over long)")
+fast = input.int(10, "Short days", minval=2, maxval=250)
+slow = input.int(30, "Long days", minval=2, maxval=250)
+d = outside(timeframe = "1d")
+r = math.log(d / d[1])
+ratio = ta.stdev(r, fast) / ta.stdev(r, slow)
+plot(ratio, "Ratio", color.orange)
+hline(1, "Equal", color.gray, hline.style_dashed)
 ```
 
 **Beta and correlation on the series' own lag.** Regress today's return on the return `lag` bars ago: beta is
@@ -460,6 +500,7 @@ recipe's level against price by making it `overlay=true` only when it is in pric
 - Dividing by the sample deviation by hand and the population one again.
 - Using `ta.sma` on a `var` accumulator (refused) instead of keeping a second accumulator.
 - Annualising with the wrong bars-per-year for the interval (bars per session * 252; plain 252 is for daily bars), or counting "days" as bars.
+- Writing `close / close[1] - 1` on a 5-minute chart for "daily returns" and saying the reply is on daily bars: that is a 5-minute return. Daily returns come from `outside(timeframe = "1d")` (the daily forms above).
 - One `len` input shared by two different parameters.
 - Detecting a new day by a fall in the time of day: it never fires on daily bars.
 - A swing written as `high[right] == ta.highest(high, left + right + 1)[right]`: that window ends `right` bars back, so it never sees the bars after the candidate and finds a new high instead of a swing. Write `high[right] == ta.highest(high, left + right + 1)`. There is no swing function to call.

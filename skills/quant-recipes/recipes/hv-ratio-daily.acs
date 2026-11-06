@@ -1,0 +1,8 @@
+indicator("HV ratio in days (short over long)")
+fast = input.int(10, "Short days", minval=2, maxval=250)
+slow = input.int(30, "Long days", minval=2, maxval=250)
+d = outside(timeframe = "1d")
+r = math.log(d / d[1])
+ratio = ta.stdev(r, fast) / ta.stdev(r, slow)
+plot(ratio, "Ratio", color.orange)
+hline(1, "Equal", color.gray, hline.style_dashed)

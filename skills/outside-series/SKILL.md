@@ -2,7 +2,7 @@
 name: alphacharts-outside-series
 description: >
     Reading another instrument or another timeframe from a script with outside(symbol, field, timeframe): ratios, spreads,
-    relative strength, beta, beta-adjusted price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, previous-day
+    relative strength, beta, beta-adjusted price, correlation, residuals, a Kalman filter on two series, multi-timeframe indicators, daily returns and N-day statistics (Sharpe, volatility) on an intraday chart, previous-day
     levels, and the exact rules that decide which of its bars a chart bar sees.
 version: 1.0
 api_version: 0.x
