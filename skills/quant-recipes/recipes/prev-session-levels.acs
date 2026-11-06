@@ -1,0 +1,21 @@
+indicator("Previous session's high, low and close", overlay=true)
+off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, maxval=840)
+day = math.floor((time + off * 60000) / 86400000)
+fresh = day != day[1]
+var float runHigh = high
+var float runLow = low
+var float prevHigh = na
+var float prevLow = na
+var float prevClose = na
+if fresh
+    prevHigh := runHigh
+    prevLow := runLow
+    prevClose := close[1]
+    runHigh := high
+    runLow := low
+else
+    runHigh := math.max(runHigh, high)
+    runLow := math.min(runLow, low)
+plot(prevHigh, "Previous high", color.green)
+plot(prevLow, "Previous low", color.red)
+plot(prevClose, "Previous close", color.blue)

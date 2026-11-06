@@ -1,0 +1,19 @@
+indicator("Opening range of the session", overlay=true)
+off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, maxval=840)
+start = input.int(555, "Session start, minutes after local midnight", minval=0, maxval=1439)
+span = input.int(30, "Range length, minutes", minval=1, maxval=600)
+local = time + off * 60000
+day = math.floor(local / 86400000)
+minute = math.floor((local - day * 86400000) / 60000)
+inRange = minute >= start and minute < start + span
+fresh = day != day[1]
+var float orHigh = na
+var float orLow = na
+if fresh
+    orHigh := na
+    orLow := na
+if inRange
+    orHigh := na(orHigh) ? high : math.max(orHigh, high)
+    orLow := na(orLow) ? low : math.min(orLow, low)
+plot(orHigh, "Opening range high", color.green)
+plot(orLow, "Opening range low", color.red)

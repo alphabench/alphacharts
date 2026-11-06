@@ -1,6 +1,6 @@
 import { blank, mean } from "./helpers.mjs";
 
-export const inputs = { len: 20 };
+export const inputs = { len: 20, atrLen: 14 };
 
 /** Wilder ATR: the first value at bar len is the mean of the true ranges of bars 1..len, then (prev * (len - 1) + tr) / len. */
 export function wilderAtr(bars, len) {
@@ -13,9 +13,10 @@ export function wilderAtr(bars, len) {
   return atr;
 }
 
-export function expected(bars, { len }) {
-  const atr = wilderAtr(bars, len);
+export function expected(bars, { len, atrLen }) {
+  const atr = wilderAtr(bars, atrLen);
   const out = blank(atr.length);
-  for (let i = len; i < out.length; i++) out[i] = (bars.close[i] - mean(Array.from(bars.close.slice(i - len + 1, i + 1)))) / atr[i];
+  const first = Math.max(len - 1, atrLen); // the average exists from bar len - 1, the ATR from bar atrLen
+  for (let i = first; i < out.length; i++) out[i] = (bars.close[i] - mean(Array.from(bars.close.slice(i - len + 1, i + 1)))) / atr[i];
   return { Distance: out };
 }

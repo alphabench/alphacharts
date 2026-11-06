@@ -30,7 +30,14 @@ Conventions every recipe follows:
 - Rolling statistics use the kernels. `ta.stdev` and `ta.variance` divide by n (population). For the sample deviation
   multiply by `math.sqrt(n / (n - 1))`.
 - A rolling window containing `na` is `na`, so a statistic of returns first appears at bar `length`.
-- Annualise by the square root of the bars per year (`math.sqrt`): 252 for daily bars; intraday it is bars per session times sessions per year.
+- Annualise by the square root of the bars per year (`math.sqrt`). Bars per year is bars per session times sessions per
+  year, so it depends on the chart's bar size: 252 is right for daily bars only. On a 5-minute chart with 75 bars a
+  session it is 75 * 252. Set the `Bars per year` input to the chart's own value and say which you used.
+- A period the trader names in days or sessions ("60-day volatility") is counted in bars by the script. On daily bars the
+  length is that number; on an intraday chart it is the number of days times the bars per session, when that fits the
+  length limits, and the reply says the conversion. Never let the number of days stand as a number of bars.
+- Give every parameter its own input. A parameter the trader did not name (an ATR length beside the average's) is never
+  tied to one they did: it gets its own input with the usual default.
 - Pairs of series come from the same bars: this language has no other symbol, so "beta" and "correlation" are of a series on
   its own lag, or on a named built-in (`ta.correl`, `ta.beta` take `source2` as a string such as `"volume"`).
 - Recursions use `var float` state and run once per bar, oldest first.
@@ -46,7 +53,9 @@ Conventions every recipe follows:
 | Beta and correlation on own lag | slope and Pearson r of `r` on `r[lag]` | `lag` input |
 | Autocorrelation lag 1 | Pearson r of `r` and `r[1]` | |
 | Regime | -1, 0, 1 | ADX above a level, side by EMA |
-| Distance in ATR | (close - SMA) / ATR | Wilder ATR |
+| Distance in ATR | (close - SMA) / ATR | Wilder ATR, its own length |
+| Previous session's high, low, close | three stepped lines | any bar size, daily included |
+| Opening range of the session | stepped high and low from the first minutes | needs the exchange clock |
 | Range expansion | 1 when the bar's range exceeds a multiple of its average | flag and markers |
 | Breakout share | percent of bars closing above the previous high | |
 | Cumulative volume delta | running sum of signed volume | approximation, see below |
@@ -161,13 +170,15 @@ regime = na(adx) or na(e) ? na : (adx > trend ? (close > e ? 1 : -1) : 0)
 plot(regime, "Regime", color.blue, style=plot.style_histogram)
 ```
 
-**Distance from the average in ATR units.**
+**Distance from the average in ATR units.** The average and the ATR have a length each: a request that names only the
+average's length changes only `len`.
 
 <!-- skill: file: recipes/atr-distance.acs -->
 ```alphacharts
 indicator("Distance from SMA in ATR units")
-len = input.int(20, "Length", minval=2, maxval=500)
-dist = (close - ta.sma(close, len)) / ta.atr(len)
+len = input.int(20, "Average length", minval=2, maxval=500)
+atrLen = input.int(14, "ATR length", minval=2, maxval=500)
+dist = (close - ta.sma(close, len)) / ta.atr(atrLen)
 plot(dist, "Distance", color.blue)
 hline(0, "Zero", color.gray)
 ```
@@ -214,7 +225,7 @@ plot(ta.sum(delta, len), "Rolling delta", color.orange, style=plot.style_histogr
 ```
 
 **VWAP restarting each session.** A session here is the calendar day of `time` (UTC milliseconds) shifted by `off` minutes;
-set `off` to minus the session start, in minutes after 00:00 UTC (a session starting 03:00 UTC is `off = -180`), so that day boundaries fall where the session starts. `ta.vwap(source, anchor, bandMult,
+set `off` to minus the session start, in minutes after 00:00 UTC (a session starting 03:00 UTC is `off = -180`), so that day boundaries fall where the session starts, or to the exchange clock's offset from UTC (east positive) so that they fall at its midnight. `ta.vwap(source, anchor, bandMult,
 utcOffsetMinutes)` does the same with week, month and year anchors and bands.
 
 <!-- skill: file: recipes/session-anchored-vwap.acs -->
@@ -231,6 +242,65 @@ if fresh
 pv += hlc3 * volume
 vol += volume
 plot(pv / vol, "VWAP", color.blue)
+```
+
+**Previous session's high, low and close.** A new session starts where the day number changes: the calendar day of `time`
+shifted by `off` minutes (the exchange clock's offset from UTC, east positive). Compare the day number, never the time of
+day: a test such as "the time of day went down" never fires on daily bars, where every bar is one day and the script would
+draw nothing. Here every bar of a daily chart is a new session, so the lines read the previous bar, and an intraday chart
+reads the previous day. The first session loaded may be partial.
+
+<!-- skill: file: recipes/prev-session-levels.acs -->
+```alphacharts
+indicator("Previous session's high, low and close", overlay=true)
+off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, maxval=840)
+day = math.floor((time + off * 60000) / 86400000)
+fresh = day != day[1]
+var float runHigh = high
+var float runLow = low
+var float prevHigh = na
+var float prevLow = na
+var float prevClose = na
+if fresh
+    prevHigh := runHigh
+    prevLow := runLow
+    prevClose := close[1]
+    runHigh := high
+    runLow := low
+else
+    runHigh := math.max(runHigh, high)
+    runLow := math.min(runLow, low)
+plot(prevHigh, "Previous high", color.green)
+plot(prevLow, "Previous low", color.red)
+plot(prevClose, "Previous close", color.blue)
+```
+
+**Opening range of the session.** The high and low of the bars whose minute of the exchange day falls in the first `span`
+minutes after `start`. They build up during the range and then stay level until the next session, which is what "extend
+the high and low" means on a chart. Set `off` and `start` to the exchange (the minute of the day is the time shifted by
+`off`, taken within one day). It works at any bar size that divides the range; on daily bars no bar falls in it.
+
+<!-- skill: file: recipes/opening-range.acs -->
+```alphacharts
+indicator("Opening range of the session", overlay=true)
+off = input.int(0, "UTC offset of the exchange clock, minutes", minval=-720, maxval=840)
+start = input.int(555, "Session start, minutes after local midnight", minval=0, maxval=1439)
+span = input.int(30, "Range length, minutes", minval=1, maxval=600)
+local = time + off * 60000
+day = math.floor(local / 86400000)
+minute = math.floor((local - day * 86400000) / 60000)
+inRange = minute >= start and minute < start + span
+fresh = day != day[1]
+var float orHigh = na
+var float orLow = na
+if fresh
+    orHigh := na
+    orLow := na
+if inRange
+    orHigh := na(orHigh) ? high : math.max(orHigh, high)
+    orLow := na(orLow) ? low : math.min(orLow, low)
+plot(orHigh, "Opening range high", color.green)
+plot(orLow, "Opening range low", color.red)
 ```
 
 **Kalman-style filter.** Predict `err + q`, gain `pred / (pred + r)`, correct the estimate, shrink the error. Larger `q` or
@@ -268,6 +338,8 @@ recipe's level against price by making it `overlay=true` only when it is in pric
 - Population deviation everywhere; the first value of a rolling statistic is at bar `length` for returns (one bar later than
   for prices).
 - `var` state starts at the first loaded bar. A chart that loads more history later can change a cumulative value.
+- A script does not know which bar is the last one or how many bars are loaded. "The last 100 bars" or "the last three
+  touches" cannot be cut off exactly: draw the measure on every loaded bar and say that the limit is not applied.
 - Not possible here: a rolling beta or correlation against another symbol or timeframe (no outside series), tick-level
   order flow, a Kalman filter with a matrix state, and any measure that needs an array.
 - `ta.correl(source, length, "open")` correlates with a built-in series of the same chart only.
@@ -276,7 +348,9 @@ recipe's level against price by making it `overlay=true` only when it is in pric
 
 - Dividing by the sample deviation by hand and the population one again.
 - Using `ta.sma` on a `var` accumulator (refused) instead of keeping a second accumulator.
-- Annualising with the wrong bars-per-year for the interval.
+- Annualising with the wrong bars-per-year for the interval (252 on intraday bars), or counting "days" as bars.
+- One `len` input shared by two different parameters.
+- Detecting a new day by a fall in the time of day: it never fires on daily bars.
 - Calling the cumulative volume delta order flow; it is a bar-direction approximation.
 
 ## 9. Validation

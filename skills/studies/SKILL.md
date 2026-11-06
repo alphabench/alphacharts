@@ -97,7 +97,10 @@ One generated file per family, each line `ta.<id>(parameters) -> outputs · plac
 ## 4. Standard workflow
 
 1. Find the id in the index; open its family file and copy the parameter names and order.
-2. Call it with the parameters the user asked for; leave the rest at their defaults.
+2. Call it with the parameters the user asked for; leave the rest at their defaults. A study that restarts each session,
+   week, month or year (`ta.vwap`, `ta.pivot_points`) takes `utcOffsetMinutes`: the exchange clock's offset from UTC in
+   minutes, east positive, and a period begins at midnight of that clock. The default 0 is UTC midnight; pass the exchange's
+   own offset.
 3. Destructure tuples in the listed order; plot the outputs the user needs.
 4. Put `indicator(..., overlay=true)` for `overlay` studies, otherwise leave the default.
 5. If the study is not here, compute it (quant-recipes) or say it is unavailable.

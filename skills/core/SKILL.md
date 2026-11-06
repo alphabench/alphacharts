@@ -25,11 +25,13 @@ chart's own bars. There are three answers:
    pattern): call `ta.<id>`.
 2. **Computed series.** Anything else that is arithmetic on bars (z-score, realised volatility, regime flag, a recursive
    filter): write the formula with `ta.*` kernels, `math.*`, `var` state and loops.
-3. **Refuse in words.** Say what the language cannot do, in one sentence, and offer the nearest thing it can.
+3. **Say what cannot be done.** When part of the request can be drawn, draw that part and say plainly what was left out;
+   refuse only when none of it can be drawn. Either way one sentence, with the nearest thing the language can do.
 
 The language reads one instrument's own bars: `open high low close volume time`. It cannot do: user functions, arrays,
 string operations, `while` or `break`, other symbols or timeframes, per-bar colours, labels, lines or boxes, alerts or
-orders. Say so plainly; do not fake one with a near miss.
+orders, and it cannot know which bar is the last, so "the last N bars" cannot be cut off exactly. Say so plainly; do not
+fake one with a near miss. Day and session logic from `time` is possible (quant-recipes: previous session, opening range).
 
 One script draws into one place. `indicator("Title", overlay=true)` draws on the price scale: moving averages, bands,
 channels, VWAP, SAR, levels. The default `overlay=false` gives an own pane: oscillators, ratios, z-scores, volume,
