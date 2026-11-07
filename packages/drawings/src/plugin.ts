@@ -17,7 +17,7 @@ import type { ChartPlugin, LayoutStore, PluginApi, PluginPaneView, PluginPointer
 import { Emitter } from "./emitter.js";
 import { dist } from "./geometry.js";
 import { AddCommand, BatchCommand, clone, DrawingStore, History, PatchCommand, RemoveCommand, ReorderCommand, type Command } from "./history.js";
-import { drawShapes, shapeDistance, shapeInRect } from "./shapes.js";
+import { declutter, drawShapes, shapeDistance, shapeInRect } from "./shapes.js";
 import type { BarSource } from "./source.js";
 import { TemplateStore } from "./templates.js";
 import { DEFAULT_STYLE, SCHEMA_VERSION, type Anchor, type Drawing, type DrawingStyle, type DrawingsState, type Shape, type ToolCtx, type ToolDef } from "./types.js";
@@ -693,10 +693,15 @@ export class DrawingsPlugin implements ChartPlugin {
 
   drawPane(ctx: CanvasRenderingContext2D, view: PluginPaneView): void {
     const c = this.ctxFor(view);
-    for (const d of this.store.list) {
-      if (d.pane !== view.pane || !this.visible(d)) continue;
+    const frame: Array<{ d: Drawing; shapes: Shape[] }> = [];
+    for (const d of this.store.list) if (d.pane === view.pane && this.visible(d)) frame.push({ d, shapes: this.shapesOf(d, c) });
+    // the price labels of levels close together give way to one another (a shape of this frame only)
+    const labels: Array<{ s: Extract<Shape, { k: "text" }>; style: DrawingStyle }> = [];
+    for (const { d, shapes } of frame) for (const s of shapes) if (s.k === "text" && s.stack) labels.push({ s, style: d.style });
+    if (labels.length > 1) declutter(labels, this.measure);
+    for (const { d, shapes } of frame) {
       const sel = this.selected.has(d.id);
-      drawShapes(ctx, this.shapesOf(d, c), d.style, c.W, c.H, { widthBoost: sel || d.id === this.hover ? 0.5 : 0 });
+      drawShapes(ctx, shapes, d.style, c.W, c.H, { widthBoost: sel || d.id === this.hover ? 0.5 : 0 });
     }
     for (const d of this.store.list) {
       if (d.pane !== view.pane || !this.selected.has(d.id) || !this.visible(d)) continue;

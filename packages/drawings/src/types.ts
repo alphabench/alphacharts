@@ -80,6 +80,11 @@ export type Shape =
       /** Border of the background box. */
       border?: string | null;
       pad?: number;
+      /**
+       * A label that gives way: when the pane draws it over another stacking label it is moved down just clear of it
+       * (the price labels of several levels close in price do not print over one another).
+       */
+      stack?: boolean;
     });
 
 // ---- tool context --------------------------------------------------------------

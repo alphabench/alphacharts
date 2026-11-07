@@ -4,6 +4,8 @@ import { NA, blank } from "./helpers.mjs";
 // swing high above the swing high before it (not every swing); a higher low is a swing low above the swing low before it. The mark is on the bar
 // that confirms the swing. Plain loops over the windows; nothing shared with the script's expression.
 export const inputs = { left: 3, right: 2 };
+// The marks are shifted back by `right` (offset=-right), so each sits on the swing bar itself while its column is true on the bar that confirms it.
+export const offsets = { "Higher high": -2, "Higher low": -2 };
 
 function marks(bars, { left, right }, everySwing = false) {
   const n = bars.high.length;
@@ -32,10 +34,10 @@ export function expected(bars, inp) {
   // The fixture only tests the formula if marking every swing gives other marks on these bars, and if some swing is not a higher one.
   if (JSON.stringify(good.hh) === JSON.stringify(every.hh) || JSON.stringify(good.hl) === JSON.stringify(every.hl))
     throw new Error("the seeded bars cannot tell a higher high or low from any swing");
-  const out = { "Higher high confirmed": blank(n), "Higher low confirmed": blank(n) };
+  const out = { "Higher high": blank(n), "Higher low": blank(n) };
   for (let i = 0; i < n; i++) {
-    if (good.hh[i]) out["Higher high confirmed"][i] = 1; // plotshape puts 1 on a marked bar and na elsewhere
-    if (good.hl[i]) out["Higher low confirmed"][i] = 1;
+    if (good.hh[i]) out["Higher high"][i] = 1; // plotshape puts 1 on a marked bar and na elsewhere
+    if (good.hl[i]) out["Higher low"][i] = 1;
   }
   return out;
 }

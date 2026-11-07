@@ -9,7 +9,7 @@ Each row: the message (`{...}` stands for text that varies), its cause, the fix.
 - `{name}() does not return a handle` — Only `plot` and `hline` return a handle. Fix: do not assign the others. [host]
 - `input.* may only be the whole right-hand side of a top-level declaration: name = input.int(...)` — An input is part of an expression. Fix: `n = input.int(5)` on its own, then use `n`.
 - `this must be a string literal` — A title or text depends on a variable. Fix: use a literal.
-- `this must be a number literal` — `linewidth`, `offset` or a bound is not a literal. Fix: write a number.
+- `this must be a number literal` — `linewidth`, `last`, `within` or a bound is not a literal. Fix: write a number. (`offset` may be an int input or an expression of them, `offset=-right`.)
 - `indicator() may be called only once` — Two `indicator` calls. Fix: keep one.
 - `overlay must be true or false` — `overlay=` got something else. Fix: `true` or `false`.
 - `color_down must be a constant color` — `color_down` is an input or expression. Fix: use a `color.*` constant.

@@ -319,6 +319,8 @@ are in [studies](../studies/SKILL.md): any `ta.<id>` that takes a `source` takes
   daily bars. Do not pass the chart's `close` to it.
 - Expecting today's daily bar on an intraday bar: only finished days are visible. Say so; "today so far" is the chart's own
   `high` and `low` from the day's first bar.
+- Not saying that a longer timeframe lags: a weekly RSI on a daily chart shows the last *finished* week's value, and changes
+  once a week, not each day. That is by design (nothing from after a bar is ever used), and the reply to the trader says so.
 - Today's open, or any of today's values, from a daily series: `outside(timeframe = "1d", field = "open")` on an intraday
   chart is **yesterday's** open, and on a daily chart it is the chart's own bar. Today's open is the open of the chart's
   first bar of the session, found by the change of the day number (the gap recipe in quant-recipes). The **previous** close

@@ -186,10 +186,11 @@ a bool or a price; combine a pattern study with a comparison, `ta.cdl_hammer() >
 
 ## 7. Constraints and correctness
 
-- Line widths, styles, titles and `hline` prices are literals or inputs, never series. `offset` is a number literal only: an input, even `-right`, is refused ("this must be a number literal"), so a shift cannot follow an input such as a swing's `right`; leave `offset` out and mark the bar that confirms. Colours are constants or
+- Line widths, styles, titles and `hline` prices are literals or inputs, never series. `offset` is a literal or a whole-number input expression known when the study is built (`offset=-right`), never a series. Colours are constants or
   inputs, except the `cond ? colorA : colorB` form of a line's colour.
 - `na` leaves a gap in a line and no bar in a histogram; it is never drawn as zero.
 - Fills, markers and plots shifted back in time (negative `offset`) are drawn on the overlay and do not take part in autoscale.
+- A mark shifted back by `right` sits on the swing bar itself, but it appears only when the swing is confirmed, `right` bars later, and stays put; the newest `right` bars show no mark. `last=` and `within=` count the marks where the condition fires (the confirming bar), before the shift.
 - One pane per script; scale differences between plots in the same pane are the user's problem, so split by units.
 - Titles name plots in the legend; keep them distinct.
 

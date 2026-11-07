@@ -56,6 +56,7 @@ export async function loadEngine(root = CHARTS_ROOT) {
     ScriptError: script.ScriptError,
     limits: script.DEFAULT_LIMITS,
     runStudy: ind.runStudy,
+    resolveParams: ind.resolveParams,
     StudyEngine: ind.StudyEngine,
     feedsOf: script.feedsOf,
     alignFor: script.alignFor,

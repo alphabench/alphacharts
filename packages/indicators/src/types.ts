@@ -39,8 +39,8 @@ export type PlotDef =
       color: string;
       width?: number;
       style?: LineStyleName;
-      /** Shift in bars (positive = into the future). Negative shifts and `connect` draw on the overlay. */
-      offset?: number;
+      /** Shift in bars (positive = into the future). Negative shifts and `connect` draw on the overlay. A function is worked out from the study's inputs (`-right`). */
+      offset?: number | ((p: Params) => number);
       /** Join across absent bars (drawn on the overlay). */
       connect?: boolean;
       /**
@@ -66,8 +66,8 @@ export type PlotDef =
       shape: MarkerShape;
       position: "value" | "above" | "below" | "sign";
       color: string;
-      /** Shift in bars (positive = into the future); Fractals confirm two bars late and shift back. */
-      offset?: number;
+      /** Shift in bars (positive = into the future); Fractals confirm two bars late and shift back. A function is worked out from the study's inputs (`-right`). */
+      offset?: number | ((p: Params) => number);
       /** Draw the value as text (pattern scores) instead of a shape. */
       text?: boolean;
       /** Keep only the most recent `last` marked bars. Decided from the finished columns each time they are drawn, so a tick or a batch gives the same marks. */

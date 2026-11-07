@@ -10,7 +10,7 @@ export { TemplateStore } from "./templates.js";
 export type { DrawingTemplate } from "./templates.js";
 export { DEFAULT_STYLE, SCHEMA_VERSION } from "./types.js";
 export type { Anchor, Dash, Drawing, DrawingStyle, DrawingsState, Gesture, Shape, Stroke, ToolCtx, ToolDef } from "./types.js";
-export { drawShapes, shapeDistance, shapeInRect, withAlpha } from "./shapes.js";
+export { declutter, drawShapes, shapeDistance, shapeInRect, withAlpha } from "./shapes.js";
 export * as geometry from "./geometry.js";
 
 export { allTools } from "./tools/all.js";

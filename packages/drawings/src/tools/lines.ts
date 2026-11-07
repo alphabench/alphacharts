@@ -59,10 +59,13 @@ export const horizontalLine = tool({
     const y = crisp(p.y, c.dpr, d.style.width);
     return [
       line({ x: 0, y }, { x: c.W, y }, { extA: true, extB: true }),
-      text(c.W - 6, y - 2, c.fmt(A(d, 0).price), { align: "right", base: "bottom", textColor: d.style.color, hit: false }),
+      text(c.W - 6, y - 2, c.fmt(A(d, 0).price), { align: "right", base: "bottom", textColor: d.style.color, hit: false, stack: true }),
     ];
   },
 });
+
+/** Pixels left of a horizontal ray's start a price label needs ("24579.90" at the default size). */
+const RAY_LABEL_ROOM = 72;
 
 export const horizontalRay = tool({
   id: "horizontalRay", label: "Horizontal ray", family: "lines", gesture: "single", anchors: 1,
@@ -71,7 +74,12 @@ export const horizontalRay = tool({
   shapes(d, c) {
     const p = px(c, A(d, 0));
     const y = crisp(p.y, c.dpr, d.style.width);
-    return [line({ x: p.x, y }, { x: p.x + 1, y }, { extB: true }), text(c.W - 6, y - 2, c.fmt(A(d, 0).price), { align: "right", base: "bottom", textColor: d.style.color, hit: false })];
+    // The price sits at the ray's left end, clear of the candles and the last-price tag at the right; a ray that
+    // starts at the pane's left edge has no room there, so its label sits above the line at the start.
+    const label = p.x >= RAY_LABEL_ROOM
+      ? text(p.x - 4, y, c.fmt(A(d, 0).price), { align: "right", base: "middle", textColor: d.style.color, hit: false, stack: true })
+      : text(Math.max(p.x, 0) + 4, y - 2, c.fmt(A(d, 0).price), { align: "left", base: "bottom", textColor: d.style.color, hit: false, stack: true });
+    return [line({ x: p.x, y }, { x: p.x + 1, y }, { extB: true }), label];
   },
 });
 

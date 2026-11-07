@@ -70,6 +70,29 @@ export function textBox(s: Extract<Shape, { k: "text" }>, style: DrawingStyle, m
   return { x, y, w, h };
 }
 
+/**
+ * Moves the `stack` labels of one pane apart: in order from the top, a label that overlaps one already placed is
+ * moved down until it clears it. Mutates the shapes (they are made anew for each frame); nothing else is touched.
+ */
+export function declutter(items: readonly { s: Extract<Shape, { k: "text" }>; style: DrawingStyle }[], measure: (text: string, font: string) => number): void {
+  const placed: TextBox[] = [];
+  const boxes = items.map((it) => ({ it, b: textBox(it.s, it.style, measure) })).sort((a, z) => a.b.y - z.b.y);
+  for (const { it, b } of boxes) {
+    let y = b.y;
+    for (let again = true, guard = 0; again && guard < 64; guard++) {
+      again = false;
+      for (const o of placed) {
+        if (b.x < o.x + o.w && o.x < b.x + b.w && y < o.y + o.h && o.y < y + b.h) {
+          y = o.y + o.h + 1;
+          again = true;
+        }
+      }
+    }
+    if (y !== b.y) it.s.y += y - b.y;
+    placed.push({ x: b.x, y, w: b.w, h: b.h });
+  }
+}
+
 /** Text widths by font, then text: measuring is the dearest part of drawing a label. */
 const widths = new Map<string, Map<string, number>>();
 let widthEntries = 0;

@@ -69,14 +69,14 @@ export function generate(plan: Plan, source: string, limits: Limits = DEFAULT_LI
         const when = sp.colorWhen ? `${sp.key}~when` : undefined;
         if (when) columns.push(when);
         colOfPlot.set(idx, sp.key);
-        plots.push({ kind: "line", ...base, col: sp.key, color, ...(sp.width !== undefined && { width: sp.width }), ...(sp.offset !== undefined && { offset: sp.offset }), ...(when && { colorBy: { col: when, color: sp.colorWhen!.color } }) });
+        plots.push({ kind: "line", ...base, col: sp.key, color, ...(sp.width !== undefined && { width: sp.width }), ...offsetOf(sp, plan, limits), ...(when && { colorBy: { col: when, color: sp.colorWhen!.color } }) });
         break;
       }
       case "barcolor": columns.push(sp.key); plots.push({ kind: "barcolor", ...base, col: sp.key, color }); break;
       case "bgcolor": columns.push(sp.key); plots.push({ kind: "bgcolor", ...base, col: sp.key, color }); break;
       case "histogram": columns.push(sp.key); plots.push({ kind: "histogram", ...base, col: sp.key, color, ...(sp.colorDown && { colorDown: sp.colorDown }) }); break;
       case "area": columns.push(sp.key); plots.push({ kind: "area", ...base, col: sp.key, color }); break;
-      case "markers": columns.push(sp.key); plots.push({ kind: "markers", ...base, col: sp.key, shape: sp.shape as "circle", position: sp.position as "above", color, ...(sp.offset !== undefined && { offset: sp.offset }), ...(sp.last !== undefined && { last: sp.last }), ...(sp.within !== undefined && { within: sp.within }) }); break;
+      case "markers": columns.push(sp.key); plots.push({ kind: "markers", ...base, col: sp.key, shape: sp.shape as "circle", position: sp.position as "above", color, ...offsetOf(sp, plan, limits), ...(sp.last !== undefined && { last: sp.last }), ...(sp.within !== undefined && { within: sp.within }) }); break;
       case "hline":
         // a fill between this level and another plot reads it as a column, constant on every bar
         if (sp.column) {
@@ -104,6 +104,21 @@ export function generate(plan: Plan, source: string, limits: Limits = DEFAULT_LI
     reference: "alphacharts script",
   };
   return { def, colorInputs };
+}
+
+/** A plot's `offset`: the number written, or the function of the study's inputs that works out the expression written (an int input, `-right`). */
+function offsetOf(sp: PlotSpec, plan: Plan, limits: Limits): { offset?: number | ((p: Params) => number) } {
+  if (sp.offsetExpr) {
+    const e = sp.offsetExpr;
+    return {
+      offset: (p: Params) => {
+        const v = new Builder(null, p, plan, limits).simpleNumber(e);
+        if (!Number.isInteger(v) || v < -5000 || v > 5000) throw new ScriptError(`offset must be a whole number between -5000 and 5000, got ${v}`, sp.span, "runtime");
+        return v;
+      },
+    };
+  }
+  return sp.offset !== undefined ? { offset: sp.offset } : {};
 }
 
 class Builder {

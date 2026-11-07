@@ -315,7 +315,7 @@ function checkExpect(rep, at, compiled, columns, spec) {
   }
 }
 
-async function checkFixture(rep, at, file, compiled, columns, bars, strict, ctx) {
+async function checkFixture(rep, at, file, compiled, columns, bars, strict, ctx, engine) {
   let mod;
   try {
     const st = statSync(file);
@@ -340,6 +340,14 @@ async function checkFixture(rep, at, file, compiled, columns, bars, strict, ctx)
     if (arr.length !== col.length) { rep.err(at, `fixture "${title}" has ${arr.length} values for ${col.length} bars`); continue; }
     const bad = arr.findIndex((v, i) => !same(col[i], v, tol));
     if (bad >= 0) rep.err(at, `plot "${title}" differs from the fixture at bar ${bad}: script ${col[bad]}, fixture ${arr[bad]}`);
+    else checked++;
+  }
+  // `offsets`: the bars each named plot is shifted by once the fixture's inputs are applied (`offset=-right` puts a mark on its pivot)
+  for (const [title, shift] of Object.entries(mod.offsets ?? {})) {
+    const plot = compiled.study.plots.find((p) => p.title === title && "col" in p);
+    if (!plot) { rep.err(at, `fixture offsets name plot "${title}", which the script does not draw`); continue; }
+    const got = typeof plot.offset === "function" ? plot.offset(engine.resolveParams(compiled.study, mod.inputs ?? {})) : (plot.offset ?? 0);
+    if (got !== shift) rep.err(at, `plot "${title}" is shifted by ${got} bars; the fixture says ${shift}`);
     else checked++;
   }
   if (strict || true) {
@@ -601,7 +609,7 @@ export async function validate(root, { strict = false, chartsRoot = CHARTS_ROOT 
         for (const w of code.match(/[A-Za-z_][A-Za-z0-9_.]*/g) ?? []) mentioned.add(w);
         checkDotted(rep, rel, code, tables);
         if (!s.checks.includes(fixtureRel)) { rep.err(rel, `a script needs a companion fixture ${fixtureRel} listed in checks`); continue; }
-        counters.fixtures += (await checkFixture(rep, rel, join(root, s.domain, fixtureRel), r.compiled, r.columns, r.bars, strict, r.ctx)) > 0 ? 1 : 0;
+        counters.fixtures += (await checkFixture(rep, rel, join(root, s.domain, fixtureRel), r.compiled, r.columns, r.bars, strict, r.ctx, engine)) > 0 ? 1 : 0;
       } else if (a.endsWith(".expected.mjs")) {
         const script = a.slice(0, -".expected.mjs".length) + SCRIPT_EXT;
         if (!s.assets.includes(script) && !s.checks.includes(script)) rep.err(rel, "fixture has no script of the same name in assets or checks");

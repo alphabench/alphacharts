@@ -167,8 +167,14 @@ export class Study {
     const kept: Record<string, InputValue> = { ...this.params };
     for (const k of reset) delete kept[k];
     const next = resolveParams(this.def, { ...kept, ...partial });
+    // A line whose shift is worked out from an input is in the pane or on the overlay by its sign; the series exists on one of them.
+    for (const plot of this.def.plots) {
+      if (plot.kind === "line" && typeof plot.offset === "function" && isOverlayLine(plot, this.params) !== isOverlayLine(plot, next))
+        throw new TypeError(`${plot.title}: this input would move its line between the pane and the overlay; add the study again`);
+    }
     const engine = new StudyEngine(this.def, next);
     this.params = next;
+    for (const o of this.outs) if (o.plot.kind === "line") o.offset = plotOffset(o.plot, next);
     this.engine = engine;
     this.retitle();
     this.recompute();
@@ -571,7 +577,7 @@ export class Study {
     for (const plot of this.def.plots) {
       switch (plot.kind) {
         case "line":
-          if (!isOverlayLine(plot)) add(plot, plot.key, "line", plot.col, plot.offset ?? 0);
+          if (!isOverlayLine(plot, this.params)) add(plot, plot.key, "line", plot.col, plotOffset(plot, this.params));
           break;
         case "histogram": add(plot, plot.key, "histogram", plot.col, 0); break;
         case "area": add(plot, plot.key, "area", plot.col, 0); break;
@@ -719,7 +725,7 @@ export class Study {
         case "band": fillBetween(ctx, lo, hi, step, X, Y, col(plot.upper), col(plot.lower), this.styles[plot.key]?.color ?? plot.fill, 0); break;
         case "fill": fillBetween(ctx, lo, hi, step, X, Y, col(plot.a), col(plot.b), this.styles[plot.key]?.color ?? plot.color, 0); break;
         case "line":
-          if (isOverlayLine(plot)) polyline(ctx, lo, hi, step, n, X, Y, col(plot.col), plot.offset ?? 0, !!plot.connect, this.color(plot), this.styles[plot.key]?.width ?? plot.width ?? 1.5);
+          if (isOverlayLine(plot, this.params)) polyline(ctx, lo, hi, step, n, X, Y, col(plot.col), plotOffset(plot, this.params), !!plot.connect, this.color(plot), this.styles[plot.key]?.width ?? plot.width ?? 1.5);
           break;
         case "markers": this.drawMarkers(ctx, plot, lo, hi, X, Y, col(plot.col), n); break;
         case "zigzag": zigzag(ctx, lo, hi, X, Y, col(plot.price), col(plot.back), times, this.color(plot), plot.width ?? 1.5); break;
@@ -729,7 +735,7 @@ export class Study {
   }
 
   private drawMarkers(ctx: CanvasRenderingContext2D, plot: Extract<PlotDef, { kind: "markers" }>, lo: number, hi: number, X: (j: number) => number, Y: (v: number) => number, col: Float64Array, n: number): void {
-    const off = plot.offset ?? 0;
+    const off = plotOffset(plot, this.params);
     const high = this.engine.graph.high.v, low = this.engine.graph.low.v;
     const color = this.color(plot);
     ctx.save();
@@ -763,8 +769,13 @@ export class Study {
 
 // ---- drawing helpers -----------------------------------------------------------------
 
-function isOverlayLine(p: Extract<PlotDef, { kind: "line" }>): boolean {
-  return (p.offset ?? 0) < 0 || !!p.connect;
+/** A plot's shift in bars: the number written, or the function of the study's inputs. */
+function plotOffset(p: Extract<PlotDef, { kind: "line" | "markers" }>, params: Params): number {
+  return typeof p.offset === "function" ? p.offset(params) : (p.offset ?? 0);
+}
+
+function isOverlayLine(p: Extract<PlotDef, { kind: "line" }>, params: Params): boolean {
+  return plotOffset(p, params) < 0 || !!p.connect;
 }
 
 function lowerBound(a: Float64Array, n: number, t: number): number {

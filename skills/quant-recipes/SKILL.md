@@ -77,7 +77,7 @@ Conventions every recipe follows:
 | Previous session's VWAP | the finished session's VWAP, held as a level | not `vwap[1]` |
 | Gap from the previous close | percent from the previous day's official (daily series) close to the session's first open, held all day | session-day rule; daily close on intraday, `close[1]` on daily |
 | Swing highs and lows | last and previous swing level, held | known `right` bars late |
-| Higher highs and higher lows | a mark on the bar that confirms a swing above the one before it | known `right` bars late; no `offset` |
+| Higher highs and higher lows | a mark on the swing bar of a swing above the one before it | the mark appears `right` bars after the swing, when it is confirmed; `offset=-right` |
 | VWAP anchored at the last swing low | VWAP from the swing low's bar | uses the swing recipe |
 | Kalman-style filter | recursive estimate of the close | `var` state |
 
@@ -314,8 +314,7 @@ plot(prevVwap, "Previous session VWAP", color.orange)
 ```
 
 **Swing highs and lows.** A bar is a swing high when it is the highest of the `left` bars before it, itself and the `right` bars after it.
-So it is known only `right` bars later, and every level below appears with that lag: the marker is on the confirming bar, not on the
-swing. The test is `high[right] == ta.highest(high, left + right + 1)`: the window ends on the current bar and the candidate sits `right`
+So it is known only `right` bars later, and every level below appears with that lag; the markers are shifted back by `right` to sit on the swing. The test is `high[right] == ta.highest(high, left + right + 1)`: the window ends on the current bar and the candidate sits `right`
 bars back in it. There is no swing function (`ta.pivot_points` is a session's floor-trader pivot). The last and the previous swing levels are held in `var` and step at each new swing. The default is `left = right = 5`; say so in the reply.
 
 <!-- skill: file: recipes/swing-points.acs -->
@@ -339,11 +338,11 @@ plot(lastHigh, "Last swing high", color.red)
 plot(prevHigh, "Previous swing high", color.maroon)
 plot(lastLow, "Last swing low", color.green)
 plot(prevLow, "Previous swing low", color.teal)
-plotshape(isHigh, "Swing high confirmed", shape.triangledown, location.abovebar, color.red)
-plotshape(isLow, "Swing low confirmed", shape.triangleup, location.belowbar, color.green)
+plotshape(isHigh, "Swing high", shape.triangledown, location.abovebar, color.red, offset=-right)
+plotshape(isLow, "Swing low", shape.triangleup, location.belowbar, color.green, offset=-right)
 ```
 
-**Higher highs and higher lows.** A higher high is a swing high above the swing high before it, a higher low a swing low above the swing low before it, not every swing. The mark sits on the bar that confirms the swing, `right` bars after it: `offset` is a number literal and cannot follow the `right` input, so leave it out and say so in the reply. For "the last three" add `last=3` to each `plotshape`.
+**Higher highs and higher lows.** A higher high is a swing high above the swing high before it, a higher low a swing low above the swing low before it, not every swing. Mark the swing bar with `offset=-right`: the mark appears `right` bars later, when the swing is confirmed, and never moves. For "the last three" add `last=3` to each `plotshape`; with only two swings there are two marks.
 
 <!-- skill: file: recipes/higher-highs.acs -->
 ```alphacharts
@@ -364,8 +363,8 @@ if isLow
     lastLow := low[right]
 higherHigh = isHigh and not na(prevHigh) and lastHigh > prevHigh
 higherLow = isLow and not na(prevLow) and lastLow > prevLow
-plotshape(higherHigh, "Higher high confirmed", shape.arrowdown, location.abovebar, color.green)
-plotshape(higherLow, "Higher low confirmed", shape.arrowup, location.belowbar, color.green)
+plotshape(higherHigh, "Higher high", shape.arrowdown, location.abovebar, color.green, offset=-right)
+plotshape(higherLow, "Higher low", shape.arrowup, location.belowbar, color.green, offset=-right)
 ```
 
 **VWAP anchored at the last swing low.** The average runs from the swing low's own bar to the current bar and restarts at each new

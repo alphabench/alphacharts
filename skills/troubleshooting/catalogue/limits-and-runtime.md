@@ -10,6 +10,7 @@ Each row: the message (`{...}` stands for text that varies), its cause, the fix.
 - `loop bounds must be finite and the step non-zero` — A dynamic bound or step turned out `na`, infinite or 0. Fix: guard with `nz` and a non-zero step.
 - `this loop would run {trips} times; the limit is {maxIt} iterations per loop` — Dynamic bounds exceed 10,000 iterations. Fix: cap the bound, e.g. a `math.min` of the bound and 1000.
 - `{what} must be an integer between {min} and {max}, got {v}` — A computed length, offset or bound fell outside its integer range, e.g. `ta.sma(close, n * 5000)`. Fix: keep it within 1 to 5000.
+- `offset must be a whole number between -5000 and 5000, got {v}` — An `offset=` worked out from inputs (`offset=-right`) is outside the range for the inputs chosen. Fix: bound the input (`maxval`) to 5000. Raised when the chart draws the plot, not when the script is read. [host]
 - `{what} must be a number between {min} and {max}, got {v}` — A computed multiple fell outside its range (`ta.bb` mult 0 to 100). Fix: keep it inside.
 - `{inp.key} of {sig.name} must be an integer{...}{...}, got {v}` — A computed study parameter is not a whole number inside its range. Fix: keep the parameter an int within the reference range.
 - `{inp.key} of {sig.name} must be a number{...}{...}, got {v}` — A computed study parameter is outside its range. Fix: keep within the reference range.

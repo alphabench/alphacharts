@@ -174,6 +174,8 @@ export const VALID: string[] = [
   "plot(close, style=plot.style_area)",
   "plot(close, offset=-2)",
   "plot(close, offset=3)",
+  "r = input.int(5, \"Right\", minval=1, maxval=50)\nplot(close, offset=-r)",
+  "r = input.int(5, \"Right\", minval=1, maxval=50)\nplotshape(close > open, \"Up\", offset=-(r + 1), last=3)",
   "p1 = plot(ta.sma(close, 10))\np2 = plot(ta.sma(close, 20))\nfill(p1, p2, color=color.new(color.blue, 80))",
   "hline(50)\nhline(30, \"Low\", color.red, hline.style_dotted)\nplot(ta.rsi(close, 14))",
   "up = hline(70)\nlo = hline(30)\nfill(up, lo)\nplot(ta.rsi(close, 14))",

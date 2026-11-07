@@ -15,5 +15,5 @@ if isLow
     lastLow := low[right]
 higherHigh = isHigh and not na(prevHigh) and lastHigh > prevHigh
 higherLow = isLow and not na(prevLow) and lastLow > prevLow
-plotshape(higherHigh, "Higher high confirmed", shape.arrowdown, location.abovebar, color.green)
-plotshape(higherLow, "Higher low confirmed", shape.arrowup, location.belowbar, color.green)
+plotshape(higherHigh, "Higher high", shape.arrowdown, location.abovebar, color.green, offset=-right)
+plotshape(higherLow, "Higher low", shape.arrowup, location.belowbar, color.green, offset=-right)

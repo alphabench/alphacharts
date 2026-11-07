@@ -43,6 +43,8 @@ export interface PlotSpec {
   width?: number;
   lineStyle?: string;
   offset?: number;
+  /** A bar shift written as an expression known when the study is built (`-right`): an int input or a literal combination of them. Wins over `offset`. */
+  offsetExpr?: Expr;
   /** Series plotted (line/histogram/area/markers), the price of an hline, or the condition of a barcolor / bgcolor. */
   expr?: Expr;
   /** fill: indexes into the plots. */
@@ -716,6 +718,15 @@ class Checker {
     return undefined;
   }
 
+  /** `offset=`: a literal, or an int expression of literals and inputs, worked out when the study is built (the series is shifted by it, so `-right` puts a pivot's mark on the pivot bar). */
+  private offsetArg(e: Expr | null | undefined): { offset?: number; offsetExpr?: Expr } {
+    if (!e) return {};
+    const v = this.constVal(e);
+    if (typeof v === "number") return { offset: v };
+    if (e.ty && e.ty !== ERR && e.ty.b === "int" && simple(e.ty)) return { offsetExpr: e };
+    return {};
+  }
+
   private indicator(c: Call, bound: (Expr | null)[]): Ty {
     if (this.sawIndicator) this.err("indicator() may be called only once", c);
     this.sawIndicator = true;
@@ -763,7 +774,7 @@ class Checker {
     const title = this.str(b[1]) ?? `Plot ${n + 1}`;
     const style = (b[4] ? (this.constVal(b[4]) as string | undefined) : undefined) ?? "line";
     const width = this.int(b[3]);
-    const offset = this.int(b[5]);
+    const shift = this.offsetArg(b[5]);
     const down = b[6] ? this.colorRef(b[6], "#f23645") : undefined;
     if (down && "input" in down) this.err("color_down must be a constant color", b[6]!);
     const dflt = ["#2962ff", "#ff6d00", "#089981", "#f23645", "#9c27b0", "#fbc02d"][n % 6]!;
@@ -780,7 +791,7 @@ class Checker {
     } else color = this.colorRef(ce, dflt);
     this.plan.plots.push({
       kind: style as "line", key: this.nextKey(title, n + 1), title, color, expr: b[0]!,
-      ...(width !== undefined && { width }), ...(offset !== undefined && { offset }),
+      ...(width !== undefined && { width }), ...shift,
       ...(down && "value" in down && { colorDown: down.value }), ...(colorWhen && { colorWhen }), span: c,
     });
     return t("plot");
@@ -867,10 +878,10 @@ class Checker {
       else if (xt.b !== "bool" && loc !== "value") this.err("plotshape marks bars where a bool is true; for a number use location=location.absolute", x);
       else if (xt.b !== "bool" && !isNum(xt)) this.err(`plotshape needs a bool or a number, got ${show(xt)}`, x);
     }
-    const offset = this.int(b[5]);
+    const shift = this.offsetArg(b[5]);
     const last = this.int(b[6]);
     const within = this.int(b[7]);
-    this.plan.plots.push({ kind: "markers", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[4], "#2962ff"), expr: x, shape, position: loc, ...(offset !== undefined && { offset }), ...(last !== undefined && { last }), ...(within !== undefined && { within }), span: c });
+    this.plan.plots.push({ kind: "markers", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[4], "#2962ff"), expr: x, shape, position: loc, ...shift, ...(last !== undefined && { last }), ...(within !== undefined && { within }), span: c });
     return t("void");
   }
 
