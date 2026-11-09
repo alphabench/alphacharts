@@ -68,3 +68,28 @@ describe("niceTicks", () => {
     expect(niceTicks(3, 3, 5).ticks).toEqual([]);
   });
 });
+
+describe("PriceFormatter at the edges", () => {
+  it("never shows a minus sign on a value that rounds to zero", () => {
+    const cent = new PriceFormatter(0.01);
+    expect([cent.format(-0.004), cent.format(-0.0049), cent.format(-0), cent.format(0.004)]).toEqual(["0.00", "0.00", "0.00", "0.00"]);
+    expect(new PriceFormatter(1).format(-0.4)).toBe("0");
+    // a value that still rounds to a nonzero tick keeps its sign
+    expect(cent.format(-0.005)).toBe("-0.01");
+    expect(cent.format(-0.01)).toBe("-0.01");
+  });
+
+  it("shows exactly the multiples of the tick, whatever the tick (exact decimal arithmetic)", () => {
+    for (const mm of [0.01, 0.05, 0.25, 0.5, 1, 0.001, 0.0001]) {
+      const f = new PriceFormatter(mm);
+      for (let k = -3000; k <= 3000; k += 7) {
+        // k ticks, written exactly: k * mm computed in integers of the finest unit
+        const unit = 10 ** f.decimals, scaled = Math.round(mm * unit) * k; // integer count of 10^-decimals units
+        const sign = scaled < 0 ? "-" : "";
+        const abs = Math.abs(scaled).toString().padStart(f.decimals + 1, "0");
+        const want = f.decimals ? `${sign}${abs.slice(0, -f.decimals)}.${abs.slice(-f.decimals)}` : `${sign}${abs}`;
+        expect(f.format(k * mm), `${k} ticks of ${mm}`).toBe(want === "-0" || /^-0\\.0+$/.test(want) ? want.slice(1) : want);
+      }
+    }
+  });
+});

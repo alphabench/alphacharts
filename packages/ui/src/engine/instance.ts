@@ -39,6 +39,11 @@ export interface InstanceHost {
   alertFired(inst: ChartInstance, t: AlertTrigger): void;
   hostTheme(): Theme;
   magnet(): MagnetMode;
+  /** Whether the magnet also snaps to the values of indicators drawn on the price pane. */
+  snapIndicators(): boolean;
+  /** Ctrl/Cmd+Z in a chart: the app's undo, which spans studies and drawings. Returns whether it undid something. */
+  undoRequested(): boolean;
+  redoRequested(): boolean;
 }
 
 export interface StudyState {
@@ -49,6 +54,15 @@ export interface StudyState {
   styles: Record<string, { color?: string; width?: number }>;
   userHidden: boolean;
   intervals: string[] | null;
+}
+
+interface StudyAction {
+  id: string;
+  /** Clock values: when the action was done and when it was last undone. */
+  doneAt: number;
+  undoneAt?: number;
+  /** The state to put back (the study was removed), or null (the study was added: undo removes it). */
+  state: StudyState | null;
 }
 
 interface Slot {
@@ -94,7 +108,8 @@ export interface InstanceEvents {
   drawing: { kind: "created" | "changed" | "removed"; drawing: Drawing };
 }
 
-const COMPARE_COLORS = ["#f7a600", "#7e57c2", "#26c6da", "#ec407a", "#8bc34a"];
+/** Compared symbols take the theme's palette (colour slots), after the main series' own. */
+const COMPARE_COLORS = ["chart-2", "chart-3", "chart-4", "chart-5", "chart-1"];
 const EMPTY_DRAWINGS: DrawingsState = { version: 1, drawings: [] };
 const EMPTY_ALERTS: SavedAlerts = { version: 1, alerts: [] };
 
@@ -160,6 +175,9 @@ export class ChartInstance {
   private offRange: () => void;
   private switchedScale = false;
   private disposed = false;
+  get isDisposed(): boolean {
+    return this.disposed;
+  }
   private alertSeq = 0;
   readonly alertMeta = new Map<string, { createdAt: number }>();
 
@@ -183,7 +201,7 @@ export class ChartInstance {
   private installAnalysis(holdAlerts = false): void {
     const intervalMs = intervalId(this.interval);
     const d = new DrawingsPlugin({
-      tools: this.host.tools, source: this.raw, interval: intervalMs, store: this.host.store, magnet: this.host.magnet(),
+      tools: this.host.tools, source: this.raw, interval: intervalMs, store: this.host.store, magnet: this.host.magnet(), clock: this.clock, onUndo: () => this.host.undoRequested(), onRedo: () => this.host.redoRequested(), snapValues: (t) => (this.host.snapIndicators() ? this.overlayValuesAt(t) : []),
       onError: (e) => this.host.report(e),
     });
     this.chart.addPlugin(d);
@@ -497,14 +515,30 @@ export class ChartInstance {
     switch (id) {
       case "candles":
         break;
-      case "bars": case "hiLo": case "columns": {
-        const t = { bars: "bars", hiLo: "hi-lo", columns: "columns" }[id];
+      case "bars": case "hiLo": case "columns": case "hollowCandles": {
+        const t = { bars: "bars", hiLo: "hi-lo", columns: "columns", hollowCandles: "hollow-candles" }[id];
         add(t, {}).setData(cols as never);
         break;
       }
-      case "line": case "area": case "stepLine": {
-        const t = { line: "line", area: "area", stepLine: "step-line" }[id];
+      case "line": case "area": case "stepLine": case "lineMarkers": {
+        const t = { line: "line", area: "area", stepLine: "step-line", lineMarkers: "line-markers" }[id];
         add(t, {}).setData(value as never);
+        break;
+      }
+      case "hlcArea": {
+        // The close as an area, with the high and the low as lines above and below it.
+        const area = add("area", {});
+        area.setData(value as never);
+        const edge = { title: "", lastValueVisible: false, priceLineVisible: false };
+        const hi = add("line", edge), lo = add("line", edge);
+        hi.setData({ time: cols!.time, value: cols!.high } as never);
+        lo.setData({ time: cols!.time, value: cols!.low } as never);
+        // A live tick moves the three together: the close under the area, the high and the low on their lines.
+        this.derivedSync = (bar) => {
+          area.update({ time: bar.time, value: bar.close } as never);
+          hi.update({ time: bar.time, value: bar.high } as never);
+          lo.update({ time: bar.time, value: bar.low } as never);
+        };
         break;
       }
       case "baseline": {
@@ -713,7 +747,7 @@ export class ChartInstance {
         if (this.footprintHandle && s === (this.footprintHandle.series as never)) continue;
         if (this.derivedSync) continue;
         const type = s.type as string;
-        if (type === "line" || type === "area" || type === "step-line" || type === "baseline") s.update({ time: bar.time, value: bar.close } as never);
+        if (type === "line" || type === "area" || type === "step-line" || type === "baseline" || type === "line-markers") s.update({ time: bar.time, value: bar.close } as never);
         else s.update(bar as never);
       }
       this.derivedSync?.(bar);
@@ -822,7 +856,125 @@ export class ChartInstance {
     return study;
   }
 
-  private restoreStudy(s: StudyState): void {
+  /**
+   * The values at bar `time` of every visible study drawn on the price pane (its line and band columns): what the magnet may
+   * snap to when "snap to indicators" is on. A study in its own pane has another scale and is left out.
+   */
+  private overlayValuesAt(time: number): number[] {
+    const out: number[] = [];
+    for (const s of this.slots) {
+      const def = s.study.def;
+      if (def.pane !== "overlay" || s.userHidden || !s.study.visible) continue;
+      const times = s.study.times();
+      const i = floorIndex(times, time);
+      if (i < 0 || times[i] !== time) continue;
+      const cols = new Set<string>();
+      for (const p of def.plots) {
+        if (p.kind === "line") cols.add(p.col);
+        else if (p.kind === "band") { cols.add(p.upper); cols.add(p.lower); }
+      }
+      for (const c of cols) {
+        const v = s.study.column(c)[i]!;
+        if (Number.isFinite(v)) out.push(v);
+      }
+    }
+    return out;
+  }
+
+  /** The saved state of study `id` (null when there is none): what undo of a removal puts back. */
+  studyState(id: string): StudyState | null {
+    return this.studyStates().find((s) => s.id === id) ?? null;
+  }
+
+  // ---- undo and redo of adding and removing studies --------------------------------------------------------------------------------
+
+  private studyUndoStack: StudyAction[] = [];
+  private studyRedoStack: StudyAction[] = [];
+  private seq = 0;
+  /** One growing number for this chart's whole undo history, drawings and studies alike: the order things happened in. */
+  readonly clock = (): number => ++this.seq;
+
+  /** Drop the study history (a layout was loaded: its studies are not the ones the stacks refer to). */
+  private clearStudyHistory(): void {
+    this.studyUndoStack = [];
+    this.studyRedoStack = [];
+  }
+
+  get canUndoStudy(): boolean {
+    return this.studyUndoStack.length > 0;
+  }
+  get canRedoStudy(): boolean {
+    return this.studyRedoStack.length > 0;
+  }
+
+  get canUndoAny(): boolean {
+    return this.canUndoStudy || (this.drawings?.canUndo ?? false);
+  }
+  get canRedoAny(): boolean {
+    return this.canRedoStudy || (this.drawings?.canRedo ?? false);
+  }
+
+  /** Record that study `id` was added (state = null) or removed (its state, to put back). A new action drops the study redo stack. */
+  recordStudyAction(id: string, removedState: StudyState | null): void {
+    this.studyUndoStack.push({ id, state: removedState, doneAt: this.clock() });
+    if (this.studyUndoStack.length > 100) this.studyUndoStack.shift();
+    this.studyRedoStack = [];
+  }
+
+  /** Undo whichever change, a study's or a drawing's, was made last. False when there is nothing, or the study could not be put back. */
+  undoLatest(): boolean {
+    const d = this.drawings?.nextUndoAt() ?? -1;
+    const s = this.studyUndoStack.at(-1)?.doneAt ?? -1;
+    if (d < 0 && s < 0) return false;
+    return s > d ? this.undoStudy() : (this.drawings?.undo() ?? false);
+  }
+
+  /** Redo whichever change was undone last. A study undone before the newest drawing change is no longer redoable (a new change ends the redo line). */
+  redoLatest(): boolean {
+    const newest = this.drawings?.nextUndoAt() ?? -1;
+    this.studyRedoStack = this.studyRedoStack.filter((a) => (a.undoneAt ?? 0) > newest);
+    const d = this.drawings?.nextRedoAt() ?? -1;
+    const s = this.studyRedoStack.at(-1)?.undoneAt ?? -1;
+    if (d < 0 && s < 0) return false;
+    return s > d ? this.redoStudy() : (this.drawings?.redo() ?? false);
+  }
+
+  private undoStudy(): boolean {
+    const a = this.studyUndoStack.at(-1);
+    if (!a) return false;
+    const inverse = this.invertStudyAction(a);
+    if (!inverse) return false; // it could not be done: the entry stays, nothing is lost
+    this.studyUndoStack.pop();
+    inverse.undoneAt = this.clock();
+    this.studyRedoStack.push(inverse);
+    return true;
+  }
+
+  private redoStudy(): boolean {
+    const a = this.studyRedoStack.at(-1);
+    if (!a) return false;
+    const inverse = this.invertStudyAction(a);
+    if (!inverse) return false;
+    this.studyRedoStack.pop();
+    inverse.doneAt = this.clock();
+    this.studyUndoStack.push(inverse);
+    return true;
+  }
+
+  /** Do the opposite of `a` (remove what was added, put back what was removed) and return the action that undoes that; null when it cannot be done. */
+  private invertStudyAction(a: StudyAction): StudyAction | null {
+    if (a.state === null) {
+      const state = this.studyState(a.id);
+      if (!state) return null; // the study is already gone
+      this.removeStudy(a.id);
+      return { id: a.id, state, doneAt: 0 };
+    }
+    if (!this.restoreStudy(a.state)) return null;
+    return { id: a.id, state: null, doneAt: 0 };
+  }
+
+  /** Put a saved study back; false (after reporting why) when it cannot be. */
+  private restoreStudy(s: StudyState): boolean {
     try {
       const study = this.addStudy(this.host.studyDef(s.study), s.inputs, s.id);
       for (const [k, st] of Object.entries(s.styles)) study.setStyle(k, st);
@@ -830,8 +982,10 @@ export class ChartInstance {
       slot.userHidden = s.userHidden;
       slot.intervals = s.intervals;
       this.applyStudyVisibility();
+      return true;
     } catch (e) {
       this.host.report(e);
+      return false;
     }
   }
 
@@ -1029,6 +1183,7 @@ export class ChartInstance {
     if (s.studySeq !== undefined) this.studiesPlugin.reserveIds(s.studySeq);
     this.typeParams = { ...s.typeParams };
     this.styles = structuredClone(s.styles);
+    this.clearStudyHistory();
     this.drawStash.clear();
     this.alertStash.clear();
     for (const [k, v] of Object.entries(s.drawings)) this.drawStash.set(k, v);

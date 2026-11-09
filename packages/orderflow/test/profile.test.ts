@@ -196,3 +196,46 @@ describe("session boundaries", () => {
     expect(() => daySessions("Nowhere/Land")).toThrow(RangeError);
   });
 });
+
+describe("value area: the market-profile rule, on random volumes", () => {
+  // a seeded generator, so a failure names its case
+  const rng = (seed: number) => () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const pocOfArr = (v: number[]) => v.reduce((best, x, i) => (x > v[best]! ? i : best), 0);
+
+  /** The market-profile rule written out separately: from the POC, add the two rows above or the two below, whichever pair holds more volume (the upper pair on a tie), until the area holds the target share. */
+  function reference(v: number[], poc: number, pct: number): [number, number] {
+    const total = v.reduce((a, b) => a + b, 0);
+    let lo = poc, hi = poc, acc = v[poc]!;
+    while (acc < total * pct && !(lo === 0 && hi === v.length - 1)) {
+      const upPair = (v[hi + 1] ?? 0) + (v[hi + 2] ?? 0), downPair = (lo >= 1 ? v[lo - 1]! : 0) + (lo >= 2 ? v[lo - 2]! : 0);
+      const canUp = hi < v.length - 1, canDown = lo > 0;
+      if (canUp && (!canDown || upPair >= downPair)) { acc += upPair; hi = Math.min(v.length - 1, hi + 2); }
+      else { acc += downPair; lo = Math.max(0, lo - 2); }
+    }
+    return [lo, hi];
+  }
+
+  it("equals the written-out rule on 400 random volume columns, always holds the POC and reaches the target share", async () => {
+    const { valueArea } = await import("../src/profile.js");
+    const r = rng(7);
+    for (let run = 0; run < 400; run++) {
+      const n = 3 + Math.floor(r() * 40);
+      const v = Array.from({ length: n }, () => Math.floor(r() * 100));
+      if (v.every((x) => x === 0)) continue;
+      const poc = pocOfArr(v), pct = [0.5, 0.7, 0.9][run % 3]!;
+      const [lo, hi] = valueArea(v, poc, pct);
+      expect([lo, hi], `run ${run}`).toEqual(reference(v, poc, pct));
+      const total = v.reduce((a, b) => a + b, 0);
+      expect(lo <= poc && poc <= hi, `run ${run}: the POC is inside`).toBe(true);
+      expect(v.slice(lo, hi + 1).reduce((x, y) => x + y, 0), `run ${run}: reaches ${pct} of ${total}`).toBeGreaterThanOrEqual(total * pct - 1e-9);
+    }
+  });
+
+  it("takes the side with the larger pair of rows, and the upper side on a tie", async () => {
+    const { valueArea } = await import("../src/profile.js");
+    // rows 0..6 with POC at 3: above 3 is 5+5 = 10, below is 2+2 = 4: the first step goes up
+    expect(valueArea([1, 2, 2, 20, 5, 5, 1], 3, 0.6)).toEqual([3, 5]);
+    // equal pairs: the upper side first
+    expect(valueArea([1, 4, 4, 20, 4, 4, 1], 3, 0.6)).toEqual([3, 5]);
+  });
+});

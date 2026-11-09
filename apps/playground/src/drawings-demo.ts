@@ -19,7 +19,8 @@ export const CATALOG_GROUPS: Record<string, string[]> = {
   patterns: ["patterns", "elliott"],
 };
 
-const PALETTE = ["#2962ff", "#ff9800", "#26a69a", "#e91e63", "#9c27b0", "#00bcd4", "#8bc34a", "#f23645"];
+// colour slots: drawn with the chart theme's colours (see resolveColor in @alphacharts/core)
+const PALETTE = ["foreground", "chart-2", "chart-3", "chart-4", "chart-5", "chart-1"];
 
 type UV = Array<[number, number]>;
 

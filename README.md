@@ -44,7 +44,7 @@ Version 0.1.x (`@alphacharts/core`, `indicators` and `drawings` 0.1.1; the other
   else is opt-in, so a bundler keeps only what you import.
 - **Live data built in.** `series.update(bar)` for ticks, `series.prepend(bars)` for history paging, and
   `connectDatafeed` to drive a series from a datafeed.
-- **A whole workbench.** 82 drawing tools, 211 technical studies (run in a Web Worker), alerts, Heikin-Ashi, Renko,
+- **A whole workbench.** 90 drawing tools, 227 technical studies (run in a Web Worker), alerts, Heikin-Ashi, Renko,
   Kagi and point-and-figure, footprint, volume profile and TPO.
 - **Frameworks.** Components and hooks for React, Vue 3 and Svelte 5, or use the plain TypeScript API.
 - **Typed and strict.** Written in TypeScript. Bad input throws an error that names the problem.
@@ -228,6 +228,88 @@ createPlot(el, { watermark: { visible: false } });
 // or keep it and fade it: { watermark: { opacity: 0.5 } }
 ```
 
+## Theming
+
+alphacharts is themed the way a shadcn/ui app is: with shadcn's CSS variables. Its default look is shadcn's Luma
+preset (neutral greys, black in dark mode), and a page that already defines shadcn tokens gets charts that match it,
+with nothing else to configure.
+
+```ts
+createChart(el, { theme: "inherit" });          // the page's variables at `el`, followed live (a .dark switch, the OS)
+createPlot(el, { theme: "inherit", ...spec });
+createChartApp(el, { datafeed, symbol, interval }); // the full UI: "inherit" is its default
+```
+
+`"dark"` and `"light"` are the Luma palettes, fixed; `"auto"` follows the OS; an object is a custom theme.
+
+### The variables
+
+Each is read at the chart's element, so two parts of one page can theme their charts differently by defining the
+variables under two selectors (an application and a research panel, say):
+
+```css
+.app      { --background: #f7f7f7; --foreground: #0a0a0a; --primary: #0a0a0a; --radius: 0rem; /* … */ }
+.research { --background: oklch(0.985 0.004 80); --primary: oklch(0.45 0.08 50); --radius: 0.625rem; }
+.dark .research { --background: oklch(0 0 0); /* … */ }
+```
+
+| Variable | Used for |
+|---|---|
+| `--background`, `--foreground`, `--muted-foreground`, `--border` | the chart's background, text, axis text, grid and borders |
+| `--primary` | the accent: alert levels, the shade outside trading hours |
+| `--chart-1` … `--chart-5` | the data palette: studies, Fibonacci levels, compared symbols, plot series |
+| `--chart-up`, `--chart-down` | rising and falling bars (not shadcn tokens; default emerald and red) |
+| `--font-sans` | the chart's font |
+| `--card`, `--popover`, `--secondary`, `--muted`, `--accent`, `--destructive` (each with `-foreground`), `--input`, `--ring`, `--radius` | the UI shell (`@alphacharts/ui`): menus, dialogs, buttons, fields |
+
+Any CSS colour is read: `oklch()`, `hsl()`, `color-mix()`, hex, and shadcn v3's bare `H S% L%`.
+
+**Precedence**, first one set wins: `--ac-<token>` (an override for the chart only: `--ac-background`,
+`--ac-chart-up`, `--ac-radius` …), then the shadcn token, then Luma for the page's light or dark mode. The chart-only
+keys shadcn has no token for are `--ac-grid`, `--ac-crosshair`, `--ac-label-background`, `--ac-label-text` and
+`--ac-extended-hours`. `THEME_VARIABLES` (core) lists every name the chart reads.
+
+Under `"inherit"` the chart reads these names whatever the page means by them: a page that uses `--muted` or
+`--border` for something else should name its own variables differently, pass a fixed theme, or set the `--ac-*`
+overrides.
+
+### Colour slots
+
+A data colour can name a role instead of a value: `"chart-1"` … `"chart-5"`, `"chart-up"`, `"chart-down"`,
+`"muted"` or `"foreground"`, with an optional opacity (`"chart-2/0.35"`). It draws with the chart's current theme and
+changes when the theme does. The built-in studies, drawing tools and order-flow defaults use slots; so can you, in
+series options, price lines, markers and drawing styles:
+
+```ts
+chart.addSeries("line", { color: "chart-2" });
+chart.createPriceLine(series, { price: 100, color: "muted" });
+```
+
+`resolveColor(color, theme)` gives the colour a slot draws with.
+
+### The UI shell
+
+`@alphacharts/ui` is built like shadcn's components, in the Luma style, and is restyled the same three ways:
+
+1. **Tokens.** The variables above, plus radius roles derived from `--radius` (`--ac-radius-control` for buttons and
+   toggles, `--ac-radius-field`, `--ac-radius-surface`, `--ac-radius-dialog`, `--ac-radius-item`, `--ac-radius-tooltip`),
+   and `--ac-control-height`, `--ac-control-height-sm`, `--ac-icon-size`, `--ac-font-sans`.
+2. **One component.** Every element carries shadcn's `data-slot`, `data-variant`, `data-size` and `data-state`, and a
+   CSS `part` of its slot's name:
+   ```css
+   alpha-chart-app::part(dropdown-menu-item) { font-weight: 400; }
+   ```
+   or, inside the shadow root, through the `styles` option, which comes after the built-in sheet and wins without
+   `!important`:
+   ```ts
+   createChartApp(el, { ..., styles: '[data-slot="button"][data-variant="ghost"]:hover { background: var(--c-accent); }' });
+   ```
+3. **The whole stylesheet.** `@alphacharts/ui/styles.css` is the built-in sheet as a file. Copy it, edit it like a
+   shadcn component's source, and pass it with `stylesheet: "none", styles: myCss`.
+
+Icons are Lucide's (shadcn's icon set) plus our own for the drawing tools; `icons: { trendLine: "M4 20 20 4" }`
+replaces any of them by name.
+
 ## Packages
 
 | Package | What it is |
@@ -237,8 +319,8 @@ createPlot(el, { watermark: { visible: false } });
 | [`@alphacharts/react`](packages/react) | `<Chart>`, `<Series>`, `<PriceLine>`, `<Dashboard>`, `<SyncGroup>`, hooks; `/plot` has `<Plot>` |
 | [`@alphacharts/vue`](packages/vue) | `<AcChart>`, `<AcSeries>`, `<AcPriceLine>`, `<AcDashboard>`, `<AcSyncGroup>`, composables |
 | [`@alphacharts/svelte`](packages/svelte) | Svelte 5 components (runes), same surface |
-| [`@alphacharts/indicators`](packages/indicators) | 211 studies (TA-Lib's catalogue plus TradingView's built-ins), an incremental engine and a Web Worker runner |
-| [`@alphacharts/drawings`](packages/drawings) | 82 drawing tools, undo and redo, magnet, templates |
+| [`@alphacharts/indicators`](packages/indicators) | 227 studies (TA-Lib's catalogue plus TradingView's built-ins), an incremental engine and a Web Worker runner |
+| [`@alphacharts/drawings`](packages/drawings) | 90 drawing tools, undo and redo, magnet, templates |
 | [`@alphacharts/alerts`](packages/alerts) | An alert evaluator (pure, runs without a chart) and a chart plugin |
 | [`@alphacharts/chart-types`](packages/chart-types) | Baseline, step, columns, hi-lo, dots, bricks, Kagi, P&F; Heikin-Ashi, Renko, range, line break, tick, volume and dollar bars |
 | [`@alphacharts/orderflow`](packages/orderflow) | Trade store, footprint, volume profile, TPO, cumulative volume delta |
@@ -319,7 +401,6 @@ prices, data, GPU strings or anything stored. Exact fields are listed in [the pa
 
 - The Canvas2D fallback is not benchmarked, so do not assume WebGL-level performance on very large series. Use a
   `Dashboard` when you need many charts at once.
-- Price scales are linear only (log, percent and indexed are not built yet).
 - A bar's high and low are drawn as given; the library does not check `high >= max(open, close)`.
 - A series' line has a gap where it has no bar on the shared timeline.
 - The API is pre-1.0 and may change between minor versions.

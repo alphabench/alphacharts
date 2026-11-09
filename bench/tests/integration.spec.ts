@@ -308,7 +308,7 @@ test.describe("behaviour", () => {
       };
     });
     expect(r.styles.slice(0, 5)).toEqual(["solid", "dashed", "dotted", "large-dashed", "sparse-dotted"]);
-    expect(r.label).toBe("#1b5e20");
+    expect(r.label).toBe("chart-up"); // kept as given: a colour slot, drawn with the theme's up colour
     expect(r.w3).toContain("lineWidth must be 1 or 2");
     expect(r.w15).toContain("lineWidth");
     expect(r.style).toContain("lineStyle");

@@ -8,7 +8,7 @@ const len = (def: number) => int("length", def, 1, 5000);
 
 export const sma = defineStudy({
   id: "sma", name: "Simple Moving Average", family: "overlap", needs: "value", pane: "overlay",
-  inputs: [len(9), source()], columns: ["sma"], plots: [line("sma", COLORS.blue)],
+  inputs: [len(9), source()], columns: ["sma"], plots: [line("sma", COLORS.neutral)],
   label: (p) => `${p.length}`,
   build: (g, p) => [g.sma(g.src(p.source), p.length)],
   reference: "TA-Lib SMA",
@@ -24,7 +24,7 @@ export const ema = defineStudy({
 
 export const wma = defineStudy({
   id: "wma", name: "Weighted Moving Average", family: "overlap", needs: "value", pane: "overlay",
-  inputs: [len(9), source()], columns: ["wma"], plots: [line("wma", COLORS.green)],
+  inputs: [len(9), source()], columns: ["wma"], plots: [line("wma", COLORS.teal)],
   label: (p) => `${p.length}`,
   build: (g, p) => [g.wma(g.src(p.source), p.length)],
   reference: "TA-Lib WMA",
@@ -75,7 +75,7 @@ export const t3 = defineStudy({
 
 export const ma = defineStudy({
   id: "ma", name: "Moving Average", family: "overlap", needs: "value", pane: "overlay",
-  inputs: [len(30), source(), select("type", "sma", MA_TYPES)], columns: ["ma"], plots: [line("ma", COLORS.blue)],
+  inputs: [len(30), source(), select("type", "sma", MA_TYPES)], columns: ["ma"], plots: [line("ma", COLORS.neutral)],
   label: (p) => `${p.type.toUpperCase()} ${p.length}`,
   build: (g, p) => [genericMa(g, p.type as MaType, g.src(p.source), p.length)],
   reference: "TA-Lib MA (types SMA, EMA, WMA, DEMA, TEMA, TRIMA, KAMA, T3; RMA is Wilder's)",
@@ -85,7 +85,7 @@ export const bbands = defineStudy({
   id: "bbands", name: "Bollinger Bands", family: "overlap", needs: "value", pane: "overlay",
   inputs: [len(20), source(), float("multUp", 2, 0, 100, 0.1), float("multDn", 2, 0, 100, 0.1), select("maType", "sma", MA_TYPES)],
   columns: ["upper", "middle", "lower"],
-  plots: [band("band", "upper", "lower", COLORS.blue, "rgba(41,98,255,0.10)", "Bands"), line("middle", COLORS.orange)],
+  plots: [band("band", "upper", "lower", COLORS.neutral, "chart-1/0.1", "Bands"), line("middle", COLORS.orange)],
   label: (p) => `${p.length}, ${p.multUp}`,
   build: (g, p) => {
     const x = g.src(p.source);
@@ -115,7 +115,7 @@ export const bbpb = defineStudy({
 export const bbw = defineStudy({
   id: "bbw", name: "Bollinger Bands Width", family: "overlap", needs: "value", pane: "new",
   inputs: [len(20), source(), float("mult", 2, 0, 100, 0.1)], columns: ["bbw"],
-  plots: [line("bbw", COLORS.blue, { title: "BBW" })],
+  plots: [line("bbw", COLORS.neutral, { title: "BBW" })],
   label: (p) => `${p.length}, ${p.mult}`,
   build: (g, p) => {
     const x = g.src(p.source);

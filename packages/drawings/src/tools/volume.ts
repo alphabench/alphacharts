@@ -54,7 +54,7 @@ function cachedVwap(src: BarSource, start: number): VwapSeries {
 
 export const anchoredVwapTool = tool({
   id: "anchoredVwap", label: "Anchored VWAP", family: "volume", gesture: "single", anchors: 1, needsSource: true,
-  defaults: () => ({ style: { color: "#ff9800" } }),
+  defaults: () => ({ style: { color: "chart-2" } }),
   validate: finiteAnchors,
   shapes(d, c) {
     if (!c.source) throw new Error("anchoredVwap needs a BarSource");
@@ -138,35 +138,62 @@ function rangeBars(d: Drawing, src: BarSource): [number, number] {
   return [lo, hi];
 }
 
+const rowsOf = (d: Drawing): void => {
+  const r = d.props.rows;
+  if (typeof r !== "number" || !Number.isInteger(r) || r < 1 || r > 500) throw new RangeError(`drawings: ${d.tool} "${d.id}" prop "rows" must be an integer in 1..500`);
+};
+
+/** The histogram of a profile between bars [lo, hi), drawn from `left` to `right` with the widest row at 60% of that width (at least `minWidth`). */
+function profileShapes(d: Drawing, c: Parameters<NonNullable<ToolDef["shapes"]>>[1], lo: number, hi: number, left: number, right: number, title: string, minWidth = 0): Shape[] {
+  const vp = volumeProfile(c.source!, lo, hi, d.props.rows as number);
+  const maxW = Math.max(minWidth, (right - left) * 0.6);
+  const maxV = vp.volumes[vp.poc]!;
+  const out: Shape[] = [line({ x: left, y: 0 }, { x: left, y: c.H }, { dash: "dotted", width: 1, extA: true, extB: true })];
+  if (right > left) out.push(line({ x: right, y: 0 }, { x: right, y: c.H }, { dash: "dotted", width: 1, extA: true, extB: true }));
+  vp.volumes.forEach((v, r) => {
+    if (v === 0 || maxV === 0) return;
+    const yTop = c.Y(vp.low + (r + 1) * vp.rowHeight), yBot = c.Y(vp.low + r * vp.rowHeight);
+    const w = (v / maxV) * maxW;
+    const pts: Pt[] = [{ x: left, y: yTop }, { x: left + w, y: yTop }, { x: left + w, y: yBot }, { x: left, y: yBot }];
+    out.push(poly(pts, { close: true, fill: withAlpha(r === vp.poc ? "chart-2" : d.style.color, r === vp.poc ? 0.6 : 0.35), width: 0 }));
+  });
+  out.push(text(left + 4, 4, title, { base: "top", size: 10, textColor: d.style.color, hit: false }));
+  return out;
+}
+
 export const volumeProfileTool = tool({
   id: "volumeProfile", label: "Fixed range volume profile (bar-level approximation)", family: "volume", gesture: "drag", anchors: 2, needsSource: true,
   defaults: () => ({ props: { rows: 24 } }),
   validate(d) {
     finiteAnchors(d);
     needDistinctTimes(d, 0, 1);
-    const r = d.props.rows;
-    if (typeof r !== "number" || !Number.isInteger(r) || r < 1 || r > 500) throw new RangeError(`drawings: volumeProfile "${d.id}" prop "rows" must be an integer in 1..500`);
+    rowsOf(d);
   },
   shapes(d, c) {
     if (!c.source) throw new Error("volumeProfile needs a BarSource");
     const [lo, hi] = rangeBars(d, c.source);
-    const rows = d.props.rows as number;
-    const vp = volumeProfile(c.source, lo, hi, rows);
     const xa = c.X(A(d, 0).time), xb = c.X(A(d, 1).time);
-    const left = Math.min(xa, xb), right = Math.max(xa, xb);
-    const maxW = (right - left) * 0.6;
-    const maxV = vp.volumes[vp.poc]!;
-    const out: Shape[] = [line({ x: left, y: 0 }, { x: left, y: c.H }, { dash: "dotted", width: 1, extA: true, extB: true }), line({ x: right, y: 0 }, { x: right, y: c.H }, { dash: "dotted", width: 1, extA: true, extB: true })];
-    vp.volumes.forEach((v, r) => {
-      if (v === 0 || maxV === 0) return;
-      const yTop = c.Y(vp.low + (r + 1) * vp.rowHeight), yBot = c.Y(vp.low + r * vp.rowHeight);
-      const w = (v / maxV) * maxW;
-      const pts: Pt[] = [{ x: left, y: yTop }, { x: left + w, y: yTop }, { x: left + w, y: yBot }, { x: left, y: yBot }];
-      out.push(poly(pts, { close: true, fill: withAlpha(r === vp.poc ? "#ff9800" : d.style.color, r === vp.poc ? 0.6 : 0.35), width: 0 }));
-    });
-    out.push(text(left + 4, 4, "Volume profile (bar-level approximation)", { base: "top", size: 10, textColor: d.style.color, hit: false }));
-    return out;
+    return profileShapes(d, c, lo, hi, Math.min(xa, xb), Math.max(xa, xb), "Volume profile (bar-level approximation)");
   },
 });
 
-export const volumeTools: ToolDef[] = [anchoredVwapTool, volumeProfileTool];
+/** The same profile from one anchor to the last bar: it grows with the data. */
+export const anchoredVolumeProfileTool = tool({
+  id: "anchoredVolumeProfile", label: "Anchored volume profile (bar-level approximation)", family: "volume", gesture: "single", anchors: 1, needsSource: true,
+  defaults: () => ({ props: { rows: 24 } }),
+  validate(d) {
+    finiteAnchors(d);
+    rowsOf(d);
+  },
+  shapes(d, c) {
+    if (!c.source) throw new Error("anchoredVolumeProfile needs a BarSource");
+    const start = startIndex(c.source, A(d, 0).time);
+    if (start === null || start >= c.source.length) return [];
+    const left = c.X(A(d, 0).time), right = c.X(c.source.at(c.source.length - 1).time);
+    // A profile of one bar has no price span to speak of: draw nothing until there are two bars to profile.
+    if (c.source.length - start < 2) return [];
+    return profileShapes(d, c, start, c.source.length, left, right, "Anchored volume profile (bar-level approximation)", 40);
+  },
+});
+
+export const volumeTools: ToolDef[] = [anchoredVwapTool, volumeProfileTool, anchoredVolumeProfileTool];

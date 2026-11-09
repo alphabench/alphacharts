@@ -57,7 +57,7 @@ One generated file per family, each line `ta.<id>(parameters) -> outputs · plac
 **Index by purpose.** Open the file of the family in brackets.
 
 - Moving averages (overlap, tv): `ta.sma ta.ema ta.wma ta.dema ta.tema ta.trima ta.kama ta.t3 ta.ma ta.mama ta.hma
-  ta.alma ta.lsma ta.smma ta.vwma ta.mcginley ta.ma_ribbon ta.ma_cross ta.ht_trendline`. `ta.ma(source, length, type)`
+  ta.alma ta.hamming_ma ta.guppy ta.ma_ema_cross ta.ma_channel ta.lsma ta.smma ta.vwma ta.mcginley ta.ma_ribbon ta.ma_cross ta.ht_trendline`. `ta.ma(source, length, type)`
   picks the kind by string.
 - Bands and channels (overlap, tv): `ta.bbands ta.bbpb ta.bbw ta.envelopes ta.keltner ta.donchian ta.price_channel
   ta.chande_kroll_stop ta.linreg_channel ta.ichimoku ta.alligator`. Bollinger with defaults is
@@ -67,13 +67,13 @@ One generated file per family, each line `ta.<id>(parameters) -> outputs · plac
 - Momentum oscillators (momentum, tv): `ta.rsi ta.stochrsi ta.stoch ta.stochf ta.stoch_tv ta.macd ta.macdext ta.macdfix
   ta.ppo ta.apo ta.mom ta.roc ta.rocp ta.rocr ta.rocr100 ta.cmo ta.cci ta.willr ta.ultosc ta.trix ta.tsi ta.kst
   ta.coppock ta.connors_rsi ta.fisher ta.awesome ta.accelerator ta.bull_bear_power ta.dpo ta.schaff_tc ta.smi_ergodic
-  ta.rvi_vigor ta.rank_corr ta.bop`.
+  ta.rvi_vigor ta.rank_corr ta.bop ta.smi`.
 - Trend strength and direction (momentum, tv): `ta.adx ta.adxr ta.dx ta.plus_di ta.minus_di ta.plus_dm ta.minus_dm
-  ta.aroon ta.aroonosc ta.vortex ta.choppiness`.
+  ta.aroon ta.aroonosc ta.vortex ta.choppiness`. `ta.trend_strength` (statistic) is the correlation of the closes with bar position, +1 in a straight rise.
 - Volatility (volatility, tv, statistic): `ta.atr ta.natr ta.trange ta.adr ta.hist_vol ta.stddev ta.var
-  ta.rvi_volatility ta.mass_index`. For a plain rolling deviation use the kernels `ta.stdev` and `ta.variance`.
+  ta.rvi_volatility ta.mass_index ta.chaikin_vol ta.ulcer_index ta.std_error ta.vol_close_to_close ta.vol_zero_trend ta.vol_parkinson ta.vol_garman_klass ta.vol_rogers_satchell`. For a plain rolling deviation use the kernels `ta.stdev` and `ta.variance`.
 - Volume (volume, tv): `ta.volume ta.obv ta.ad ta.adosc ta.mfi ta.chaikin_mf ta.elder_force ta.eom ta.klinger
-  ta.net_volume ta.pvt ta.volume_osc ta.vwap ta.anchored_vwap`. `ta.vwap` is the **Session VWAP**: it restarts at each session (day, or week,
+  ta.net_volume ta.pvt ta.volume_24h ta.volume_osc ta.vwap ta.anchored_vwap ta.rvol`. `ta.vwap` is the **Session VWAP**: it restarts at each session (day, or week,
   month, year by `anchor`), which is what VWAP means on an intraday chart; it is never one running average over the whole chart. For a start
   you choose use `ta.anchored_vwap`.
 - Annualisation (tv): `ta.bars_per_year(source, utcOffsetMinutes)` is the built-in series `bars_per_year`; give it an outside series to count that series' bars.

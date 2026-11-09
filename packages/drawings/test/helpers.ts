@@ -2,6 +2,7 @@
 // recording 2D context, and one valid drawing per tool.
 
 import type { PluginApi, PluginPaneView, PluginPointer } from "@alphacharts/core";
+import { LUMA_DARK } from "@alphacharts/core";
 import { ArrayBarSource } from "../src/source.js";
 import { DrawingsPlugin, type DrawingsOptions, type NewDrawing } from "../src/plugin.js";
 import { allTools } from "../src/tools/all.js";
@@ -67,6 +68,7 @@ export function fakeApi(panes = 1): FakeChart {
       paneView: (p) => view(p),
       barTimeAtOrBefore: (t) => (t < T0 ? undefined : T0 + Math.floor((t - T0) / STEP) * STEP),
       setCursor: (c) => { state.cursor = c; },
+      theme: LUMA_DARK,
     },
   };
   return state;
@@ -136,6 +138,8 @@ const FIXTURES: Record<string, NewDrawing> = {
   regressionTrendChannel: { tool: "regressionTrendChannel", anchors: [k(10, 100), k(120, 100)] },
   volumeProfile: { tool: "volumeProfile", anchors: [k(10, 100), k(120, 100)] },
   anchoredVwap: { tool: "anchoredVwap", anchors: [k(30, 110)] },
+  table: { tool: "table", anchors: [], props: { fx: 0.2, fy: 0.3, cells: [["Entry", "100"], ["Stop", "95"]] } },
+  icon: { tool: "icon", anchors: ONE, props: { glyph: "★" } },
   anchoredText: { tool: "anchoredText", anchors: [], props: { fx: 0.3, fy: 0.4 } },
   anchoredNote: { tool: "anchoredNote", anchors: [], props: { fx: 0.6, fy: 0.3 } },
   fibSpeedFan: { tool: "fibSpeedFan", anchors: TWO },

@@ -6,6 +6,8 @@
 // the bars, the markers are only annotations on them).
 
 import { parseColor } from "../render/color.js";
+import { isColorSlot, resolveColor } from "./slots.js";
+import type { Theme } from "./theme.js";
 
 export type MarkerShape = "arrowUp" | "arrowDown" | "circle";
 export type MarkerPosition = "aboveBar" | "belowBar";
@@ -49,7 +51,7 @@ export function checkMarkers(markers: readonly SeriesMarker[], hasBar: (time: nu
       ids.add(m.id);
     }
     try {
-      parseColor(m.color);
+      if (!isColorSlot(m.color)) parseColor(m.color);
     } catch (e) {
       throw new Error(`alphacharts: ${name(m, i)} has a bad colour: ${(e as Error).message}`);
     }
@@ -134,11 +136,11 @@ export function placeMarkers(inp: PlaceInput): PlacedMarker[] {
 }
 
 /** Draw placed markers on a pane context (CSS px). */
-export function drawMarkers(ctx: CanvasRenderingContext2D, placed: readonly PlacedMarker[]): void {
+export function drawMarkers(ctx: CanvasRenderingContext2D, placed: readonly PlacedMarker[], theme: Theme): void {
   ctx.textAlign = "center";
   for (const p of placed) {
     const m = p.marker, r = p.size / 2;
-    ctx.fillStyle = m.color;
+    ctx.fillStyle = resolveColor(m.color, theme);
     ctx.beginPath();
     switch (m.shape) {
       case "circle":

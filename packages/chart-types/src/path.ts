@@ -10,7 +10,8 @@
 //           Which extreme came first inside a bar is NOT in OHLC data; this is
 //           the usual convention (the move to the nearer-to-close extreme last)
 //           and it only matters when one bar crosses levels on both sides, e.g.
-//           a Renko bar that is a brick up and a brick down at once. Every price
+//           a Renko bar that is a brick up and a brick down at once. Set `barSource = "close"` to read only closes
+//           (TradingView's default source for these chart types). Every price
 //           visited is a real bar price, none is interpolated. For an exact
 //           build, feed trades.
 //
@@ -89,8 +90,19 @@ export abstract class PathTransform {
     return Math.min(from, this.store.length);
   }
 
+  /**
+   * What a source bar contributes to the price path. "ohlc" (the default): open, the nearer-to-close extreme, the other
+   * extreme, close, which lets a single bar cross levels on both sides. "close": the close alone, which is how TradingView's
+   * Renko, Kagi and Point and Figure read bars by default, so the two charts show the same bricks, reversals and columns.
+   */
+  barSource: "ohlc" | "close" = "ohlc";
+
   protected acceptBar(b: OhlcBar): void {
     const t = b.time;
+    if (this.barSource === "close") {
+      this.point(t, b.close);
+      return;
+    }
     this.point(t, b.open);
     if (b.close >= b.open) {
       this.point(t, b.low);

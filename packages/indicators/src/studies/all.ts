@@ -15,9 +15,10 @@ import * as patterns from "./patterns.js";
 import * as tvTrend from "./tv-trend.js";
 import * as tvOsc from "./tv-osc.js";
 import * as tvVolume from "./tv-volume.js";
+import * as tvStat from "./tv-stat.js";
 
 const isStudy = (x: unknown): x is StudyDef => typeof x === "object" && x !== null && "build" in x && "columns" in x && "plots" in x;
 
-export const ALL_STUDIES: readonly StudyDef[] = [overlap, momentum, volume, volatility, price, statistic, math, cycle, sar, patterns, tvTrend, tvOsc, tvVolume].flatMap((m) =>
+export const ALL_STUDIES: readonly StudyDef[] = [overlap, momentum, volume, volatility, price, statistic, math, cycle, sar, patterns, tvTrend, tvOsc, tvVolume, tvStat].flatMap((m) =>
   Object.values(m).filter(isStudy),
 );

@@ -58,7 +58,8 @@
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "fixtures:reference": "python3 scripts/gen_resample_reference.py"
   },
   "devDependencies": {
     "typescript": "5.9.3",

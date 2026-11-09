@@ -14,6 +14,7 @@
 //   onError once per distinct message and skipped; the rest keep drawing.
 
 import type { ChartPlugin, LayoutStore, PluginApi, PluginPaneView, PluginPointer } from "@alphacharts/core";
+import { resolveColor } from "@alphacharts/core";
 import { Emitter } from "./emitter.js";
 import { dist } from "./geometry.js";
 import { AddCommand, BatchCommand, clone, DrawingStore, History, PatchCommand, RemoveCommand, ReorderCommand, type Command } from "./history.js";
@@ -33,6 +34,20 @@ export interface DrawingsOptions {
   /** Current chart interval in ms (for per-interval visibility); default: the source's. */
   interval?: number;
   magnet?: MagnetMode;
+  /**
+   * More prices the magnet may snap to at a bar, beside its open, high, low and close: the values of an indicator drawn on
+   * the price pane, for example. Asked with the time of the nearest bar; return nothing for none. Only read while the
+   * magnet is weak or strong.
+   */
+  snapValues?: (barTime: number) => readonly number[];
+  /**
+   * Orders this plugin's undo history against another history the host keeps (indicators added and removed): a function
+   * that returns a larger number each time it is called. `nextUndoAt` and `nextRedoAt` then say which history to take from.
+   */
+  clock?: () => number;
+  /** Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z or Y call these instead of the plugin's own `undo` and `redo` (the host's history spans more than drawings). */
+  onUndo?: () => boolean;
+  onRedo?: () => boolean;
   /** Stay in the tool after a drawing is finished. */
   continuous?: boolean;
   /**
@@ -117,7 +132,7 @@ export class DrawingsPlugin implements ChartPlugin {
   private api: PluginApi | null = null;
   private readonly tools = new Map<string, ToolDef>();
   private readonly store = new DrawingStore();
-  private readonly history = new History(this.store);
+  private readonly history: History;
   private readonly selected = new Set<string>();
   private hover: string | null = null;
   private tool: string | null = null;
@@ -135,6 +150,7 @@ export class DrawingsPlugin implements ChartPlugin {
   private measureCanvas: CanvasRenderingContext2D | null | undefined;
 
   constructor(private readonly options: DrawingsOptions) {
+    this.history = new History(this.store, 500, options.clock);
     this.id = options.id ?? "drawings";
     for (const t of options.tools) {
       if (this.tools.has(t.id)) throw new Error(`drawings: tool "${t.id}" registered twice`);
@@ -291,6 +307,32 @@ export class DrawingsPlugin implements ChartPlugin {
     return clone(d);
   }
 
+  /**
+   * Create several drawings as one undo step. Every spec is built and validated first, so either all are added or none is
+   * (nothing reaches the history, the events or the redo stack on a refusal). Returns copies.
+   */
+  addMany(specs: readonly NewDrawing[]): Drawing[] {
+    const adds: Command[] = [];
+    const made: Drawing[] = [];
+    const ids = new Set<string>();
+    let at = this.store.list.length;
+    for (const [i, spec] of specs.entries()) {
+      try {
+        const view = this.api && (spec.pane ?? 0) < this.api.paneCount ? this.api.paneView(spec.pane ?? 0) : null;
+        const d = this.build(spec, spec.anchors ?? [], view);
+        if (this.store.get(d.id) || ids.has(d.id)) throw new Error(`id "${d.id}" is already used`);
+        this.validate(d);
+        ids.add(d.id);
+        adds.push(new AddCommand(d, at++));
+        made.push(d);
+      } catch (e) {
+        throw new Error(`drawings: addMany: drawing ${i + 1} of ${specs.length} is invalid: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+      }
+    }
+    if (adds.length) this.exec(new BatchCommand("add", adds));
+    return made.map(clone);
+  }
+
   /** Change a drawing (programmatic: locks do not apply). */
   update(id: string, patch: DrawingPatch): Drawing {
     const before = clone(this.store.require(id));
@@ -354,6 +396,16 @@ export class DrawingsPlugin implements ChartPlugin {
     if (dropped) this.events.emit("selected", this.selection());
     this.events.emit("history", { canUndo: this.history.canUndo, canRedo: this.history.canRedo });
     this.render();
+  }
+
+  /** When the drawing change `undo` would take back was made, by `options.clock`; null when there is none. */
+  nextUndoAt(): number | null {
+    return this.peekUndo()?.doneAt ?? null;
+  }
+
+  /** When the drawing change `redo` would put back was last undone; null when there is none. */
+  nextRedoAt(): number | null {
+    return this.peekRedo()?.undoneAt ?? null;
   }
 
   undo(): boolean {
@@ -680,7 +732,8 @@ export class DrawingsPlugin implements ChartPlugin {
     if (!bar) return raw;
     const bx = v.timeToX(bar.time);
     let best: { price: number; d: number } | null = null;
-    for (const p of [bar.open, bar.high, bar.low, bar.close]) {
+    for (const p of [bar.open, bar.high, bar.low, bar.close, ...(this.options.snapValues?.(bar.time) ?? [])]) {
+      if (!Number.isFinite(p)) continue;
       const d = Math.abs(v.priceToY(p) - e.y);
       if (!best || d < best.d) best = { price: p, d };
     }
@@ -690,6 +743,9 @@ export class DrawingsPlugin implements ChartPlugin {
   }
 
   // ---- drawing ------------------------------------------------------------------------
+
+  /** A colour, or a colour slot as the chart's theme draws it. */
+  private readonly resolveColor = (c: string): string => (this.api ? resolveColor(c, this.api.theme) : c);
 
   drawPane(ctx: CanvasRenderingContext2D, view: PluginPaneView): void {
     const c = this.ctxFor(view);
@@ -701,7 +757,7 @@ export class DrawingsPlugin implements ChartPlugin {
     if (labels.length > 1) declutter(labels, this.measure);
     for (const { d, shapes } of frame) {
       const sel = this.selected.has(d.id);
-      drawShapes(ctx, shapes, d.style, c.W, c.H, { widthBoost: sel || d.id === this.hover ? 0.5 : 0 });
+      drawShapes(ctx, shapes, d.style, c.W, c.H, { widthBoost: sel || d.id === this.hover ? 0.5 : 0, resolve: this.resolveColor });
     }
     for (const d of this.store.list) {
       if (d.pane !== view.pane || !this.selected.has(d.id) || !this.visible(d)) continue;
@@ -711,7 +767,7 @@ export class DrawingsPlugin implements ChartPlugin {
         ctx.fillStyle = "#ffffff";
         ctx.fill();
         ctx.lineWidth = 1.5;
-        ctx.strokeStyle = d.style.color;
+        ctx.strokeStyle = this.resolveColor(d.style.color);
         ctx.stroke();
       }
     }
@@ -720,12 +776,12 @@ export class DrawingsPlugin implements ChartPlugin {
       const d = this.previewDrawing(cr);
       if (d) {
         ctx.save();
-        drawShapes(ctx, this.shapesOf(d, c), d.style, c.W, c.H);
+        drawShapes(ctx, this.shapesOf(d, c), d.style, c.W, c.H, { resolve: this.resolveColor });
         ctx.restore();
         for (const a of cr.anchors) {
           ctx.beginPath();
           ctx.arc(c.X(a.time), c.Y(a.price), 3.5, 0, Math.PI * 2);
-          ctx.fillStyle = d.style.color;
+          ctx.fillStyle = this.resolveColor(d.style.color);
           ctx.fill();
         }
       }
@@ -733,8 +789,8 @@ export class DrawingsPlugin implements ChartPlugin {
     const b = this.drag;
     if (b?.kind === "box" && b.pane === view.pane) {
       ctx.save();
-      ctx.strokeStyle = "#2962ff";
-      ctx.fillStyle = "rgba(41,98,255,0.12)";
+      ctx.strokeStyle = "#8a8a8a";
+      ctx.fillStyle = "rgba(138,138,138,0.12)";
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 3]);
       ctx.fillRect(Math.min(b.x0, b.x1), Math.min(b.y0, b.y1), Math.abs(b.x1 - b.x0), Math.abs(b.y1 - b.y0));
@@ -1083,8 +1139,8 @@ export class DrawingsPlugin implements ChartPlugin {
       this.remove(ids);
       return true;
     }
-    if (mod && (k === "z" || k === "Z")) return e.shiftKey ? this.redo() : this.undo();
-    if (mod && (k === "y" || k === "Y")) return this.redo();
+    if (mod && (k === "z" || k === "Z")) return e.shiftKey ? (this.options.onRedo ?? (() => this.redo()))() : (this.options.onUndo ?? (() => this.undo()))();
+    if (mod && (k === "y" || k === "Y")) return (this.options.onRedo ?? (() => this.redo()))();
     if (mod && (k === "c" || k === "C")) {
       if (this.selected.size === 0) return false;
       this.copy();

@@ -32,6 +32,8 @@ import { cancelRender, LAYER_ALL, LAYER_BG, LAYER_GL, LAYER_OVERLAY, requestRend
 import { Series } from "./series.js";
 import { seriesType, type SeriesOptions, type SeriesType } from "./series-types.js";
 import { DARK, HIGH_CONTRAST, LIGHT, systemTheme, type Theme } from "./theme.js";
+import { themeFromCss, watchTheme } from "./theme-css.js";
+import { paletteOf, sameTheme } from "./slots.js";
 import { defaultMessages, type ChartMessages } from "./messages.js";
 import { Sessions, type SessionSpec } from "../data/session.js";
 import { parseResolution, Resampler } from "../data/resample.js";
@@ -126,7 +128,7 @@ export const DEFAULT_KEYMAP: Record<KeyAction, string[]> = {
 
 export type ChartOptionsInput = {
   [K in keyof ChartOptions]?: K extends "theme"
-    ? Theme | "dark" | "light" | "high-contrast" | "auto" | Partial<Theme>
+    ? Theme | "dark" | "light" | "high-contrast" | "auto" | "inherit" | Partial<Theme>
     : K extends "sessions" | "resolution" | "messages" | "timeLabel"
       ? ChartOptions[K]
       : ChartOptions[K] extends object | undefined
@@ -161,6 +163,8 @@ export interface VisibleRangeEvent {
 }
 
 export interface ChartEvents {
+  /** The chart's theme changed (applyOptions, the page's CSS variables under "inherit", or the OS under "auto"). */
+  themeChange: Theme;
   crosshairMove: CrosshairEvent;
   click: CrosshairEvent;
   dblclick: CrosshairEvent;
@@ -189,8 +193,10 @@ const SEPARATOR = 1;
 const AXIS_PAD = 6;
 const MIN_AXIS_W = 48;
 
-function resolveTheme(t: ChartOptionsInput["theme"], base: Theme): Theme {
+function resolveTheme(t: ChartOptionsInput["theme"], base: Theme, host?: Element): Theme {
   if (t === undefined) return base;
+  // The page's own CSS variables at the chart's container (shadcn names; see theme-css.ts).
+  if (t === "inherit") return host ? themeFromCss(host) : base;
   if (t === "dark") return DARK;
   if (t === "light") return LIGHT;
   if (t === "high-contrast") return HIGH_CONTRAST;
@@ -198,8 +204,10 @@ function resolveTheme(t: ChartOptionsInput["theme"], base: Theme): Theme {
   const theme = { ...base, ...t };
   // A colour the renderer cannot read fails here, at the call, not in a frame.
   for (const k of Object.keys(theme) as (keyof Theme)[]) {
-    if (k !== "fontFamily" && k !== "fontSize") parseColor(theme[k] as string);
+    if (k === "palette") theme.palette!.forEach((c) => parseColor(c));
+    else if (k !== "fontFamily" && k !== "fontSize") parseColor(theme[k] as string);
   }
+  if (theme.palette) paletteOf(theme);
   return theme;
 }
 
@@ -271,9 +279,10 @@ export class Chart implements Renderable {
    * standalone chart creates its own.
    */
   constructor(container: HTMLElement, options: ChartOptionsInput = {}, layers?: (root: HTMLElement, events: SurfaceEvents) => Layers) {
+    this.container = container;
     try {
       this.opts = {
-        theme: resolveTheme(options.theme, DARK),
+        theme: resolveTheme(options.theme, DARK, container),
         timeZone: options.timeZone ?? "UTC",
         locale: options.locale,
         timeScale: { ...DEFAULT_TIME_SCALE, ...options.timeScale },
@@ -334,6 +343,8 @@ export class Chart implements Renderable {
       this.watchSystem();
       this.syncCountdown();
       this.measure();
+      // Last: an observer started before something above threw would outlive the chart that failed.
+      if (options.theme === "inherit") this.followPage(container);
     } catch (error) {
       emitFault({ source: "ctor", error });
       throw error;
@@ -404,7 +415,7 @@ export class Chart implements Renderable {
     const prev = this.opts;
     // Build everything that can throw before committing any of it.
     const tz = o.timeZone !== undefined ? new TimeZone(o.timeZone) : this.tz;
-    const theme = resolveTheme(o.theme, prev.theme);
+    const theme = resolveTheme(o.theme, prev.theme, this.container);
     if (o.rightPriceScale) checkPriceScaleOptions(o.rightPriceScale);
     if (o.leftPriceScale) checkPriceScaleOptions(o.leftPriceScale);
     const watermark = { ...prev.watermark, ...o.watermark };
@@ -425,7 +436,11 @@ export class Chart implements Renderable {
     };
     Object.assign(this.time.options, this.opts.timeScale);
     if (o.keymap) this.opts.keymap = { ...prev.keymap, ...o.keymap };
-    if (o.theme !== undefined) this.autoTheme = o.theme === "auto";
+    if (o.theme !== undefined) {
+      this.autoTheme = o.theme === "auto";
+      this.unfollowPage();
+      if (o.theme === "inherit") this.followPage(this.container);
+    }
     if (o.sessions !== undefined) this.sessions = o.sessions ? new Sessions(o.sessions) : null;
     if (o.resolution !== undefined || o.sessions !== undefined || o.timeZone !== undefined) {
       this.resampler = this.opts.resolution ? new Resampler(parseResolution(this.opts.resolution), this.opts.sessions ? { sessions: this.opts.sessions } : { timeZone: this.opts.timeZone }) : null;
@@ -438,7 +453,7 @@ export class Chart implements Renderable {
     }
     if (o.rightPriceScale && "minWidth" in o.rightPriceScale) this.axisCols.right = [];
     if (o.leftPriceScale && "minWidth" in o.leftPriceScale) this.axisCols.left = [];
-    if (o.theme !== undefined) for (const p of this.panes) for (const s of p.series) s.themeChanged(this.opts.theme);
+    if (o.theme !== undefined && !sameTheme(theme, prev.theme)) this.retheme();
     for (const p of this.panes) {
       for (const [id, sc] of p.scales) {
         if (id === "right" && o.rightPriceScale) sc.options = { ...this.opts.rightPriceScale };
@@ -537,6 +552,7 @@ export class Chart implements Renderable {
     this.resizeObs.disconnect();
     this.dprQuery?.removeEventListener("change", this.onDpr);
     for (const q of this.mediaQueries) q.removeEventListener("change", this.onSystem);
+    this.unfollowPage();
     clearInterval(this.countdownTimer);
     clearTimeout(this.tableTimer);
     for (const p of this.panes) for (const s of p.series) s.renderer?.dispose();
@@ -675,7 +691,7 @@ export class Chart implements Renderable {
     return this.plugins.get(id) as P | undefined;
   }
 
-  private readonly pluginApi: PluginApi = Object.defineProperty(
+  private readonly pluginApi: PluginApi = Object.defineProperties(
     {
       requestRender: (all?: boolean) => this.invalidate(all ? LAYER_ALL : LAYER_OVERLAY),
       paneView: (pane: number) => this.pluginView(pane),
@@ -687,8 +703,7 @@ export class Chart implements Renderable {
         this.cursorOverride = css;
       },
     },
-    "paneCount",
-    { get: () => this.panes.length },
+    { paneCount: { get: () => this.panes.length }, theme: { get: () => this.opts.theme } },
   ) as PluginApi;
 
   /** @internal Offer a pointer event to plugins; true when one consumed it. */
@@ -1479,7 +1494,7 @@ export class Chart implements Renderable {
             if (!countdownAt && p === this.panes[0] && s === this.mainSeries(p, sc.id)) countdownAt = labels[labels.length - 1]!;
           }
         }
-        if (s.markers().length > 0) drawMarkers(ctx, this.markerLayout(p, s, sc));
+        if (s.markers().length > 0) drawMarkers(ctx, this.markerLayout(p, s, sc), this.opts.theme);
         const set = this.primitives.get(s);
         if (set && set.size > 0) {
           const view = this.paneView(p, s);
@@ -1723,6 +1738,7 @@ export class Chart implements Renderable {
       timeToX: (time) => t.x(this.timeToLogical(time)),
       barSpacing: t.spacing,
       formatPrice: (v) => s.formatPrice(v),
+      theme: this.opts.theme,
     };
   }
 
@@ -1761,6 +1777,29 @@ export class Chart implements Renderable {
 
   // ---- system preferences, countdown, screen-reader table -----------------------
 
+  private container!: HTMLElement;
+  private unwatchPage: (() => void) | null = null;
+
+  /** Theme "inherit": take the page's CSS variables now and again whenever a class, style or theme attribute above the chart, or the OS scheme, changes. */
+  private followPage(container: HTMLElement): void {
+    this.unfollowPage();
+    this.unwatchPage = watchTheme(container, () => {
+      if (this.removed) return;
+      // A class or style change above the chart (a modal locking scroll, a panel being dragged) usually leaves the variables as
+      // they were: re-resolving every series and redrawing every study for it would jank the page.
+      const next = themeFromCss(container);
+      if (sameTheme(next, this.opts.theme)) return;
+      this.opts = { ...this.opts, theme: next };
+      this.retheme();
+      this.invalidate(LAYER_ALL);
+    });
+  }
+
+  private unfollowPage(): void {
+    this.unwatchPage?.();
+    this.unwatchPage = null;
+  }
+
   /** Follow OS theme/contrast (theme "auto") and reduced-motion changes. */
   private watchSystem(): void {
     if (typeof matchMedia === "undefined") return;
@@ -1773,10 +1812,18 @@ export class Chart implements Renderable {
 
   private readonly onSystem = (): void => {
     if (!this.autoTheme) return;
-    this.opts = { ...this.opts, theme: systemTheme() };
-    for (const p of this.panes) for (const s of p.series) s.themeChanged(this.opts.theme);
+    const next = systemTheme();
+    if (sameTheme(next, this.opts.theme)) return;
+    this.opts = { ...this.opts, theme: next };
+    this.retheme();
     this.invalidate(LAYER_ALL);
   };
+
+  /** The theme in opts changed: series re-resolve their colours, listeners (studies, drawings) theirs. */
+  private retheme(): void {
+    for (const p of this.panes) for (const s of p.series) s.themeChanged(this.opts.theme);
+    if (this.events.has("themeChange")) this.events.emit("themeChange", this.opts.theme);
+  }
 
   /** @internal Kinetic scrolling is off when the user asks for reduced motion. */
   get reducedMotion(): boolean {

@@ -1,6 +1,6 @@
 # @alphacharts/drawings
 
-One chart plugin, `DrawingsPlugin`, owns every drawing on a chart. 82 tools.
+One chart plugin, `DrawingsPlugin`, owns every drawing on a chart. 90 tools.
 
 ```ts
 import { createChart } from "@alphacharts/core";
@@ -58,23 +58,23 @@ while the chart pans; **Gann square fixed** is square in screen pixels.
 - JSON: `toJSON()` / `fromJSON()`, schema version 1; a newer version is refused,
   nothing is replaced unless the whole state validates.
 
-## Tools (82)
+## Tools (90)
 
 | Family | Tools |
 |---|---|
-| lines (8) | trendLine, ray, infoLine, extendedLine, horizontalLine, horizontalRay, verticalLine, crossLine |
+| lines (9) | trendLine, trendAngle, ray, infoLine, extendedLine, horizontalLine, horizontalRay, verticalLine, crossLine |
 | channels (4) | parallelChannel, regressionTrendChannel, flatTopBottom, disjointChannel |
 | pitchforks (5) | pitchfork, schiffPitchfork, modifiedSchiffPitchfork, insidePitchfork, pitchfan |
 | fibonacci (10) | fibRetracement, fibExtension (trend-based), fibChannel, fibTimeZone, fibSpeedFan, fibTrendTime, fibCircles, fibSpiral, fibSpeedArcs, fibWedge |
 | gann (4) | gannBox, gannSquareFixed, gannSquare, gannFan |
 | shapes (12) | rectangle, rotatedRectangle, ellipse, circle, triangle, arc, curve, doubleCurve, polyline, path, brush, highlighter |
-| annotations (14) | text, anchoredText, note, anchoredNote, callout, comment, priceLabel, priceNote, signpost, flagMark, arrow, arrowMarker, arrowMarkUp, arrowMarkDown |
+| annotations (19) | text, anchoredText, note, anchoredNote, callout, comment, priceLabel, priceNote, signpost, flagMark, arrow, arrowMarker, arrowMarkUp, arrowMarkDown, arrowMarkLeft, arrowMarkRight, pin, table (props.cells), icon (props.glyph) |
 | position (6) | longPosition, shortPosition, forecast, projection, barsPattern, ghostFeed |
-| measure (3) | dateRange, priceRange, dateAndPriceRange |
+| measure (4) | dateRange, priceRange, dateAndPriceRange, sector |
 | patterns (6) | xabcd, cypher, abcd, trianglePattern, threeDrives, headAndShoulders |
 | elliott (5) | elliottImpulse, elliottCorrection, elliottTriangle, elliottDoubleCombo, elliottTripleCombo |
 | cycles (3) | cyclicLines, timeCycles, sineLine |
-| volume (2) | anchoredVwap, volumeProfile |
+| volume (3) | anchoredVwap, volumeProfile, anchoredVolumeProfile |
 
 ## Definitions this library chose
 

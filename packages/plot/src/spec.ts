@@ -438,8 +438,11 @@ export interface PlotSpec {
   tooltip?: TooltipSpec | false;
   interactions?: InteractionsSpec;
   facets?: FacetsSpec;
-  /** "light" | "dark", or resolved token colours over the light theme. Default: from the OS. */
-  theme?: "light" | "dark" | Partial<PlotTheme>;
+  /**
+   * "inherit": the page's shadcn variables at the plot's element (see `plotThemeFromCss`), followed live like a chart's;
+   * "light" | "dark"; or resolved token colours over the light theme. Default: from the OS.
+   */
+  theme?: "inherit" | "light" | "dark" | Partial<PlotTheme>;
   /** CSS px; default: the container's size. */
   width?: number;
   height?: number;

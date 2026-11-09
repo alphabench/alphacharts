@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "stripInternal": true,
+    "outDir": "dist/types",
+    "rootDir": "src",
+    "customConditions": ["development"]
+  },
+  "include": ["src"]
+}

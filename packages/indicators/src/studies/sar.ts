@@ -106,7 +106,7 @@ export const sar = defineStudy({
   id: "sar", name: "Parabolic SAR", family: "overlap", needs: "ohlc", pane: "overlay",
   inputs: [acc("start", 0.02), acc("increment", 0.02), acc("maximum", 0.2)],
   columns: ["sar"],
-  plots: [markers("sar", "circle", "value", COLORS.blue)],
+  plots: [markers("sar", "circle", "value", COLORS.neutral)],
   label: (p) => `${p.start}, ${p.increment}, ${p.maximum}`,
   build: (g, p) => {
     const max: number = p.maximum;
@@ -125,7 +125,7 @@ export const sarext = defineStudy({
     acc("accelerationinitshort", 0.02), acc("accelerationshort", 0.02), acc("accelerationmaxshort", 0.2),
   ],
   columns: ["sarext", "level"],
-  plots: [markers("level", "circle", "value", COLORS.blue, { title: "SAR" })],
+  plots: [markers("level", "circle", "value", COLORS.neutral, { title: "SAR" })],
   label: () => "sarext is negative when short",
   build: (g, p) => {
     const maxL: number = p.accelerationmaxlong, maxS: number = p.accelerationmaxshort;

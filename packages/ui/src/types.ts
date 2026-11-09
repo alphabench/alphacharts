@@ -2,7 +2,7 @@
 
 import type { Chart, Datafeed, LayoutStore, OhlcBar, Series, Theme } from "@alphacharts/core";
 import type { StudyDef } from "@alphacharts/indicators";
-import type { ToolDef } from "@alphacharts/drawings";
+import type { NewDrawing, ToolDef } from "@alphacharts/drawings";
 import type { AlertTrigger } from "@alphacharts/alerts";
 
 /** One search result. `symbol` is the id the datafeed understands; everything else is display data from the feed. */
@@ -67,7 +67,39 @@ export interface ScriptRunAdapter {
   ): { diagnostics: readonly ScriptDiagnostic[]; remove(): void };
 }
 
-export type ThemeName = "dark" | "light" | "high-contrast" | "auto" | "custom";
+/** One analysis the host offers: it reads the chart's bars and answers with drawings (`@alphacharts/extend`'s `analysisEntry` builds one from an analysis adapter). */
+export interface AnalysisEntry {
+  id: string;
+  name: string;
+  run(request: { symbol: string; interval: number; bars: readonly OhlcvBar[]; signal: AbortSignal }): Promise<{ drawings: readonly NewDrawing[] }>;
+}
+
+export interface OhlcvBar { time: number; open: number; high: number; low: number; close: number; volume: number }
+
+/** What the user asked the assistant, and where. */
+export interface AssistantRequest {
+  prompt: string;
+  symbol: string;
+  /** Bar length in milliseconds. */
+  interval: number;
+  signal: AbortSignal;
+}
+
+/**
+ * The seam for the "describe an indicator" box of the Indicators dialog. The host does the asking (its model, its
+ * endpoint) and returns a script that already compiles; `@alphacharts/extend`'s `runAssistant` does that and fits
+ * after a one-line wrapper. The shell shows the script for review and runs it only when the user adds it, through
+ * `scriptRunner`. Reject to show the message to the user.
+ */
+export interface AssistantSeam {
+  ask(request: AssistantRequest): Promise<{ script: string; explanation?: string }>;
+}
+
+/**
+ * "inherit" (the default) takes the page's own shadcn CSS variables, so the chart matches the application around it and follows
+ * it when the page switches theme; "dark" (black) and "light" are the built-in Luma palettes; "auto" follows the OS between dark, light and high contrast; "custom" is a `Partial<Theme>`.
+ */
+export type ThemeName = "inherit" | "dark" | "light" | "high-contrast" | "auto" | "custom";
 export type SyncKey = "symbol" | "interval" | "crosshair" | "time" | "drawings";
 
 export interface Features {
@@ -103,18 +135,44 @@ export interface ChartAppOptions {
   timeZone?: string;
   /** Study definitions to offer. Default: all of @alphacharts/indicators, loaded when the dialog first opens. */
   studies?: readonly StudyDef[];
-  /** Drawing tools to offer. Default: all 82. */
+  /** Drawing tools to offer. Default: all 90. */
   tools?: readonly ToolDef[];
   /** Grid preset id, see GRID_PRESETS. Default "1". */
   layout?: string;
   /** The script panel appears only when an adapter is given; it needs `scriptRunner` too. */
   scriptEditor?: ScriptEditorAdapter;
-  /** Runs what the script panel's Run does. Required with `scriptEditor`. */
+  /** Runs what the script panel's Run does. Required with `scriptEditor` and with `assistant`. */
   scriptRunner?: ScriptRunAdapter;
+  /** The "describe an indicator" box in the Indicators dialog; it appears only when this is given. Needs `scriptRunner`. */
+  assistant?: AssistantSeam;
+  /** Analyses that draw on the chart (auto Fibonacci, trend lines, key levels): each appears as a Draw button in the Indicators dialog. */
+  analyses?: readonly AnalysisEntry[];
+  /**
+   * Replace any icon of the shell. A name (see `iconNode` in ui/icons.tsx: `search`, `trash`, `pitchfork` ...) maps to an SVG path
+   * `d` string or to Lucide-style nodes `[["path", { d }], ["circle", { cx, cy, r }]]`, drawn on a 24 grid with a 2px stroke.
+   */
+  icons?: Readonly<Record<string, string | ReadonlyArray<readonly [string, Readonly<Record<string, string>>]>>>;
+  /**
+   * CSS added after the shell's stylesheet, inside its shadow root: it wins over the built-in rules without !important. Select
+   * components by their shadcn names (`[data-slot="button"][data-variant="ghost"]`, `[data-slot="dropdown-menu-item"]` ...); from
+   * the page itself, use `alpha-chart-app::part(<slot>)`. Colours, radii and sizes are better changed through the variables
+   * (see the README's Theming section).
+   */
+  styles?: string | readonly string[];
+  /**
+   * "default" (the default) uses the built-in stylesheet; "none" leaves it out, for a host that ships its own copy of
+   * `@alphacharts/ui/styles.css` through `styles`, edited like a shadcn component's source.
+   */
+  stylesheet?: "default" | "none";
   /** Called for each alert that fires, in addition to the shell's own notice. */
   onAlert?: (t: AlertTrigger & { symbol: string }) => void;
-  /** Called with the PNG of a snapshot instead of downloading it. */
-  onSnapshot?: (png: Blob) => void;
+  /**
+   * Called with the PNG of a snapshot instead of the shell downloading it ("download") or putting it on the clipboard ("copy").
+   * Give it when the page cannot download or reach the clipboard itself.
+   */
+  onSnapshot?: (png: Blob, action: "download" | "copy") => void;
+  /** The snapshot image carries a header with the symbol, interval, the last bar's values and the indicators' names. Default true. */
+  snapshotHeader?: boolean;
   /** Called for every failure the shell reports to the user. */
   onError?: (e: Error) => void;
 }

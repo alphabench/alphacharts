@@ -439,6 +439,18 @@ describe("magnet", () => {
     expect(p.snap(away)).toEqual({ time: away.time, price: away.price });
   });
 
+  it("snapValues: an extra price at the bar is a target, only while the magnet is on, and a non-finite one is ignored", () => {
+    const seen: number[] = [];
+    const t = plugin({ magnet: "strong", snapValues: (time) => (seen.push(time), [123.456, Number.NaN]) });
+    const bar = t.src.at(40), x = view().timeToX(bar.time);
+    // 123.456 is not an O/H/L/C of the bar: put the pointer on it and the snap lands there exactly
+    const got = t.p.snap(ptr("move", x + 1, view().priceToY(123.456)));
+    expect(got).toEqual({ time: bar.time, price: 123.456 });
+    expect(seen).toEqual([bar.time]);
+    const off = plugin({ magnet: "off", snapValues: () => { throw new Error("must not be read with the magnet off"); } });
+    expect(() => off.p.snap(ptr("move", 163, 201))).not.toThrow();
+  });
+
   it("applies while creating: the anchors are bar values", () => {
     const { p, bar, x, yHigh } = setup("strong");
     p.setTool("horizontalLine");
@@ -462,7 +474,7 @@ describe("templates and favourites", () => {
     await p.applyTemplate([b.id], "magenta");
     expect(p.get(b.id)!.style).toMatchObject({ color: "#ff00ff", width: 4, dash: "dashed" });
     p.undo();
-    expect(p.get(b.id)!.style.color).toBe("#2962ff");
+    expect(p.get(b.id)!.style.color).toBe("#8a8a8a");
     expect(await p.templates!.list("trendLine")).toEqual([{ tool: "trendLine", name: "magenta" }]);
   });
 

@@ -8,7 +8,7 @@
 
 import type { SeriesData, SeriesShape } from "../data/model.js";
 import { COL_C, COL_COLOR, COL_O, COL_V } from "../data/model.js";
-import { cssColor } from "../render/color.js";
+import { cssColor, parseColor } from "../render/color.js";
 import { Area2D, Bars2D, Candles2D, Histogram2D, Line2D, type SeriesRenderer2D } from "../render/canvas2d.js";
 import type { GLContext } from "../render/gl.js";
 import {
@@ -105,6 +105,12 @@ export function seriesType<T extends SeriesType>(type: T): SeriesTypeDef<SeriesO
   return def as SeriesTypeDef<SeriesOptionsMap[T]>;
 }
 
+/** `color` at `alpha` of its own opacity, as the rgba() a series option takes. */
+function fade(color: string, alpha: number): string {
+  const c = parseColor(color);
+  return `rgba(${(c >>> 24) & 255},${(c >>> 16) & 255},${(c >>> 8) & 255},${+(((c & 255) / 255) * alpha).toFixed(3)})`;
+}
+
 // ---- built-ins --------------------------------------------------------------
 
 const lodRange = (d: SeriesData, _o: unknown, lo: number, hi: number, out: Float64Array) => void d.lod.minMax(lo, hi, out);
@@ -144,7 +150,7 @@ registerSeriesType("line", {
 
 registerSeriesType("area", {
   shape: "value",
-  defaults: (t) => ({ lineColor: t.accent, topColor: "rgba(41,98,255,0.28)", bottomColor: "rgba(41,98,255,0.02)", lineWidth: 2 }),
+  defaults: (t) => ({ lineColor: t.accent, topColor: fade(t.accent, 0.28), bottomColor: fade(t.accent, 0.02), lineWidth: 2 }),
   createRenderer: (gl, ctx, d) => new AreaRenderer(gl, ctx, d),
   createRenderer2D: () => new Area2D(),
   autoscale: lodRange,

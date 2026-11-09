@@ -326,6 +326,8 @@ export class PriceFormatter {
     this.decimals = d;
   }
   format(p: number): string {
-    return p.toFixed(this.decimals);
+    const s = p.toFixed(this.decimals);
+    // A value that rounds to zero is zero, not "-0.00": a trader reads the minus as a loss.
+    return s.charCodeAt(0) === 45 && Number(s) === 0 ? s.slice(1) : s;
   }
 }

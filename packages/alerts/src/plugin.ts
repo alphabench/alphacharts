@@ -271,7 +271,8 @@ export class AlertsPlugin implements ChartPlugin {
     for (const { definition: d, status } of this.list()) {
       if (status !== "active") continue;
       const c = d.condition;
-      const color = "#f7a600";
+      // an alert's level is the theme's primary colour: it stands out from the data in any theme
+      const color = this.api!.theme.accent;
       const name = d.label ?? d.id;
       if (c.type === "crossing" || c.type === "greaterThan" || c.type === "lessThan") level(c.price, `alert ${name} ${view.formatPrice(c.price)}`, color);
       else if (c.type === "enteringChannel" || c.type === "exitingChannel") {
@@ -296,8 +297,8 @@ export class AlertsPlugin implements ChartPlugin {
     }
     for (const m of this.markers) {
       const x = view.timeToX(m.bar), y = view.priceToY(m.price);
-      ctx.fillStyle = "#f7a600";
-      ctx.strokeStyle = "#000000";
+      ctx.fillStyle = this.api!.theme.accent;
+      ctx.strokeStyle = this.api!.theme.background;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, y);

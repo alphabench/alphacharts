@@ -21,17 +21,19 @@
       "development": "./src/element.ts",
       "types": "./dist/types/element.d.ts",
       "default": "./dist/element.js"
-    }
+    },
+    "./styles.css": "./dist/styles.css"
   },
   "files": [
     "dist",
     "src"
   ],
   "scripts": {
-    "build": "vite build && tsc -p tsconfig.build.json",
+    "build": "vite build && node scripts/emit-css.mjs && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "typecheck:dist": "tsc -p tsconfig.dist.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "gen:icons": "node scripts/gen-icons.mjs"
   },
   "dependencies": {
     "preact": "11.0.0"
@@ -54,6 +56,7 @@
     "@alphacharts/indicators": "workspace:*",
     "@alphacharts/orderflow": "workspace:*",
     "jsdom": "27.4.0",
+    "lucide": "1.70.0",
     "typescript": "5.9.3",
     "vite": "8.3.1",
     "vitest": "5.0.2"

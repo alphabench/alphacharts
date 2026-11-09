@@ -5,7 +5,7 @@ export type { PlotEvents } from "./plot.js";
 export { PlotSyncGroup } from "./sync.js";
 export type { SyncOptions } from "./sync.js";
 export type * from "./spec.js";
-export { PLOT_DARK, PLOT_LIGHT, resolveTheme } from "./theme.js";
+export { PLOT_DARK, PLOT_LIGHT, plotThemeFromCss, resolveTheme } from "./theme.js";
 export type { PlotTheme } from "./theme.js";
 export { defaultPlotMessages, PLOT_MESSAGES } from "./messages.js";
 export type { PlotMessageKey, PlotMessages, PlotMessageValues } from "./messages.js";

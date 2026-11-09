@@ -16,7 +16,7 @@ function adLine(g: Graph): Node {
 
 export const ad = defineStudy({
   id: "ad", name: "Accumulation/Distribution", family: "volume", needs: "ohlcv", pane: "new",
-  inputs: [], columns: ["ad"], plots: [line("ad", COLORS.blue)],
+  inputs: [], columns: ["ad"], plots: [line("ad", COLORS.neutral)],
   build: (g) => [adLine(g)],
   reference: "TA-Lib AD (a flat bar adds 0)",
 });

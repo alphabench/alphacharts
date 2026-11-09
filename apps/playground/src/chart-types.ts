@@ -170,7 +170,7 @@ export function run(app: HTMLElement, theme: Theme, R: { renderer?: "webgl" | "c
     const built = t.build(chart);
     const label = document.createElement("div");
     label.dataset.ctLabel = t.id;
-    label.style.cssText = "position:absolute;left:8px;top:6px;font:11px system-ui,sans-serif;color:var(--muted);pointer-events:none;z-index:2;white-space:pre";
+    label.style.cssText = "position:absolute;left:8px;top:6px;font:11px system-ui,sans-serif;color:var(--pg-muted);pointer-events:none;z-index:2;white-space:pre";
     label.textContent = t.label;
     el.appendChild(label);
     // Event-based charts: the crosshair time is an ordinal, so show the bar's true source time range.

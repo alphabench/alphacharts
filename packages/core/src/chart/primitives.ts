@@ -8,6 +8,8 @@
 // also draw behind the series (`drawBackground`, on the background layer).
 
 import { cssColor, parseColor } from "../render/color.js";
+import { isColorSlot, resolveColor } from "./slots.js";
+import type { Theme } from "./theme.js";
 
 export interface PaneView {
   /** Pane size in CSS px. */
@@ -34,6 +36,8 @@ export interface PaneView {
   /** CSS px between the centres of adjacent bars. */
   readonly barSpacing: number;
   formatPrice(price: number): string;
+  /** The chart's theme: what a colour slot ("chart-1", "chart-up" …, see `resolveColor`) draws with. */
+  readonly theme: Theme;
 }
 
 export interface AxisLabel {
@@ -114,7 +118,7 @@ function checkLine(o: PriceLineOptions): void {
   if (o.lineStyle !== "solid" && o.lineStyle !== "dashed" && o.lineStyle !== "dotted" && o.lineStyle !== "large-dashed" && o.lineStyle !== "sparse-dotted") {
     throw new RangeError(`alphacharts: unknown price line lineStyle "${String(o.lineStyle)}"`);
   }
-  if (o.axisLabelColor !== undefined) parseColor(o.axisLabelColor);
+  if (o.axisLabelColor !== undefined && !isColorSlot(o.axisLabelColor)) parseColor(o.axisLabelColor);
 }
 
 /** Snap a CSS coordinate so a line of `width` CSS px covers whole device pixels. */
@@ -128,7 +132,7 @@ export class PriceLine implements PanePrimitive {
   private opts: PriceLineOptions;
 
   constructor(options: Partial<PriceLineOptions> & { price: number }) {
-    const opts: PriceLineOptions = { color: "#9598a1", lineWidth: 1, lineStyle: "dashed", title: "", axisLabelVisible: true, labelTextColor: "#ffffff", ...options };
+    const opts: PriceLineOptions = { color: "muted", lineWidth: 1, lineStyle: "dashed", title: "", axisLabelVisible: true, labelTextColor: "#ffffff", ...options };
     checkLine(opts);
     this.opts = opts;
   }
@@ -156,7 +160,8 @@ export class PriceLine implements PanePrimitive {
     const o = this.opts;
     const y = crisp(view.y(o.price), view.dpr, o.lineWidth);
     if (y < -o.lineWidth || y > view.height + o.lineWidth) return;
-    ctx.strokeStyle = o.color;
+    const color = resolveColor(o.color, view.theme);
+    ctx.strokeStyle = color;
     ctx.lineWidth = Math.max(1, Math.round(o.lineWidth * view.dpr)) / view.dpr;
     ctx.setLineDash(dashPattern(o.lineStyle, o.lineWidth));
     ctx.beginPath();
@@ -165,7 +170,7 @@ export class PriceLine implements PanePrimitive {
     ctx.stroke();
     ctx.setLineDash([]);
     if (o.title) {
-      ctx.fillStyle = o.color;
+      ctx.fillStyle = color;
       ctx.textBaseline = "bottom";
       ctx.textAlign = "right";
       ctx.fillText(o.title, view.width - 6, y - 2);
@@ -174,7 +179,7 @@ export class PriceLine implements PanePrimitive {
 
   axisLabels(view: PaneView): readonly AxisLabel[] {
     const o = this.opts;
-    return o.axisLabelVisible ? [{ price: o.price, text: view.formatPrice(o.price), background: o.axisLabelColor ?? o.color, color: o.labelTextColor }] : [];
+    return o.axisLabelVisible ? [{ price: o.price, text: view.formatPrice(o.price), background: resolveColor(o.axisLabelColor ?? o.color, view.theme), color: resolveColor(o.labelTextColor, view.theme) }] : [];
   }
 }
 

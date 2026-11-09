@@ -21,3 +21,7 @@ Line: `ta.name(parameters) -> outputs · placement · needs · title`. Legend in
 - `ta.mama(source:series=close, fastlimit:float=0.5[0.01..0.99], slowlimit:float=0.05[0.01..0.99])` -> [mama, fama] · overlay · MESA Adaptive Moving Average
 - `ta.sar(start:float=0.02[0..100], increment:float=0.02[0..100], maximum:float=0.2[0..100])` -> series · overlay · needs ohlc · Parabolic SAR
 - `ta.sarext(startvalue:float=0[-1000000000..1000000000], offsetonreverse:float=0[0..100], accelerationinitlong:float=0.02[0..100], accelerationlong:float=0.02[0..100], accelerationmaxlong:float=0.2[0..100], accelerationinitshort:float=0.02[0..100], accelerationshort:float=0.02[0..100], accelerationmaxshort:float=0.2[0..100])` -> [sarext, level] · overlay · needs ohlc · Parabolic SAR - Extended
+- `ta.guppy(source:series=close)` -> [s3, s5, s8, s10, s12, s15, l30, l35, l40, l45, l50, l60] · overlay · Guppy Multiple Moving Average
+- `ta.hamming_ma(source:series=close, length:int=20[2..5000])` -> series · overlay · Hamming Moving Average
+- `ta.ma_channel(length:int=20[1..5000])` -> [upper, basis, lower] · overlay · needs ohlc · Moving Average Channel
+- `ta.ma_ema_cross(source:series=close, maLength:int=9[1..5000], emaLength:int=21[1..5000])` -> [ma, ema, crossUp, crossDown] · overlay · MA with EMA Cross

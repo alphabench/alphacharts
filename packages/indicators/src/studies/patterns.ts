@@ -83,7 +83,7 @@ function tot(g: Graph, s: Setting, k: number, from: number): Node {
 function mkStudy(id: string, name: string, inputs: readonly InputDef[], build: (g: Graph, p: Params) => Node[]): StudyDef {
   return defineStudy({
     id: `cdl-${id.toLowerCase()}`, name, family: "pattern", needs: "ohlc", pane: "overlay", inputs, columns: ["signal"],
-    plots: [markers("signal", "arrowUp", "sign", COLORS.blue, { text: true })], build, reference: `TA-Lib CDL${id}`,
+    plots: [markers("signal", "arrowUp", "sign", COLORS.neutral, { text: true })], build, reference: `TA-Lib CDL${id}`,
   });
 }
 

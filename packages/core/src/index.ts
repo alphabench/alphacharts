@@ -16,7 +16,11 @@ export type { CommonSeriesOptions, LastValue, SeriesOptions, SeriesOptionsMap, S
 export { BarShading, PriceLine, crisp, dashPattern } from "./chart/primitives.js";
 export type { SeriesMarker, MarkerPosition, MarkerShape } from "./chart/markers.js";
 export type { AxisLabel, LineDash, PanePrimitive, PaneView, PriceLineOptions, PrimitiveHit, PrimitiveHost, RenderLayer } from "./chart/primitives.js";
-export { DARK, HIGH_CONTRAST, LIGHT, systemTheme } from "./chart/theme.js";
+export { DARK, HIGH_CONTRAST, LIGHT, LUMA_DARK, LUMA_LIGHT, LUMA_TOKENS, SHADCN_TOKENS, systemTheme } from "./chart/theme.js";
+export type { ShadcnToken, TokenSet } from "./chart/theme.js";
+export { colorWithAlpha, isColorSlot, paletteOf, resolveColor, resolveColors, sameTheme, slotAlpha } from "./chart/slots.js";
+export { THEME_VARIABLES, cssColorToRgb, pageIsDark, themeFromCss, themeFromTokens, watchTheme } from "./chart/theme-css.js";
+export type { ThemeSource } from "./chart/theme-css.js";
 export { CHART_MESSAGES, defaultMessages } from "./chart/messages.js";
 export type { ChartMessageKey, ChartMessages, ChartMessageValues } from "./chart/messages.js";
 export { DEFAULT_KEYMAP } from "./chart/chart.js";

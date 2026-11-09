@@ -11,6 +11,7 @@ export * from "./series/baseline.js";
 export * from "./series/step-line.js";
 export * from "./series/columns.js";
 export * from "./series/hi-lo.js";
+export * from "./series/hollow-candles.js";
 export * from "./series/ohlc-dots.js";
 export * from "./series/line-markers.js";
 export * from "./series/bricks.js";

@@ -34,3 +34,4 @@ Line: `ta.name(parameters) -> outputs · placement · needs · title`. Legend in
 - `ta.trix(source:series=close, length:int=18[1..5000])` -> series · own pane · TRIX
 - `ta.ultosc(fast:int=7[1..5000], middle:int=14[1..5000], slow:int=28[1..5000])` -> series · own pane · needs ohlc · Ultimate Oscillator
 - `ta.willr(length:int=14[1..5000])` -> series · own pane · needs ohlc · Williams %R
+- `ta.smi(lengthK:int=10[1..5000], lengthD:int=3[1..5000], lengthEma:int=3[1..5000])` -> [smi, signal] · own pane · needs ohlc · Stochastic Momentum Index

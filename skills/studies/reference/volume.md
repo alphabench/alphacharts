@@ -7,3 +7,5 @@ Line: `ta.name(parameters) -> outputs · placement · needs · title`. Legend in
 - `ta.ad()` -> series · own pane · needs volume · Accumulation/Distribution
 - `ta.adosc(fast:int=3[1..5000], slow:int=10[2..5000])` -> series · own pane · needs volume · Chaikin Oscillator
 - `ta.obv()` -> series · own pane · needs volume · On Balance Volume
+- `ta.rvol(length:int=20[1..5000])` -> series · own pane · needs volume · Relative Volume
+- `ta.volume_24h()` -> series · own pane · needs volume · 24-hour Volume

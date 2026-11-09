@@ -4,7 +4,7 @@
 // analysis plugins, which are anchored on real time, are off while one shows.
 
 export type ChartTypeId =
-  | "candles" | "bars" | "line" | "area" | "baseline" | "hiLo" | "columns" | "heikinAshi" | "stepLine"
+  | "candles" | "hollowCandles" | "bars" | "line" | "lineMarkers" | "area" | "hlcArea" | "baseline" | "hiLo" | "columns" | "heikinAshi" | "stepLine"
   | "renko" | "kagi" | "pointFigure" | "rangeBars" | "lineBreak" | "footprint";
 
 export interface ChartTypeDef {
@@ -21,10 +21,13 @@ export interface ChartTypeDef {
 export const CHART_TYPES: readonly ChartTypeDef[] = [
   { id: "bars", key: "chartType.bars", kind: "time" },
   { id: "candles", key: "chartType.candles", kind: "time" },
+  { id: "hollowCandles", key: "chartType.hollowCandles", kind: "time" },
   { id: "hiLo", key: "chartType.hiLo", kind: "time" },
   { id: "columns", key: "chartType.histogram", kind: "time" },
   { id: "line", key: "chartType.line", kind: "time" },
+  { id: "lineMarkers", key: "chartType.lineWithMarkers", kind: "time" },
   { id: "area", key: "chartType.area", kind: "time" },
+  { id: "hlcArea", key: "chartType.hlcArea", kind: "time" },
   { id: "baseline", key: "chartType.baseline", kind: "time" },
   { id: "stepLine", key: "chartType.stepLine", kind: "time" },
   { id: "heikinAshi", key: "chartType.heikinAshi", kind: "time" },

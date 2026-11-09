@@ -89,7 +89,7 @@ export const volumeOsc = defineStudy({
   id: "volume-osc", name: "Volume Oscillator", family: "tv", needs: "ohlcv", pane: "new",
   inputs: [int("short", 5, 1, 5000, "Short length"), int("long", 10, 1, 5000, "Long length")],
   columns: ["osc"],
-  plots: [line("osc", COLORS.blue, { title: "Volume Oscillator" })],
+  plots: [line("osc", COLORS.neutral, { title: "Volume Oscillator" })],
   label: (p) => `${p.short}, ${p.long}`,
   build: (g, p) => {
     const s = g.ema(g.volume, p.short), l = g.ema(g.volume, p.long);
@@ -103,7 +103,7 @@ export const volumeOsc = defineStudy({
 export const pvt = defineStudy({
   id: "pvt", name: "Price Volume Trend", family: "tv", needs: "ohlcv", pane: "new",
   inputs: [], columns: ["pvt"],
-  plots: [line("pvt", COLORS.blue, { title: "PVT" })],
+  plots: [line("pvt", COLORS.neutral, { title: "PVT" })],
   build: (g) => {
     const { close, volume: vol } = g;
     // ta.pvt = ta.cum(ta.change(close) / close[1] * volume); the first bar has no change, so it is absent.
@@ -131,7 +131,7 @@ export const netVolume = defineStudy({
 export const elderForce = defineStudy({
   id: "elder-force", name: "Elder's Force Index", family: "tv", needs: "ohlcv", pane: "new",
   inputs: [int("length", 13, 1, 5000)], columns: ["efi"],
-  plots: [line("efi", COLORS.red, { title: "EFI" })],
+  plots: [line("efi", COLORS.orange, { title: "EFI" })],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const { close, volume: vol } = g;
@@ -158,7 +158,7 @@ export const eom = defineStudy({
 export const chaikinMf = defineStudy({
   id: "chaikin-mf", name: "Chaikin Money Flow", family: "tv", needs: "ohlcv", pane: "new",
   inputs: [int("length", 20, 1, 5000)], columns: ["cmf"],
-  plots: [line("cmf", COLORS.green, { title: "CMF" })],
+  plots: [line("cmf", COLORS.teal, { title: "CMF" })],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const { high, low, close, volume: vol } = g;
@@ -176,7 +176,7 @@ export const klinger = defineStudy({
   id: "klinger", name: "Klinger Oscillator", family: "tv", needs: "ohlcv", pane: "new",
   inputs: [int("fast", 34, 1, 5000), int("slow", 55, 1, 5000), int("signal", 13, 1, 5000)],
   columns: ["kvo", "signal"],
-  plots: [line("kvo", COLORS.blue, { title: "KVO" }), line("signal", COLORS.green, { title: "Signal" })],
+  plots: [line("kvo", COLORS.neutral, { title: "KVO" }), line("signal", COLORS.teal, { title: "Signal" })],
   label: (p) => `${p.fast}, ${p.slow}, ${p.signal}`,
   build: (g, p) => {
     const h3 = g.src("hlc3");
@@ -195,7 +195,7 @@ export const vwap = defineStudy({
   id: "vwap", name: "Session VWAP", family: "tv", needs: "ohlcv", pane: "overlay",
   inputs: [select("anchor", "session", ["session", "week", "month", "year"]), source("hlc3"), float("bandMult", 1, 0, 100, 0.1, "Band multiplier"), OFFSET],
   columns: ["vwap", "upper", "lower"],
-  plots: [line("vwap", COLORS.blue, { title: "Session VWAP" }), band("bands", "upper", "lower", COLORS.green, "rgba(8,153,129,0.1)", "Session VWAP bands")],
+  plots: [line("vwap", COLORS.neutral, { title: "Session VWAP" }), band("bands", "upper", "lower", COLORS.teal, "chart-4/0.1", "Session VWAP bands")],
   label: (p) => `${p.anchor}`,
   build: (g, p) => {
     const key = periodKey(g, p.anchor === "session" ? "day" : p.anchor, p.utcOffsetMinutes);
@@ -213,7 +213,7 @@ export const anchoredVwap = defineStudy({
   id: "anchored-vwap", name: "Anchored VWAP", family: "tv", needs: "ohlcv", pane: "overlay",
   inputs: [float("anchorTime", 0, 0, 1e15, 1, "Anchor time (UTC ms)"), source("hlc3"), float("bandMult", 1, 0, 100, 0.1, "Band multiplier")],
   columns: ["vwap", "upper", "lower"],
-  plots: [line("vwap", COLORS.orange, { title: "Anchored VWAP" }), band("bands", "upper", "lower", COLORS.orange, "rgba(255,109,0,0.1)", "Anchored VWAP bands")],
+  plots: [line("vwap", COLORS.orange, { title: "Anchored VWAP" }), band("bands", "upper", "lower", COLORS.orange, "chart-2/0.1", "Anchored VWAP bands")],
   build: (g, p) => {
     const t = g.time, src = g.src(p.source), vol = g.volume;
     const live = (i: number) => t.v[i]! >= p.anchorTime;
@@ -232,7 +232,7 @@ type Levels = { p: number; r1: number; r2: number; r3: number; r4: number; s1: n
 const LEVEL_KEYS = ["p", "r1", "r2", "r3", "r4", "s1", "s2", "s3", "s4"] as const;
 
 /** Levels from the previous period's open, high, low, close; kinds lacking a level leave it absent. */
-function levels(kind: string, O: number, H: number, L: number, C: number): Levels {
+function levels(kind: string, O: number, H: number, L: number, C: number, curOpen: number): Levels {
   const out: Levels = { p: NaN_, r1: NaN_, r2: NaN_, r3: NaN_, r4: NaN_, s1: NaN_, s2: NaN_, s3: NaN_, s4: NaN_ };
   const R = H - L;
   if (kind === "dm") {
@@ -241,9 +241,10 @@ function levels(kind: string, O: number, H: number, L: number, C: number): Level
     return out;
   }
   if (kind === "woodie") {
-    const P = (H + L + 2 * C) / 4;
+    // TradingView's definition: the pivot uses the CURRENT period's open, the other terms the previous period's high and low.
+    const P = (H + L + 2 * curOpen) / 4;
     out.p = P; out.r1 = 2 * P - L; out.s1 = 2 * P - H; out.r2 = P + R; out.s2 = P - R;
-    out.r3 = H + 2 * R; out.s3 = L - 2 * R; out.r4 = out.r3 + R; out.s4 = out.s3 - R;
+    out.r3 = H + 2 * (P - L); out.s3 = L - 2 * (H - P); out.r4 = out.r3 + R; out.s4 = out.s3 - R;
     return out;
   }
   if (kind === "camarilla") {
@@ -299,9 +300,9 @@ export const pivotPoints = defineStudy({
         cC.v[i] = close.v[i]!;
       }
     });
-    return LEVEL_KEYS.map((k) => g.calc((i) => (pH.v[i]! === pH.v[i]! ? levels(p.kind, pO.v[i]!, pH.v[i]!, pL.v[i]!, pC.v[i]!)[k] : NaN_)));
+    return LEVEL_KEYS.map((k) => g.calc((i) => (pH.v[i]! === pH.v[i]! ? levels(p.kind, pO.v[i]!, pH.v[i]!, pL.v[i]!, pC.v[i]!, cO.v[i]!)[k] : NaN_)));
   },
-  reference: "TradingView Pivot Points Standard (Traditional, Fibonacci, Woodie, Classic, DM, Camarilla) from the previous completed period's open/high/low/close; constant over the current period, absent in the first",
+  reference: "TradingView Pivot Points Standard (Traditional, Fibonacci, Woodie, Classic, DM, Camarilla) from the previous completed period's open/high/low/close (Woodie's pivot takes the current period's open: P = (H + L + 2 open) / 4, R3 = H + 2 (P - L), S3 = L - 2 (H - P)); constant over the current period, absent in the first",
 });
 
 // ---- volatility / range -----------------------------------------------------------
@@ -310,7 +311,7 @@ export const histVol = defineStudy({
   id: "hist-vol", name: "Historical Volatility", family: "tv", needs: "value", pane: "new",
   inputs: [int("length", 10, 2, 5000), int("annual", 252, 1, 10_000, "Periods per year"), int("periodDays", 1, 1, 10_000, "Days per bar")],
   columns: ["hv"],
-  plots: [line("hv", COLORS.blue, { title: "HV" })],
+  plots: [line("hv", COLORS.neutral, { title: "HV" })],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const c = g.close;

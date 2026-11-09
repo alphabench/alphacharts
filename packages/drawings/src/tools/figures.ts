@@ -5,7 +5,7 @@ import { circumcircle, controlThrough, dist, quadPoints, type Pt } from "../geom
 import type { Shape, ToolDef } from "../types.js";
 import { A, finiteAnchors, head, line, mid, needDistinctTimes, poly, px, pxs, text, tool } from "./util.js";
 
-const FILL = "rgba(41,98,255,0.15)";
+const FILL = "rgba(138,138,138,0.15)";
 
 /** Style text centred in a box when the drawing has any. */
 function inner(textValue: string, p: Pt): Shape[] {
@@ -149,7 +149,7 @@ export const brush = tool({
 
 export const highlighter = tool({
   id: "highlighter", label: "Highlighter", family: "shapes", gesture: "freehand", anchors: 2, variable: true, noHandles: true,
-  defaults: () => ({ style: { width: 14, color: "rgba(255,235,59,0.4)" } }),
+  defaults: () => ({ style: { width: 14, color: "chart-2/0.35" } }),
   validate: finiteAnchors,
   shapes: (d, c) => [poly(pxs(c, d))],
 });

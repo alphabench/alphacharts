@@ -2,7 +2,7 @@
 
 Technical studies for alphacharts: a typed study model, an incremental engine over the core's
 columnar data, a Web Worker runner, chart integration through the core plugin API, and
-211 studies (TA-Lib's catalogue plus TradingView's built-ins).
+227 studies (TA-Lib's catalogue plus TradingView's built-ins).
 
 ## Use
 
@@ -80,7 +80,7 @@ Not checked against TradingView itself (no access): the TradingView-only studies
 `reference` field; pivot formulas, Klinger, Schaff, the Relative Volatility form and Fractals tie rules were written
 from memory of TradingView's scripts and are verified only by the hand-computed tests.
 
-## Studies (211)
+## Studies (227)
 
 - **Overlap (TA-Lib + MAs, bands, SAR)** (17): `sma`, `ema`, `wma`, `dema`, `tema`, `trima`, `kama`, `t3`, `ma`, `bbands`, `bbpb`, `bbw`, `midpoint`, `midprice`, `mama`, `sar`, `sarext`
 - **Momentum (TA-Lib)** (30): `rsi`, `cmo`, `mom`, `roc`, `rocp`, `rocr`, `rocr100`, `trix`, `apo`, `ppo`, `macd`, `macdfix`, `macdext`, `stoch`, `stochf`, `stochrsi`, `willr`, `cci`, `bop`, `mfi`, `ultosc`, `aroon`, `aroonosc`, `adx`, `adxr`, `dx`, `plus-di`, `minus-di`, `plus-dm`, `minus-dm`
@@ -91,6 +91,7 @@ from memory of TradingView's scripts and are verified only by the hand-computed 
 - **Math transforms and operators (TA-Lib)** (26): `acos`, `asin`, `atan`, `ceil`, `cos`, `cosh`, `exp`, `floor`, `ln`, `log10`, `sin`, `sinh`, `sqrt`, `tan`, `tanh`, `add`, `sub`, `mult`, `div`, `max`, `min`, `sum`, `maxindex`, `minindex`, `minmax`, `minmaxindex`
 - **Cycle / Hilbert (TA-Lib)** (6): `ht-dcperiod`, `ht-dcphase`, `ht-phasor`, `ht-sine`, `ht-trendline`, `ht-trendmode`
 - **TradingView-only** (52): `smma`, `vwma`, `hma`, `alma`, `lsma`, `mcginley`, `ma-ribbon`, `ma-cross`, `envelopes`, `keltner`, `donchian`, `price-channel`, `chande-kroll-stop`, `linreg-channel`, `median`, `ichimoku`, `supertrend`, `alligator`, `fractals`, `zigzag`, `fisher`, `kst`, `tsi`, `vortex`, `coppock`, `connors-rsi`, `choppiness`, `rvi-vigor`, `rvi-volatility`, `smi-ergodic`, `rank-corr`, `bull-bear-power`, `awesome`, `accelerator`, `mass-index`, `dpo`, `schaff-tc`, `stoch-tv`, `volume`, `volume-osc`, `pvt`, `net-volume`, `elder-force`, `eom`, `chaikin-mf`, `klinger`, `vwap` (Session VWAP), `anchored-vwap`, `pivot-points`, `hist-vol`, `adr`, `bars-per-year`
+- **Added to match TradingView's list** (16): `guppy`, `ma-ema-cross`, `ma-channel`, `volume-24h`, `chaikin-vol`, `std-error`, `ulcer-index`, `smi` (Stochastic Momentum Index), `trend-strength`, `rvol`, `hamming-ma`, and the volatility estimators `vol-close-to-close`, `vol-zero-trend`, `vol-parkinson`, `vol-garman-klass`, `vol-rogers-satchell`. TradingView publishes no definition for its Hamming MA or its Volatility Close-to-Close / Zero Trend / O-H-L-C, so these use the published textbook definitions in their `reference` and are not claimed to match a TradingView script bar for bar. Chop Zone and Majority Rule are not built: no definition is published. Each states its definition in its `reference`; `test/tv-stat.test.ts` checks hand-derived numbers and recomputes each definition in plain JS.
 - **Candlestick patterns (TA-Lib CDL*)** (61): `cdl-<name>` for every TA-Lib pattern, e.g. `cdl-2crows`, `cdl-3blackcrows`, `cdl-3inside`, `cdl-3linestrike`, `cdl-3outside`, ...
 
 ## Regenerating the TA-Lib fixtures

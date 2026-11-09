@@ -135,11 +135,15 @@ export function ratioText(r: number | null): string {
   return r === null ? "n/a" : (Math.round(r * 1000) / 1000).toString();
 }
 
+/**
+ * The colour of each Fibonacci level, as a colour slot of the chart's theme (see `resolveColor` in @alphacharts/core): the ends
+ * (0 and 1) muted, the golden ratios the strongest palette colour, the rest spread over the palette.
+ */
 export const FIB_COLORS: Record<string, string> = {
-  "0": "#787b86", "0.236": "#f23645", "0.382": "#ff9800", "0.5": "#4caf50", "0.618": "#089981", "0.786": "#00bcd4",
-  "1": "#787b86", "1.272": "#9c27b0", "1.618": "#2962ff", "2": "#e91e63", "2.618": "#f23645", "3.618": "#9c27b0", "4.236": "#e91e63",
+  "0": "muted", "0.236": "chart-2", "0.382": "chart-3", "0.5": "chart-4", "0.618": "chart-1", "0.786": "chart-5",
+  "1": "muted", "1.272": "chart-3", "1.618": "chart-1", "2": "chart-2", "2.618": "chart-4", "3.618": "chart-5", "4.236": "chart-3",
 };
-export const fibColor = (r: number): string => FIB_COLORS[String(r)] ?? "#787b86";
+export const fibColor = (r: number): string => FIB_COLORS[String(r)] ?? "muted";
 
 export const FIB_RETRACEMENT = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1, 1.618, 2.618, 3.618, 4.236];
 export const FIB_BASIC = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];

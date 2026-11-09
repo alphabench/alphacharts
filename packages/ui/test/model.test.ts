@@ -7,8 +7,9 @@ import { GRID_PRESETS, gridPreset, gridStyle } from "../src/model/grids.js";
 import { MAX_COUNT, PRESET_INTERVALS, customInterval, intervalId, normalizeInterval, sortIntervals } from "../src/model/intervals.js";
 import { NamedStore, PrefsStore, checkName, pushRecent, toggled, MAX_RECENT } from "../src/model/persistence.js";
 import { buildCatalogue, searchCatalogue } from "../src/model/studies.js";
-import { TOOL_GROUPS, groupOf } from "../src/model/tools.js";
+import { TOOL_GROUPS, groupOf, toolGroups } from "../src/model/tools.js";
 import { contrastRatio, textOn, themeVars, resolveTheme } from "../src/theme.js";
+import { LUMA_TOKENS, SHADCN_TOKENS } from "@alphacharts/core";
 
 describe("intervals", () => {
   it("normalizes through parseResolution", () => {
@@ -53,8 +54,15 @@ describe("grids", () => {
 });
 
 describe("tools", () => {
+  it("a host's own tool gets a Custom group, so it never vanishes from the bar", () => {
+    expect(toolGroups(allTools)).toBe(TOOL_GROUPS);
+    const g = toolGroups([...allTools, { id: "acme.band" }]);
+    expect(g.at(-1)).toEqual({ id: "custom", key: "drawing.group.custom", tools: ["acme.band"] });
+    expect(g.slice(0, -1)).toEqual([...TOOL_GROUPS]);
+  });
+
   it("every tool of the drawings package is in exactly one group", () => {
-    expect(allTools.length).toBe(82);
+    expect(allTools.length).toBe(90);
     const seen = new Map<string, number>();
     for (const g of TOOL_GROUPS) for (const t of g.tools) seen.set(t, (seen.get(t) ?? 0) + 1);
     expect(allTools.filter((t) => seen.get(t.id) !== 1).map((t) => t.id)).toEqual([]);
@@ -121,8 +129,8 @@ describe("persistence", () => {
 
 describe("study catalogue", () => {
   const cat = buildCatalogue(ALL_STUDIES, (f) => f);
-  it("holds all 211 studies and finds by name, id and family", () => {
-    expect(cat.length).toBe(211);
+  it("holds all 227 studies and finds by name, id and family", () => {
+    expect(cat.length).toBe(227);
     expect(searchCatalogue(cat, "rsi").some((e) => e.def.id === "rsi")).toBe(true);
     expect(searchCatalogue(cat, "bollinger").length).toBeGreaterThan(0);
     expect(searchCatalogue(cat, "", "pattern").every((e) => e.def.family === "pattern")).toBe(true);
@@ -150,15 +158,25 @@ describe("undo integration", () => {
 });
 
 describe("theme", () => {
-  it("derives the shell from core tokens and reads text on the accent", () => {
+  it("gives the shell every shadcn token for each theme, and readable text on its primary", () => {
     for (const n of ["dark", "light", "high-contrast"] as const) {
       const t = resolveTheme(n, null);
-      const v = themeVars(t);
-      expect(v["--ac-bg"]).toBe(t.background);
-      expect(contrastRatio(v["--ac-on-accent"]!, t.accent)).toBeGreaterThanOrEqual(4.5);
+      const v = themeVars(t, n);
+      for (const k of SHADCN_TOKENS) expect(v[`--t-${k}`], `${n} --t-${k}`).toBeTruthy();
+      expect(v["--t-background"]).toBe(t.background);
+      expect(v["--t-chart-up"]).toBe(t.up);
       expect(contrastRatio(t.text, t.background)).toBeGreaterThanOrEqual(7);
     }
+    // the named Luma themes are the token table itself
+    expect(themeVars(resolveTheme("dark", null), "dark")["--t-popover"]).toBe(LUMA_TOKENS.dark.popover);
+    expect(themeVars(resolveTheme("light", null), "light")["--t-muted"]).toBe(LUMA_TOKENS.light.muted);
+    // a derived theme (high contrast) keeps its primary readable
+    const hc = themeVars(resolveTheme("high-contrast", null), "high-contrast");
+    expect(contrastRatio(hc["--t-primary-foreground"]!, hc["--t-primary"]!)).toBeGreaterThanOrEqual(4.5);
     expect(textOn("#ffffff")).toBe("#000000");
     expect(() => resolveTheme("custom", { accent: "nope" })).toThrow();
+    // a valid custom theme over a base that carries a palette
+    expect(resolveTheme("custom", { accent: "#ff0000" }).accent).toBe("#ff0000");
+    expect(() => resolveTheme("custom", { palette: ["#111111", "nope", "#333333", "#444444", "#555555"] })).toThrow(/nope/);
   });
 });

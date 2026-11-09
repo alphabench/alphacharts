@@ -77,7 +77,7 @@ export function checkName(name: string): string {
 
 /** Saved documents of one kind: layouts or chart templates. */
 export class NamedStore<T> {
-  constructor(private readonly store: LayoutStore, private readonly kind: "layout" | "template") {}
+  constructor(private readonly store: LayoutStore, private readonly kind: "layout" | "template" | "script") {}
 
   private key(name: string): string {
     return `ui/${this.kind}/${checkName(name)}`;

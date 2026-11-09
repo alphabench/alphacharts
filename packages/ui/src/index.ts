@@ -5,7 +5,7 @@ import { ChartApp } from "./engine/app.js";
 import { mountShell } from "./ui/shell.js";
 import type { ChartAppOptions } from "./types.js";
 
-export type { ChartAppOptions, Features, ScriptDiagnostic, ScriptEditorAdapter, ScriptRunAdapter, SymbolInfo, SyncKey, ThemeName, UiDatafeed, VolumeBar } from "./types.js";
+export type { AnalysisEntry, AssistantRequest, AssistantSeam, ChartAppOptions, Features, OhlcvBar, ScriptDiagnostic, ScriptEditorAdapter, ScriptRunAdapter, SymbolInfo, SyncKey, ThemeName, UiDatafeed, VolumeBar } from "./types.js";
 export { DEFAULT_FEATURES } from "./types.js";
 export { ChartApp } from "./engine/app.js";
 export type { AppEvents, Dialog, LayoutBody, MenuItem, TemplateBody } from "./engine/app.js";
@@ -16,6 +16,8 @@ export { CHART_TYPES } from "./model/chartTypes.js";
 export type { ChartTypeId } from "./model/chartTypes.js";
 export { PRESET_INTERVALS, normalizeInterval, customInterval } from "./model/intervals.js";
 export { TOOL_GROUPS } from "./model/tools.js";
+/** The shell's built-in stylesheet, the same text as `@alphacharts/ui/styles.css`. */
+export { STYLES } from "./styles.js";
 
 /** The typed controller `createChartApp` returns. */
 export type ChartAppController = ChartApp;

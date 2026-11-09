@@ -4,8 +4,7 @@ import { COL_C } from "@alphacharts/core";
 import type { ChartInstance } from "../engine/instance.js";
 import { floorIndex } from "../engine/bars.js";
 import { useApp, useT } from "./context.js";
-import { IconButton } from "./primitives.js";
-import { Button } from "./primitives.js";
+import { Button, IconButton } from "./primitives.js";
 
 export function Legend({ inst }: { inst: ChartInstance }) {
   const app = useApp();
@@ -70,7 +69,7 @@ export function Legend({ inst }: { inst: ChartInstance }) {
         {opts.volume && volume !== undefined ? <span class="vol"><abbr title={t("status.volume")}>{t("status.volume")}</abbr> <bdi>{app.i18n.volume(volume)}</bdi></span> : null}
       </div>
       {inst.compareList().map((c) => (
-        <div class="legend-line" key={c.symbol}><span><bdi>{c.symbol}</bdi></span><IconButton icon="close" label={t("symbol.compare.remove", { symbol: c.symbol })} onClick={() => inst.removeCompare(c.symbol)} /></div>
+        <div class="legend-line" key={c.symbol}><span><bdi>{c.symbol}</bdi></span><IconButton icon="close" size="icon-xs" label={t("symbol.compare.remove", { symbol: c.symbol })} onClick={() => inst.removeCompare(c.symbol)} /></div>
       ))}
       {inst.studies().map((s) => {
         const times = s.study.times();
@@ -87,9 +86,9 @@ export function Legend({ inst }: { inst: ChartInstance }) {
             <span class="study-name">{s.effectivelyVisible ? name : t("status.hidden", { name })}{opts.studyInputs && inputs ? ` (${inputs})` : ""}</span>
             {opts.studyValues && s.effectivelyVisible ? vals.map((x) => x.v !== undefined ? <span key={x.c} class="study-val"><bdi>{s.study.seriesOfColumn(x.c)?.formatPrice(x.v) ?? String(x.v)}</bdi></span> : null) : null}
             <span class="legend-actions">
-              <IconButton icon={s.userHidden ? "eyeOff" : "eye"} label={t(s.userHidden ? "common.show" : "common.hide") + ` ${name}`} onClick={() => inst.setStudyHidden(s.study.id, !s.userHidden)} />
-              <IconButton icon="gear" label={t("study.settings.title", { name })} onClick={() => app.openDialog({ kind: "study", id: s.study.id })} />
-              <IconButton icon="close" label={t("indicators.remove", { name })} onClick={() => app.removeStudy(s.study.id)} />
+              <IconButton icon={s.userHidden ? "eyeOff" : "eye"} size="icon-xs" label={t(s.userHidden ? "common.show" : "common.hide") + ` ${name}`} onClick={() => inst.setStudyHidden(s.study.id, !s.userHidden)} />
+              <IconButton icon="gear" size="icon-xs" label={t("study.settings.title", { name })} onClick={() => app.openDialog({ kind: "study", id: s.study.id })} />
+              <IconButton icon="close" size="icon-xs" label={t("indicators.remove", { name })} onClick={() => app.removeStudy(s.study.id)} />
             </span>
           </div>
         );
@@ -104,7 +103,7 @@ function StatusBox({ inst }: { inst: ChartInstance }) {
     <div class="status-box" role="status" data-testid="chart-status">
       {inst.status === "loading" ? <span>{t("common.loading")}</span> : null}
       {inst.status === "empty" ? <span>{t("error.noData")}</span> : null}
-      {inst.status === "error" ? (<><span class="error-text">{t("error.loadFailed", { reason: inst.error?.message ?? "" })}</span><Button onClick={() => inst.retry()}>{t("error.retry")}</Button></>) : null}
+      {inst.status === "error" ? (<><span class="error-text">{t("error.loadFailed", { reason: inst.error?.message ?? "" })}</span><Button size="sm" variant="secondary" onClick={() => inst.retry()}>{t("error.retry")}</Button></>) : null}
     </div>
   );
 }

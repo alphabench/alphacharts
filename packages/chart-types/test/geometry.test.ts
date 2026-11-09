@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Bricks2D, brickWidth } from "../src/series/bricks.js";
 import { Columns2D } from "../src/series/columns.js";
 import { HiLo2D } from "../src/series/hi-lo.js";
+import { HollowCandles2D } from "../src/series/hollow-candles.js";
 import { Kagi2D, kagiWidth } from "../src/series/kagi.js";
 import { markersFit } from "../src/series/line-markers.js";
 import { PointFigure2D } from "../src/series/point-figure.js";
@@ -110,6 +111,31 @@ describe("Canvas2D geometry", () => {
     const { v, painted } = view([[110, 110, 110, 110]]);
     new HiLo2D().draw(v, { color: "#abc" });
     expect(rectsOf(find(painted, "#abc"))).toEqual([[97, 90, 7, 1]]);
+  });
+
+  const HOLLOW = { upColor: "up", downColor: "down", wickUpColor: "wup", wickDownColor: "wdown" };
+
+  it("hollow candles: a rising bar is a one-pixel outline of its body, with a wick, and no solid fill", () => {
+    const { v, painted } = view([[110, 120, 100, 115]]);
+    new HollowCandles2D().draw(v, HOLLOW);
+    // left 97, width 7, t = 1. Body from y(115) = 85 to y(110) = 90 (height 5): top, bottom, left and right edges.
+    expect(rectsOf(find(painted, "up"))).toEqual([[97, 85, 7, 1], [97, 89, 7, 1], [97, 85, 1, 5], [103, 85, 1, 5]]);
+    // wick from y(120) = 80 to y(100) = 100, centred in the body: x = 97 + (7 - 1) / 2 = 100
+    expect(rectsOf(find(painted, "wup"))).toEqual([[100, 80, 1, 20]]);
+  });
+
+  it("hollow candles: a falling bar is a solid body in the down colour", () => {
+    const { v, painted } = view([[115, 120, 100, 110]]);
+    new HollowCandles2D().draw(v, HOLLOW);
+    expect(rectsOf(find(painted, "down"))).toEqual([[97, 85, 7, 5]]);
+    expect(rectsOf(find(painted, "up"))).toEqual([]);
+  });
+
+  it("hollow candles: a rising body too short to show an inside draws solid, so it never vanishes", () => {
+    const { v, painted } = view([[110, 120, 100, 111.5]]);
+    new HollowCandles2D().draw(v, HOLLOW);
+    // y(111.5) = 88.5 -> 89, y(110) = 90: one pixel tall, below the 2 t + 1 = 3 an outline needs.
+    expect(rectsOf(find(painted, "up"))).toEqual([[97, 89, 7, 1]]);
   });
 
   it("columns: from the pane bottom (300) up to the close; up when close >= open", () => {

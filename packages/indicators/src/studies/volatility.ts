@@ -11,7 +11,7 @@ export const trange = defineStudy({
 
 export const atr = defineStudy({
   id: "atr", name: "Average True Range", family: "volatility", needs: "ohlc", pane: "new",
-  inputs: [int("length", 14, 1, 5000)], columns: ["atr"], plots: [line("atr", COLORS.red)],
+  inputs: [int("length", 14, 1, 5000)], columns: ["atr"], plots: [line("atr", COLORS.orange)],
   label: (p) => `${p.length}`,
   build: (g, p) => [g.atr(p.length)],
   reference: "Wilder's ATR (not TA-Lib's): true range of bar 0 is high - low, seeded with the mean of true ranges 0..length-1 (first value at bar length-1), then Wilder smoothing. TA-Lib skips the first true range and starts one bar later",
@@ -19,7 +19,7 @@ export const atr = defineStudy({
 
 export const natr = defineStudy({
   id: "natr", name: "Normalized Average True Range", family: "volatility", needs: "ohlc", pane: "new",
-  inputs: [int("length", 14, 1, 5000)], columns: ["natr"], plots: [line("natr", COLORS.red)],
+  inputs: [int("length", 14, 1, 5000)], columns: ["natr"], plots: [line("natr", COLORS.orange)],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const a = g.atr(p.length);

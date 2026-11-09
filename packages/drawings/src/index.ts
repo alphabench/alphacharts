@@ -14,7 +14,7 @@ export { declutter, drawShapes, shapeDistance, shapeInRect, withAlpha } from "./
 export * as geometry from "./geometry.js";
 
 export { allTools } from "./tools/all.js";
-export { lineTools, trendLine, ray, infoLine, extendedLine, horizontalLine, horizontalRay, verticalLine, crossLine } from "./tools/lines.js";
+export { lineTools, trendLine, ray, infoLine, extendedLine, horizontalLine, horizontalRay, verticalLine, crossLine, trendAngle, screenAngle } from "./tools/lines.js";
 export {
   channelTools, parallelChannel, regressionTrendChannel, flatTopBottom, disjointChannel, pitchfork, schiffPitchfork, modifiedSchiffPitchfork,
   insidePitchfork, pitchfan, regression, regressionOf, forkGeometry,
@@ -30,17 +30,17 @@ export {
 } from "./tools/figures.js";
 export {
   annotationTools, textTool, anchoredText, note, anchoredNote, callout, comment, priceLabel, priceNote, signpost, flagMark, arrow, arrowMarker,
-  arrowMarkUp, arrowMarkDown,
+  arrowMarkUp, arrowMarkDown, arrowMarkLeft, arrowMarkRight, pin, table, icon, TABLE_MAX, TABLE_TEXT_MAX, ICON_GLYPH_MAX,
 } from "./tools/annotations.js";
 export {
   positionTools, longPosition, shortPosition, forecast, projection, barsPattern, ghostFeed, positionStats, patternBars, ghostBars, projectionTarget, seeded,
 } from "./tools/position.js";
 export type { PositionStats, PositionInputs } from "./tools/position.js";
-export { measureTools, dateRange, priceRange, dateAndPriceRange } from "./tools/measure.js";
+export { measureTools, dateRange, priceRange, dateAndPriceRange, sector } from "./tools/measure.js";
 export {
   patternTools, xabcd, cypher, abcd, trianglePattern, threeDrives, headAndShoulders, elliottImpulse, elliottCorrection, elliottTriangle,
   elliottDoubleCombo, elliottTripleCombo, xabcdRatios, cypherRatios, abcdRatios, driveRatios, waveLabel,
 } from "./tools/patterns.js";
 export { cycleTools, cyclicLines, timeCycles, sineLine, sineY } from "./tools/cycles.js";
-export { volumeTools, anchoredVwapTool, volumeProfileTool, anchoredVwap, volumeProfile, startIndex } from "./tools/volume.js";
+export { volumeTools, anchoredVwapTool, volumeProfileTool, anchoredVolumeProfileTool, anchoredVwap, volumeProfile, startIndex } from "./tools/volume.js";
 export { measure, fmtDuration, fmtTime } from "./tools/util.js";

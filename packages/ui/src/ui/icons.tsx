@@ -1,92 +1,120 @@
 /** @jsxImportSource preact */
-// Stroke icons on a 24 grid, drawn here (no icon font, no branding). Directional ones carry the
-// `dir` class so RTL mirrors them (see the i18n README).
+// Stroke icons on a 24 grid with a 2px stroke, as Lucide draws them. Most are Lucide (shadcn/ui's icon library, generated into
+// icons.generated.ts); the drawing tools Lucide has no picture of are our own below, on the same grid and stroke, one per tool so
+// no two tools look alike. A host replaces any of them with the `icons` option, by the same name (a tool's icon is named after
+// the tool: `trendLine`, `fibRetracement` ...). Directional ones carry the `dir` class so RTL mirrors them.
 
-const P: Record<string, string> = {
-  search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4-4",
-  plus: "M12 5v14M5 12h14",
-  close: "M6 6l12 12M18 6 6 18",
-  check: "M5 12.5l4.5 4.5L19 7.5",
-  chevron: "M6 9l6 6 6-6",
-  chevronRight: "M9 6l6 6-6 6",
-  undo: "M9 7 4 12l5 5M4 12h10a6 6 0 0 1 0 12",
-  redo: "M15 7l5 5-5 5M20 12H10a6 6 0 0 0 0 12",
-  camera: "M4 8h3l2-3h6l2 3h3v11H4zM12 17a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
-  expand: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
-  shrink: "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5",
-  gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12l2-1-1-3-2 .3-1.5-1.6.3-2.2-3-1-1 2h-2l-1-2-3 1 .3 2.2L6 8.3 4 8l-1 3 2 1v1l-2 1 1 3 2-.3 1.5 1.6-.3 2.2 3 1 1-2h2l1 2 3-1-.3-2.2 1.6-1.5 2 .3 1-3-2-1z",
-  layout: "M4 4h16v16H4zM4 12h16M12 4v16",
-  bell: "M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21a2 2 0 0 0 4 0",
-  indicators: "M3 17l5-6 4 3 5-8 4 5M3 21h18",
-  compare: "M4 15l5-5 4 4 7-8M4 20h16",
-  star: "M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z",
-  trash: "M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13",
-  lock: "M7 11V8a5 5 0 0 1 10 0v3M5 11h14v9H5z",
-  unlock: "M7 11V8a5 5 0 0 1 9.5-2M5 11h14v9H5z",
-  eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
-  eyeOff: "M3 3l18 18M10 6a9 9 0 0 1 2-.2c6 0 10 7 10 7a17 17 0 0 1-3 3.6M6 7.5A17 17 0 0 0 2 12s4 7 10 7a9 9 0 0 0 4-1",
-  magnet: "M5 4v8a7 7 0 0 0 14 0V4h-4v8a3 3 0 0 1-6 0V4zM5 8h4M15 8h4",
-  cursor: "M5 3l14 9-6 1.5L10 20z",
-  cross: "M12 3v18M3 12h18",
-  trend: "M4 19 20 5M4 19h.01M20 5h.01",
-  hline: "M3 12h18M3 12h.01M21 12h.01",
-  vline: "M12 3v18",
-  ray: "M5 17 20 6M5 17h.01",
-  channel: "M4 15 18 6M6 20 20 11",
-  pitchfork: "M5 19 12 6M5 19l14-2M5 19l12-9",
-  fib: "M4 5h16M4 10h16M4 15h16M4 20h16",
-  gann: "M4 20 20 4M4 20 20 12M4 20 12 4M4 20h16V4",
-  pattern: "M3 17l4-9 4 6 3-10 4 9 3-3",
-  shape: "M4 6h16v12H4z",
-  circle: "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z",
-  text: "M5 6h14M12 6v13M9 19h6",
-  note: "M5 4h14v11l-4 5H5zM15 15v5",
-  arrow: "M5 19 19 5M10 5h9v9",
-  flag: "M6 21V4M6 5h12l-2 4 2 4H6",
-  position: "M4 5h16v6H4zM4 11h16v8H4zM4 11h16",
-  measure: "M3 17 17 3l4 4L7 21zM8 12l2 2M11 9l2 2M14 6l2 2",
-  forecast: "M3 17l5-5 4 3 4-7M16 8h5v5",
+import { h } from "preact";
+import { LUCIDE, type IconNode } from "./icons.generated.js";
+import { useApp } from "./context.js";
+
+export type IconSpec = string | IconNode;
+
+const dot = (cx: number, cy: number): readonly ["circle", Record<string, string>] => ["circle", { cx: String(cx), cy: String(cy), r: "2" }];
+const p = (d: string): readonly ["path", Record<string, string>] => ["path", { d }];
+
+/** Our own icons: shell ones Lucide lacks, and the drawing tools. A string is one path's `d`. */
+const CUSTOM: Record<string, IconSpec> = {
+  hideIndicators: "M3 17l5-6 4 3 5-8 4 5M3 21h18M3 3l18 18",
   vwap: "M3 8c4 0 5 8 9 8s5-8 9-8",
-  more: "M5 12h.01M12 12h.01M19 12h.01",
-  sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5",
-  moon: "M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10z",
-  globe: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18",
-  code: "M8 7l-5 5 5 5M16 7l5 5-5 5M14 5l-4 14",
-  play: "M7 4l13 8-13 8z",
-  copy: "M8 8h11v12H8zM5 16V4h11",
-  chartType: "M5 20V10M5 6v2M12 20v-4M12 12v-5M19 20v-8M19 8V4",
-  save: "M5 4h12l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6",
-  grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
-  list: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
-  keep: "M6 4h12v6l-3 3v7l-3-2-3 2v-7l-3-3z",
-  pencil: "M4 20l1-5L16 4l4 4L9 19z",
+  // lines: each with its handles, so a segment, a ray and an extended line read apart
+  trendLine: [p("M6.5 17.5 17.5 6.5"), dot(5, 19), dot(19, 5)],
+  trendAngle: [p("M6.5 17.5 18 6"), p("M7 19h14"), p("M12 19a7 7 0 0 0-1.5-4.3"), dot(5, 19)],
+  ray: [p("M6.5 17.5 20 4"), p("M14 4h6v6"), dot(5, 19)],
+  infoLine: [p("M5.5 18.5 13 11"), dot(4, 20), dot(14.5, 9.5), p("M15 3h6v4h-6z")],
+  extendedLine: [p("M3 21l4.6-4.6M10.4 13.6l3.2-3.2M16.4 7.6 21 3"), dot(9, 15), dot(15, 9)],
+  horizontalLine: [p("M2 12h8M14 12h8"), dot(12, 12)],
+  horizontalRay: [p("M7 12h15"), p("m18 8 4 4-4 4"), dot(5, 12)],
+  verticalLine: [p("M12 2v8M12 14v8"), dot(12, 12)],
+  crossLine: [p("M12 2v8M12 14v8M2 12h8M14 12h8"), dot(12, 12)],
+  // channels
+  parallelChannel: [p("M3 15 15 3"), p("M9 21 21 9")],
+  regressionTrendChannel: [p("M3 14 14 3"), p("M10 21 21 10"), p("M5.5 18.5l1.5-1.5M10 14l1.5-1.5M14.5 9.5 16 8")],
+  flatTopBottom: [p("M3 6h18"), p("M3 20 21 12")],
+  disjointChannel: [p("M3 10 21 4"), p("M3 14l18 6")],
+  pitchfork: [p("M3 21l8-8"), p("M7 9l8 8"), p("M7 9l6-6M11 13l8-8M15 17l6-6")],
+  schiffPitchfork: [p("M3 17l8-4"), p("M7 9l8 8"), p("M7 9l6-6M11 13l8-8M15 17l6-6")],
+  modifiedSchiffPitchfork: [p("M3 19l8-6"), p("M7 9l8 8"), p("M7 9l6-6M11 13l8-8M15 17l6-6")],
+  insidePitchfork: [p("M3 21l8-8"), p("M8 10l6 6"), p("M9.5 11.5l5-5M11 13l6-6M12.5 14.5l5-5")],
+  pitchfan: [p("M3 21 21 3M3 21l18-9M3 21l9-18"), p("M12 3l9 9")],
+  // Fibonacci and Gann
+  fibRetracement: [p("M4 4h16M4 9h16M4 14h16M4 20h16"), p("M4 20 20 4")],
+  fibExtension: [p("M4 4h16M4 10h16M4 16h16"), p("M4 21l4-8 4 5 5-14")],
+  fibChannel: [p("M3 9l6-6M3 15 15 3M3 21 21 3M9 21 21 9")],
+  fibTimeZone: [p("M3 4v16M5 4v16M8 4v16M13 4v16M21 4v16")],
+  fibSpeedFan: [p("M4 20 20 4M4 20l16-11M4 20l16-6M4 20 9 4M4 20l10-16")],
+  fibTrendTime: [p("M3 20l6-8"), p("M12 4v16M16 4v16M21 4v16")],
+  fibCircles: [["circle", { cx: "12", cy: "12", r: "3" }], ["circle", { cx: "12", cy: "12", r: "6" }], ["circle", { cx: "12", cy: "12", r: "9.5" }]],
+  fibSpiral: "M12 12a2 2 0 0 1 2 2a4 4 0 0 1-4 4a6 6 0 0 1-6-6a8 8 0 0 1 8-8a10 10 0 0 1 10 10",
+  fibSpeedArcs: [p("M4 20 20 4"), p("M4 12a8 8 0 0 1 8 8"), p("M4 6a14 14 0 0 1 14 14")],
+  fibWedge: [p("M4 20 20 6M4 20l16-2"), p("M13 12a10 10 0 0 1 1 7")],
+  gannBox: [p("M4 4h16v16H4z"), p("M4 20 20 4M4 4l16 16")],
+  gannSquareFixed: [p("M4 4h16v16H4z"), p("M4 12h16M12 4v16"), p("M4 20 20 4")],
+  gannSquare: [p("M4 4h16v16H4z"), p("M4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16")],
+  gannFan: [p("M4 20 20 4M4 20l16-8M4 20l8-16"), p("M4 20h16M4 20V4")],
+  // patterns
+  xabcd: [p("M3 18 8 6l4 8 5-10 4 12"), p("M3 18l9-4")],
+  cypher: [p("M3 16 8 5l4 10 5-7 4 10"), p("M3 16l9-1")],
+  abcd: [p("M4 18 10 6l5 7 5-9")],
+  trianglePattern: [p("M3 4l18 8L3 20"), p("M3 6l5 11 4-8 3 5")],
+  threeDrives: [p("M3 20l3-6 2 3 4-7 2 3 4-9")],
+  headAndShoulders: [p("M2 18l3-7 3 4 4-10 4 10 3-4 3 7"), p("M2 16h20")],
+  elliottImpulse: [p("M3 20l4-8 3 3 5-10 3 5 3-6")],
+  elliottCorrection: [p("M3 5l6 11 5-6 7 10")],
+  elliottTriangle: [p("M3 5l4 12 4-9 4 7 4-5")],
+  elliottDoubleCombo: [p("M3 5l4 8 4-4 4 8 6-5")],
+  elliottTripleCombo: [p("M2 4l4 7 3-3 4 7 3-3 6 8")],
+  cyclicLines: [p("M4 4v16M9 4v16M14 4v16M19 4v16")],
+  timeCycles: [p("M2 18a5 5 0 0 1 10 0a5 5 0 0 1 10 0"), p("M2 18h20")],
+  sineLine: "M2 12c3-8 7-8 10 0s7 8 10 0",
+  // shapes
+  rotatedRectangle: "M7 3l14 7-4 9L3 12z",
+  ellipse: [["ellipse", { cx: "12", cy: "12", rx: "10", ry: "6" }]],
+  arc: "M4 18a8 8 0 0 1 16 0",
+  doubleCurve: "M3 17c2-10 7-10 9-5s7 5 9-5",
+  polyline: [p("M5 18l4-9 6 6 4-9"), dot(5, 18), dot(19, 6)],
+  // forecasting
+  longPosition: [p("M4 4h16v16H4z"), p("M4 13h16"), p("m9 9 3-3 3 3")],
+  shortPosition: [p("M4 4h16v16H4z"), p("M4 11h16"), p("m9 15 3 3 3-3")],
+  forecast: "M3 17l5-5 4 3 4-7M16 8h5v5",
+  projection: [p("M3 17l5-5 4 3"), p("M14 13l1.5-1.5M17.5 9.5 19 8M20.5 6.5 21 6")],
+  barsPattern: [p("M6 3v18M18 5v14M12 6v12"), p("M4 8h4v7H4zM10 9h4v5h-4zM16 7h4v8h-4z")],
+  dateRange: [p("M4 4v16M20 4v16"), p("M7 12h10M10 9l-3 3 3 3M14 9l3 3-3 3")],
+  priceRange: [p("M4 4h16M4 20h16"), p("M12 7v10M9 10l3-3 3 3M9 14l3 3 3-3")],
+  dateAndPriceRange: [p("M4 4h16v16H4z"), p("M8 12h8M12 8v8")],
+  anchoredVwap: [p("M3 8c4 0 5 8 9 8s5-8 9-8"), dot(3, 19)],
+  volumeProfile: [p("M4 4v16"), p("M4 6h8M4 10h14M4 14h10M4 18h5")],
+  anchoredVolumeProfile: [p("M20 4v16"), p("M20 6h-8M20 10H6M20 14H10M20 18h-5")],
 };
 
 /** Names with a left/right sense; mirrored in RTL. */
-const DIRECTIONAL = new Set(["undo", "redo", "chevronRight", "trend", "ray", "forecast", "arrow"]);
+const DIRECTIONAL = new Set(["undo", "redo", "chevronRight", "trendLine", "ray", "forecast", "arrow", "horizontalRay", "projection"]);
 
-export type IconName = keyof typeof P;
+const toNode = (spec: IconSpec): IconNode => (typeof spec === "string" ? [["path", { d: spec }]] : spec);
 
-export function Icon({ name, size = 20, filled = false }: { name: string; size?: number; filled?: boolean }) {
-  const d = P[name];
-  if (!d) throw new Error(`unknown icon "${name}"`);
+/** The icon `name` as drawing instructions: the host's own first, then ours, then Lucide's. Throws on a name nobody has. */
+export function iconNode(name: string, overrides?: Readonly<Record<string, IconSpec>>): IconNode {
+  const spec = overrides?.[name] ?? CUSTOM[name] ?? LUCIDE[name];
+  if (!spec) throw new Error(`unknown icon "${name}"`);
+  return toNode(spec);
+}
+
+/** Whether `name` is an icon anyone defines. */
+const known = (name: string): boolean => name in CUSTOM || name in LUCIDE;
+
+export function Icon({ name, size = 16, filled = false }: { name: string; size?: number; filled?: boolean }) {
+  const app = useApp();
+  const node = iconNode(name, app.options.icons);
   return (
-    <svg class={`icon${DIRECTIONAL.has(name) ? " dir" : ""}`} width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-      <path d={d} />
+    <svg class={`icon${DIRECTIONAL.has(name) ? " dir" : ""}`} width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      {node.map(([tag, attrs], k) => h(tag, { key: k, ...attrs }))}
     </svg>
   );
 }
 
-/** Icon of a drawing tool: its own where it has one, else its group's. */
-const TOOL_ICON: Record<string, string> = {
-  trendLine: "trend", ray: "ray", horizontalLine: "hline", horizontalRay: "hline", verticalLine: "vline", crossLine: "cross", extendedLine: "trend", infoLine: "trend",
-  parallelChannel: "channel", pitchfork: "pitchfork", schiffPitchfork: "pitchfork", modifiedSchiffPitchfork: "pitchfork", insidePitchfork: "pitchfork", pitchfan: "pitchfork",
-  rectangle: "shape", rotatedRectangle: "shape", ellipse: "circle", circle: "circle", text: "text", anchoredText: "text", note: "note", anchoredNote: "note", callout: "note", comment: "note",
-  arrow: "arrow", arrowMarker: "arrow", arrowMarkUp: "arrow", arrowMarkDown: "arrow", flagMark: "flag", signpost: "flag", priceLabel: "note", priceNote: "note",
-  longPosition: "position", shortPosition: "position", dateRange: "measure", priceRange: "measure", dateAndPriceRange: "measure", forecast: "forecast", projection: "forecast",
-  anchoredVwap: "vwap", brush: "pencil", highlighter: "pencil",
-};
-const GROUP_ICON: Record<string, string> = { lines: "trend", channels: "channel", fibonacci: "fib", patterns: "pattern", shapes: "shape", annotations: "text", forecasting: "measure" };
+const GROUP_ICON: Record<string, string> = { lines: "trendLine", channels: "parallelChannel", fibonacci: "fibRetracement", patterns: "xabcd", shapes: "rectangle", annotations: "text", forecasting: "longPosition", custom: "pencil" };
 
-export const toolIcon = (tool: string, group: string): string => TOOL_ICON[tool] ?? GROUP_ICON[group] ?? "trend";
-export const groupIcon = (group: string): string => GROUP_ICON[group] ?? "trend";
+/** The icon of a drawing tool: a host's icon of the tool's name, else the tool's own, else its group's. */
+export const toolIcon = (tool: string, group: string, overrides?: Readonly<Record<string, IconSpec>>): string =>
+  overrides?.[tool] || known(tool) ? tool : GROUP_ICON[group] ?? "pencil";
+export const groupIcon = (group: string): string => GROUP_ICON[group] ?? "pencil";

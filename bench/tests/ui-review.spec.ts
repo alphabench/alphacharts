@@ -210,7 +210,7 @@ test("the alert log writes its times in the zone the chart shows, and prices as 
     (window as Any).__feed.replay("ALPHA", [2500.5]);
   });
   await page.getByTestId("alerts-button").click();
-  const shown = await page.getByTestId("alert-log").locator("li .muted").first().textContent();
+  const shown = await page.getByTestId("alert-log").locator('[data-slot="item-description"]').first().textContent();
   const expected = await page.evaluate(() => {
     const app = (window as Any).__app;
     return app.i18n.dateTime(app.alertLog[0].time, { date: "medium", time: "seconds", timeZone: "America/New_York" });

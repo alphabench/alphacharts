@@ -5,6 +5,7 @@ import { BarShading } from "../src/chart/primitives.js";
 import { COL_BAR_COLOR, DataModel, type DataChange, type OhlcBar } from "../src/data/model.js";
 import { LOD_BASE, LOD_COLOR } from "../src/data/lod.js";
 import { parseColor } from "../src/render/color.js";
+import { LUMA_DARK } from "../src/chart/theme.js";
 
 const RED = parseColor("#ff0000");
 const BLUE = parseColor("#0000ff");
@@ -148,7 +149,7 @@ describe("bar colours", () => {
 
 describe("BarShading", () => {
   const view = (n: number, spacing = 10) => ({
-    width: n * spacing, height: 100, dpr: 1, lo: 0, hi: n - 1, barSpacing: spacing,
+    width: n * spacing, height: 100, dpr: 1, lo: 0, hi: n - 1, barSpacing: spacing, theme: LUMA_DARK,
     x: (i: number) => i * spacing + spacing / 2, y: (v: number) => v, index: (x: number) => Math.floor(x / spacing), price: (y: number) => y,
     timeToIndex: (t: number) => (t % 1000 === 0 && t >= 1000 && t <= n * 1000 ? t / 1000 - 1 : undefined),
     indexToTime: (i: number) => (i + 1) * 1000, timeToX: (t: number) => (t / 1000 - 1) * spacing + spacing / 2, formatPrice: String,

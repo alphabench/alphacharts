@@ -165,8 +165,8 @@ async function run(): Promise<void> {
       const chart = createChart(app, { theme, ...R });
       const c = chart.addSeries("candles", { priceFormat: { type: "price", minMove: 0.05 } });
       c.setData(d);
-      chart.addSeries("line", { color: "#f7a600", lineWidth: 1.5, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: "price", minMove: 0.05 } }).setData(sma(d, 50));
-      chart.addSeries("line", { color: "#7e57c2", lineWidth: 1.5, priceFormat: { type: "price", minMove: 0.01 }, pane: 1, title: "RSI 14" }).setData(rsi(d));
+      chart.addSeries("line", { color: "chart-2", lineWidth: 1.5, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: "price", minMove: 0.05 } }).setData(sma(d, 50));
+      chart.addSeries("line", { color: "chart-3", lineWidth: 1.5, priceFormat: { type: "price", minMove: 0.01 }, pane: 1, title: "RSI 14" }).setData(rsi(d));
       chart.addSeries("histogram", { pane: 2, priceFormat: { type: "volume" }, priceLineVisible: false }).setData(volume(d, packed(theme.up), packed(theme.down)));
       window.__charts = [chart];
       break;
@@ -205,9 +205,9 @@ async function run(): Promise<void> {
       const a = mk(cells[0]!, "log"), b = mk(cells[1]!, "percent"), c = mk(cells[2]!, "linear", true);
       const e = createChart(cells[3]!, { theme, ...R });
       e.addSeries("candles", { priceFormat: pf }).setData(d);
-      e.addSeries("line", { priceScaleId: "second", color: "#f7a600", priceFormat: { type: "price", minMove: 0.01 } }).setData(rsi(d));
+      e.addSeries("line", { priceScaleId: "second", color: "chart-2", priceFormat: { type: "price", minMove: 0.01 } }).setData(rsi(d));
       e.priceScale("second").applyOptions({ position: "right", marginTop: 0.1, marginBottom: 0.1 });
-      e.addSeries("line", { priceScaleId: "idx", color: "#7e57c2", priceFormat: pf }).setData({ time: d.time, value: d.close });
+      e.addSeries("line", { priceScaleId: "idx", color: "chart-3", priceFormat: pf }).setData({ time: d.time, value: d.close });
       e.priceScale("idx").applyOptions({ position: "left", mode: "indexed" });
       window.__charts = [a, b, c, e];
       break;

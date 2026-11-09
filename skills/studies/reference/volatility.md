@@ -7,3 +7,10 @@ Line: `ta.name(parameters) -> outputs · placement · needs · title`. Legend in
 - `ta.atr(length:int[1..5000])` -> series · own pane · needs ohlc · Average True Range
 - `ta.natr(length:int=14[1..5000])` -> series · own pane · needs ohlc · Normalized Average True Range
 - `ta.trange()` -> series · own pane · needs ohlc · True Range
+- `ta.chaikin_vol(length:int=10[1..5000], rocLength:int=10[1..5000])` -> series · own pane · needs ohlc · Chaikin Volatility
+- `ta.vol_close_to_close(length:int=10[2..5000], annual:int=252[1..10000])` -> series · own pane · Volatility Close-to-Close
+- `ta.vol_garman_klass(length:int=10[1..5000], annual:int=252[1..10000])` -> series · own pane · needs ohlc · Garman-Klass Volatility
+- `ta.vol_parkinson(length:int=10[1..5000], annual:int=252[1..10000])` -> series · own pane · needs ohlc · Parkinson Volatility
+- `ta.vol_rogers_satchell(length:int=10[1..5000], annual:int=252[1..10000])` -> series · own pane · needs ohlc · Rogers-Satchell Volatility
+- `ta.ulcer_index(length:int=14[1..5000])` -> series · own pane · Ulcer Index
+- `ta.vol_zero_trend(length:int=10[1..5000], annual:int=252[1..10000])` -> series · own pane · Volatility Zero Trend Close-to-Close

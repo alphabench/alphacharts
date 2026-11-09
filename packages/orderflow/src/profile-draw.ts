@@ -9,7 +9,7 @@
 // drawn stronger. POC is a line across the profile, HVN solid and LVN dotted
 // ticks past its edge. A profile built from bars (no trades) is labelled.
 
-import { crisp, dashPattern, parseColor, type Chart, type PaneView, type PanePrimitive, type PrimitiveHost, type Series, type SeriesType } from "@alphacharts/core";
+import { crisp, dashPattern, parseColor, resolveColors, type Chart, type PaneView, type PanePrimitive, type PrimitiveHost, type Series, type SeriesType } from "@alphacharts/core";
 import type { FootprintSource } from "./footprint.js";
 import { SessionProfiles, VisibleProfile, fixedRangeProfile, type FixedRange, type Profile, type ProfileOptions } from "./profile.js";
 import { volumeText } from "./footprint-layout.js";
@@ -44,7 +44,7 @@ export class VolumeProfilePrimitive implements PanePrimitive {
   last: { profiles: Profile[] } = { profiles: [] };
 
   constructor(private readonly source: FootprintSource, options: Partial<VolumeProfileOptions> & { mode: ProfileMode }) {
-    this.opts = { widthFraction: 0.35, maxWidthPx: 160, buyColor: "#26a69a", sellColor: "#ef5350", unknownColor: "#8b909a", pocColor: "#ffc107", textColor: "#d1d4dc", minRowPx: 2, ...options };
+    this.opts = { widthFraction: 0.35, maxWidthPx: 160, buyColor: "chart-up", sellColor: "chart-down", unknownColor: "chart-3", pocColor: "foreground", textColor: "muted", minRowPx: 2, ...options };
     this.check();
   }
 
@@ -98,7 +98,7 @@ export class VolumeProfilePrimitive implements PanePrimitive {
 
   draw(ctx: CanvasRenderingContext2D, view: PaneView): void {
     const flow = this.source.flow, bars = flow.bars;
-    const o = this.opts;
+    const o = resolveColors(this.opts, view.theme);
     const rows = this.rowsInView(view);
     this.last = { profiles: [] };
     if (!rows || bars.length === 0) return;
@@ -144,7 +144,7 @@ export class VolumeProfilePrimitive implements PanePrimitive {
   private paint(ctx: CanvasRenderingContext2D, view: PaneView, p: Profile, anchor: number, room: number, dir: "right" | "left"): void {
     this.last.profiles.push(p);
     if (p.rowCount === 0) return;
-    const o = this.opts, tick = p.tickSize, sgn = dir === "right" ? 1 : -1;
+    const o = resolveColors(this.opts, view.theme), tick = p.tickSize, sgn = dir === "right" ? 1 : -1;
     let max = 0;
     for (let i = 0; i < p.rowCount; i++) if (p.total[i]! > max) max = p.total[i]!;
     const buy = parseColor(o.buyColor), sell = parseColor(o.sellColor), unk = parseColor(o.unknownColor);

@@ -2,18 +2,26 @@
 // hovers and shadows are mixed from them in CSS (color-mix), so a custom
 // theme, dark, light and high contrast all re-skin the whole shell.
 
-import { DARK, HIGH_CONTRAST, LIGHT, parseColor, systemTheme, type Theme } from "@alphacharts/core";
+import { DARK, HIGH_CONTRAST, LIGHT, LUMA_TOKENS, SHADCN_TOKENS, parseColor, systemTheme, themeFromCss, type ShadcnToken, type Theme, type TokenSet } from "@alphacharts/core";
 import type { ThemeName } from "./types.js";
 
-export function resolveTheme(name: ThemeName, custom: Partial<Theme> | null, base: Theme = DARK): Theme {
+/**
+ * `host` is the element whose CSS variables "inherit" reads (the shadcn names, see core's theme-css.ts); the others are fixed
+ * palettes: "dark" (black) and "light" are the Luma ones.
+ */
+export function resolveTheme(name: ThemeName, custom: Partial<Theme> | null, base: Theme = DARK, host?: Element): Theme {
   switch (name) {
+    case "inherit": return host ? themeFromCss(host, custom ?? {}) : { ...base, ...(custom ?? {}) };
     case "dark": return DARK;
     case "light": return LIGHT;
     case "high-contrast": return HIGH_CONTRAST;
     case "auto": return systemTheme();
     case "custom": {
       const t = { ...base, ...custom };
-      for (const k of Object.keys(t) as (keyof Theme)[]) if (k !== "fontFamily" && k !== "fontSize") parseColor(t[k] as string);
+      for (const k of Object.keys(t) as (keyof Theme)[]) {
+        if (k === "palette") t.palette!.forEach((c) => parseColor(c));
+        else if (k !== "fontFamily" && k !== "fontSize") parseColor(t[k] as string);
+      }
       return t;
     }
   }
@@ -39,22 +47,34 @@ export function textOn(bg: string): string {
   return contrastRatio("#000000", bg) >= contrastRatio("#ffffff", bg) ? "#000000" : "#ffffff";
 }
 
-/** The CSS custom properties of a theme (set on the shell's root). */
-export function themeVars(t: Theme): Record<string, string> {
-  return {
-    "--ac-bg": t.background,
-    "--ac-text": t.text,
-    "--ac-muted": t.textMuted,
-    "--ac-grid": t.grid,
-    "--ac-border": t.border,
-    "--ac-accent": t.accent,
-    "--ac-on-accent": textOn(t.accent),
-    "--ac-up": t.up,
-    "--ac-down": t.down,
-    "--ac-label-bg": t.labelBackground,
-    "--ac-label-text": t.labelText,
-    "--ac-crosshair": t.crosshair,
-    "--ac-font": t.fontFamily,
-    "--ac-font-size": `${Math.max(12, t.fontSize + 2)}px`,
-  };
+/** Whether a theme is a dark one, by its background. */
+export function isDark(t: Theme): boolean {
+  return textOn(t.background) === "#ffffff";
+}
+
+/**
+ * The theme's own token values, `--t-<token>`, which the stylesheet uses where neither an `--ac-*` override nor (under "inherit")
+ * the host's shadcn token is set. The named Luma themes, and "inherit", give the Luma set for their mode; any other theme
+ * (high contrast, custom, the OS's) derives the set from its colours, so its menus and dialogs match its canvas.
+ */
+export function themeVars(t: Theme, name: ThemeName): Record<string, string> {
+  const dark = isDark(t);
+  const luma: TokenSet = dark ? LUMA_TOKENS.dark : LUMA_TOKENS.light;
+  let set: Record<ShadcnToken, string> = { ...luma };
+  if (name !== "inherit" && name !== "dark" && name !== "light") {
+    const bg = t.background, fg = t.text;
+    const raised = `color-mix(in oklab, ${bg} 96%, ${fg})`;
+    const soft = `color-mix(in oklab, ${bg} 88%, ${fg})`;
+    set = {
+      ...luma, background: bg, foreground: fg, card: raised, "card-foreground": fg, popover: raised, "popover-foreground": fg,
+      primary: t.accent, "primary-foreground": textOn(t.accent), secondary: soft, "secondary-foreground": fg, muted: soft,
+      "muted-foreground": t.textMuted, accent: soft, "accent-foreground": fg, destructive: t.down, border: t.border, input: t.border,
+      ring: t.textMuted, "chart-up": t.up, "chart-down": t.down,
+    };
+  } else {
+    set = { ...set, "chart-up": t.up, "chart-down": t.down };
+  }
+  const out: Record<string, string> = {};
+  for (const k of SHADCN_TOKENS) out[`--t-${k}`] = set[k];
+  return out;
 }

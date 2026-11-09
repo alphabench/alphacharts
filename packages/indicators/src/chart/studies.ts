@@ -28,7 +28,7 @@
 // line's dash style is not drawn on series lines (the core line has none).
 
 import {
-  BarShading, COL_C, COL_H, COL_L, COL_O, COL_V, cssColor, parseColor,
+  BarShading, COL_C, COL_H, COL_L, COL_O, COL_V, cssColor, isColorSlot, parseColor, resolveColor, slotAlpha,
   type Chart, type ChartPlugin, type DataChange, type PluginApi, type PluginPaneView, type PriceLine, type Series, type SeriesData, type SeriesType,
 } from "@alphacharts/core";
 import { Feed, type FeedBar, type FeedBars, type FeedConfig } from "../engine/feed.js";
@@ -190,7 +190,7 @@ export class Study {
   }
 
   setStyle(plotKey: string, style: PlotStyle): void {
-    if (style.color !== undefined) parseColor(style.color);
+    if (style.color !== undefined && !isColorSlot(style.color)) parseColor(style.color);
     this.styles[plotKey] = { ...this.styles[plotKey], ...style };
     for (const o of this.outs) {
       if (o.key.split(":")[0] !== plotKey) continue;
@@ -531,8 +531,18 @@ export class Study {
     this.outs.forEach((o, i) => o.series.applyOptions({ title: i === 0 ? this.title() : o.plot.title } as never));
   }
 
+  /** A colour or a slot ("chart-2", "chart-up" …: see core's slots.ts) as the chart's current theme draws it. */
+  private col(c: string): string {
+    return resolveColor(c, this.host.chart.options().theme);
+  }
+
   private color(plot: PlotDef & { color?: string }): string {
-    return this.styles[plot.key]?.color ?? (plot as { color: string }).color;
+    return this.col(this.styles[plot.key]?.color ?? (plot as { color: string }).color);
+  }
+
+  /** @internal The chart's theme changed: redraw whatever took a colour slot's value (series and price lines recolour themselves). */
+  themeChanged(): void {
+    if (!this.disposed && !this.error && this.engine.length > 0) this.syncAll();
   }
 
   private seriesOptions(plot: PlotDef, key: string): Record<string, unknown> {
@@ -544,7 +554,7 @@ export class Study {
       case "histogram": return { color: color ?? plot.color };
       case "area": {
         const c = color ?? plot.color;
-        return { lineColor: c, topColor: withAlpha(c, 0.28), bottomColor: withAlpha(c, 0.02), lineWidth: st?.width ?? 1.5 };
+        return { lineColor: c, topColor: slotAlpha(c, 0.28), bottomColor: slotAlpha(c, 0.02), lineWidth: st?.width ?? 1.5 };
       }
       default: return {};
     }
@@ -634,8 +644,8 @@ export class Study {
   }
 
   private writeSeries(o: OutSeries, col: Float64Array, times: Float64Array, n: number): void {
-    const down = o.plot.kind === "histogram" && o.plot.colorDown ? { up: parseColor(this.color(o.plot)), down: parseColor(o.plot.colorDown) } : null;
-    const by = o.plot.kind === "line" && o.plot.colorBy ? { col: this.engine.outputs[this.def.columns.indexOf(o.plot.colorBy.col)]!.v, color: parseColor(o.plot.colorBy.color) } : null;
+    const down = o.plot.kind === "histogram" && o.plot.colorDown ? { up: parseColor(this.color(o.plot)), down: parseColor(this.col(o.plot.colorDown)) } : null;
+    const by = o.plot.kind === "line" && o.plot.colorBy ? { col: this.engine.outputs[this.def.columns.indexOf(o.plot.colorBy.col)]!.v, color: parseColor(this.col(o.plot.colorBy.color)) } : null;
     let m = 0;
     for (let j = 0; j < n; j++) {
       const t = j + o.offset;
@@ -697,8 +707,8 @@ export class Study {
         const down = o.plot.kind === "histogram" && o.plot.colorDown;
         const by = o.plot.kind === "line" ? o.plot.colorBy : undefined;
         const cond = by ? e.outputs[cols.indexOf(by.col)]!.v[j]! : Number.NaN;
-        const own = by && cond === cond && cond !== 0 ? by.color : undefined;
-        o.series.update({ time: t, value: v, ...(down && { color: v >= 0 ? this.color(o.plot) : down }), ...(own && { color: own }) } as never);
+        const own = by && cond === cond && cond !== 0 ? this.col(by.color) : undefined;
+        o.series.update({ time: t, value: v, ...(down && { color: v >= 0 ? this.color(o.plot) : this.col(down) }), ...(own && { color: own }) } as never);
         o.lastTime = t;
       } else if (o.lastTime === t) this.writeSeries(o, col, times, n); // a point turned absent: rewrite
     }
@@ -722,8 +732,8 @@ export class Study {
     const col = (name: string) => e.outputs[this.def.columns.indexOf(name)]!.v;
     for (const plot of this.def.plots) {
       switch (plot.kind) {
-        case "band": fillBetween(ctx, lo, hi, step, X, Y, col(plot.upper), col(plot.lower), this.styles[plot.key]?.color ?? plot.fill, 0); break;
-        case "fill": fillBetween(ctx, lo, hi, step, X, Y, col(plot.a), col(plot.b), this.styles[plot.key]?.color ?? plot.color, 0); break;
+        case "band": fillBetween(ctx, lo, hi, step, X, Y, col(plot.upper), col(plot.lower), this.col(this.styles[plot.key]?.color ?? plot.fill), 0); break;
+        case "fill": fillBetween(ctx, lo, hi, step, X, Y, col(plot.a), col(plot.b), this.col(this.styles[plot.key]?.color ?? plot.color), 0); break;
         case "line":
           if (isOverlayLine(plot, this.params)) polyline(ctx, lo, hi, step, n, X, Y, col(plot.col), plotOffset(plot, this.params), !!plot.connect, this.color(plot), this.styles[plot.key]?.width ?? plot.width ?? 1.5);
           break;
@@ -786,11 +796,6 @@ function lowerBound(a: Float64Array, n: number, t: number): number {
     else hi = mid;
   }
   return lo;
-}
-
-function withAlpha(css: string, alpha: number): string {
-  const c = parseColor(css);
-  return cssColor(((c & 0xffffff00) | Math.round(alpha * 255)) >>> 0);
 }
 
 function fillBetween(ctx: CanvasRenderingContext2D, lo: number, hi: number, step: number, X: (j: number) => number, Y: (v: number) => number, a: Float64Array, b: Float64Array, color: string, _off: number): void {
@@ -889,13 +894,21 @@ export class StudiesPlugin implements ChartPlugin {
   /** Sources whose bars the plugin has coloured: the plugin owns their colour column while a barcolor study exists. */
   private readonly coloured = new Set<SourceSeries>();
 
+  private offTheme: (() => void) | null = null;
+
   constructor(readonly chart: Chart, readonly runner: StudyRunner | undefined, private readonly resolve: (id: string) => StudyDef) {}
 
   install(api: PluginApi): void {
     this.api = api;
+    // Studies name colour slots (chart-1 …, chart-up …): a new theme redraws them in its colours.
+    this.offTheme = this.chart.on("themeChange", () => {
+      for (const s of this.studies.values()) s.themeChanged();
+    });
   }
 
   uninstall(): void {
+    this.offTheme?.();
+    this.offTheme = null;
     const sources = [...this.coloured];
     for (const s of [...this.studies.values()]) s.dispose(this.chart);
     this.studies.clear();

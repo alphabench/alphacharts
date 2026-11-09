@@ -11,7 +11,7 @@
 // Use `attachFootprint(chart, flow, options)`; it creates the series, the
 // overlay, and keeps the series in step with the flow.
 
-import { COL_C, COL_H, COL_L, COL_O, parseColor, registerSeriesType, type Chart, type DataChange, type DrawView, type DrawView2D, type PaneView, type PanePrimitive, type PrimitiveHost, type Series, type SeriesData, type SeriesOptions, type SeriesRenderer, type SeriesRenderer2D, type Theme } from "@alphacharts/core";
+import { COL_C, COL_H, COL_L, COL_O, paletteOf, parseColor, registerSeriesType, type Chart, type DataChange, type DrawView, type DrawView2D, type PaneView, type PanePrimitive, type PrimitiveHost, type Series, type SeriesData, type SeriesOptions, type SeriesRenderer, type SeriesRenderer2D, type Theme } from "@alphacharts/core";
 import { GLContext, GLSL_COMMON } from "@alphacharts/core/internal";
 import type { FlowChange, OrderFlow } from "./flow.js";
 import {
@@ -273,7 +273,7 @@ registerSeriesType("footprint", {
     source: null,
     ...FOOTPRINT_DEFAULTS,
     upColor: t.up, downColor: t.down, buyColor: t.up, sellColor: t.down, neutralColor: t.accent,
-    imbalanceBuyColor: "#00e676", imbalanceSellColor: "#ff1744", pocColor: "#ffc107", unfinishedColor: "#ab47bc", textColor: t.text,
+    imbalanceBuyColor: t.up, imbalanceSellColor: t.down, pocColor: t.text, unfinishedColor: paletteOf(t)[2]!, textColor: t.text,
   }),
   createRenderer: (gl, ctx) => new FootprintGL(gl, ctx),
   createRenderer2D: () => new Footprint2D(),

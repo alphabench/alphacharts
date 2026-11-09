@@ -76,7 +76,7 @@ function stochOf(g: Graph, x: Col, n: number): Node {
 export const fisher = defineStudy({
   id: "fisher", name: "Fisher Transform", family: "tv", needs: "ohlc", pane: "new",
   inputs: [int("length", 9, 1, 5000)], columns: ["fisher", "trigger"],
-  plots: [line("fisher", COLORS.blue), line("trigger", COLORS.orange), hline("zero", 0, COLORS.gray, "dotted")],
+  plots: [line("fisher", COLORS.neutral), line("trigger", COLORS.orange), hline("zero", 0, COLORS.gray, "dotted")],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const x = g.src("hl2");
@@ -133,7 +133,7 @@ export const tsi = defineStudy({
   id: "tsi", name: "True Strength Index", family: "tv", needs: "value", pane: "new",
   inputs: [int("long", 25, 1, 5000), int("short", 13, 1, 5000), int("signal", 13, 1, 5000), source()],
   columns: ["tsi", "signal"],
-  plots: [line("tsi", COLORS.blue), line("signal", COLORS.red), hline("zero", 0, COLORS.gray, "dotted")],
+  plots: [line("tsi", COLORS.neutral), line("signal", COLORS.orange), hline("zero", 0, COLORS.gray, "dotted")],
   label: (p) => `${p.long} ${p.short} ${p.signal}`,
   build: (g, p) => {
     const pc = g.change(g.src(p.source), 1);
@@ -150,7 +150,7 @@ export const tsi = defineStudy({
 export const vortex = defineStudy({
   id: "vortex", name: "Vortex Indicator", family: "tv", needs: "ohlc", pane: "new",
   inputs: [int("length", 14, 2, 5000)], columns: ["viPlus", "viMinus"],
-  plots: [line("viPlus", COLORS.blue, { title: "VI+" }), line("viMinus", COLORS.red, { title: "VI-" })],
+  plots: [line("viPlus", COLORS.neutral, { title: "VI+" }), line("viMinus", COLORS.orange, { title: "VI-" })],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const { high, low } = g;
@@ -168,7 +168,7 @@ export const coppock = defineStudy({
   id: "coppock", name: "Coppock Curve", family: "tv", needs: "value", pane: "new",
   inputs: [int("length", 10, 1, 5000, "WMA length"), int("longRoc", 14, 1, 5000, "Long ROC length"), int("shortRoc", 11, 1, 5000, "Short ROC length"), source()],
   columns: ["coppock"],
-  plots: [line("coppock", COLORS.blue), hline("zero", 0, COLORS.gray, "dotted")],
+  plots: [line("coppock", COLORS.neutral), hline("zero", 0, COLORS.gray, "dotted")],
   label: (p) => `${p.length} ${p.longRoc} ${p.shortRoc}`,
   build: (g, p) => {
     const x = g.src(p.source);
@@ -183,7 +183,7 @@ export const connorsRsi = defineStudy({
   id: "connors-rsi", name: "Connors RSI", family: "tv", needs: "value", pane: "new",
   inputs: [int("rsiLength", 3, 1, 5000), int("updownLength", 2, 1, 5000), int("rocLength", 100, 1, 5000), source()],
   columns: ["crsi"],
-  plots: [line("crsi", COLORS.blue), hline("upper", 70), hline("lower", 30), hline("middle", 50, COLORS.gray, "dotted")],
+  plots: [line("crsi", COLORS.neutral), hline("upper", 70), hline("lower", 30), hline("middle", 50, COLORS.gray, "dotted")],
   label: (p) => `${p.rsiLength} ${p.updownLength} ${p.rocLength}`,
   build: (g, p) => {
     const x = g.src(p.source);
@@ -221,7 +221,7 @@ export const connorsRsi = defineStudy({
 export const choppiness = defineStudy({
   id: "choppiness", name: "Choppiness Index", family: "tv", needs: "ohlc", pane: "new",
   inputs: [int("length", 14, 2, 5000)], columns: ["chop"],
-  plots: [line("chop", COLORS.blue), hline("upper", 61.8, COLORS.gray, "dashed"), hline("lower", 38.2, COLORS.gray, "dashed")],
+  plots: [line("chop", COLORS.neutral), hline("upper", 61.8, COLORS.gray, "dashed"), hline("lower", 38.2, COLORS.gray, "dashed")],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const atrSum = g.sum(trFirstBar(g), p.length);
@@ -276,7 +276,7 @@ export const smiErgodic = defineStudy({
   id: "smi-ergodic", name: "SMI Ergodic Indicator/Oscillator", family: "tv", needs: "value", pane: "new",
   inputs: [int("longLength", 5, 1, 5000), int("shortLength", 20, 1, 5000), int("signal", 5, 1, 5000), source()],
   columns: ["erg", "signal", "osc"],
-  plots: [hist("osc", COLORS.gray, COLORS.gray, { title: "Oscillator" }), line("erg", COLORS.blue, { title: "SMI Ergodic" }), line("signal", COLORS.red), hline("zero", 0, COLORS.gray, "dotted")],
+  plots: [hist("osc", COLORS.gray, COLORS.gray, { title: "Oscillator" }), line("erg", COLORS.neutral, { title: "SMI Ergodic" }), line("signal", COLORS.orange), hline("zero", 0, COLORS.gray, "dotted")],
   label: (p) => `${p.longLength} ${p.shortLength} ${p.signal}`,
   build: (g, p) => {
     const pc = g.change(g.src(p.source), 1);
@@ -382,7 +382,7 @@ export const accelerator = defineStudy({
 export const massIndex = defineStudy({
   id: "mass-index", name: "Mass Index", family: "tv", needs: "ohlc", pane: "new",
   inputs: [int("length", 10, 1, 5000, "Sum length"), int("emaLength", 9, 1, 5000)], columns: ["mi"],
-  plots: [line("mi", COLORS.blue)],
+  plots: [line("mi", COLORS.neutral)],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const e1 = g.ema(g.sub(g.high, g.low), p.emaLength);
@@ -416,7 +416,7 @@ export const dpo = defineStudy({
 export const schaffTc = defineStudy({
   id: "schaff-tc", name: "Schaff Trend Cycle", family: "tv", needs: "value", pane: "new",
   inputs: [int("fast", 23, 1, 5000), int("slow", 50, 2, 5000), int("cycle", 10, 2, 5000), int("d1", 3, 1, 5000), int("d2", 3, 1, 5000), source()], columns: ["stc"],
-  plots: [line("stc", COLORS.blue), hline("upper", 75), hline("lower", 25)],
+  plots: [line("stc", COLORS.neutral), hline("upper", 75), hline("lower", 25)],
   label: (p) => `${p.fast} ${p.slow} ${p.cycle}`,
   build: (g, p) => {
     const x = g.src(p.source);
@@ -433,7 +433,7 @@ export const schaffTc = defineStudy({
 export const stochTv = defineStudy({
   id: "stoch-tv", name: "Stochastic", family: "tv", needs: "ohlc", pane: "new",
   inputs: [int("kLength", 14, 1, 5000, "%K length"), int("kSmooth", 1, 1, 5000, "%K smoothing"), int("dLength", 3, 1, 5000, "%D smoothing")], columns: ["k", "d"],
-  plots: [line("k", COLORS.blue, { title: "%K" }), line("d", COLORS.orange, { title: "%D" }), hline("upper", 80), hline("lower", 20), hline("middle", 50, COLORS.gray, "dotted")],
+  plots: [line("k", COLORS.neutral, { title: "%K" }), line("d", COLORS.orange, { title: "%D" }), hline("upper", 80), hline("lower", 20), hline("middle", 50, COLORS.gray, "dotted")],
   label: (p) => `${p.kLength} ${p.kSmooth} ${p.dLength}`,
   build: (g, p) => {
     const hh = g.highest(g.high, p.kLength), ll = g.lowest(g.low, p.kLength);

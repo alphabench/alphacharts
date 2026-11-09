@@ -16,7 +16,7 @@ const reg = (id: string, name: string, color: string, pick: (r: ReturnType<Graph
     reference: ref,
   });
 
-export const linearreg = reg("linearreg", "Linear Regression", COLORS.blue, (r) => r.value, "TA-Lib LINEARREG", "overlay");
+export const linearreg = reg("linearreg", "Linear Regression", COLORS.neutral, (r) => r.value, "TA-Lib LINEARREG", "overlay");
 export const linearregSlope = reg("linearreg-slope", "Linear Regression Slope", COLORS.orange, (r) => r.slope, "TA-Lib LINEARREG_SLOPE", "new");
 export const linearregIntercept = reg("linearreg-intercept", "Linear Regression Intercept", COLORS.teal, (r) => r.intercept, "TA-Lib LINEARREG_INTERCEPT", "overlay");
 export const linearregAngle = reg("linearreg-angle", "Linear Regression Angle", COLORS.purple, (r, g) => g.map(r.slope, (m) => Math.atan(m) * RAD), "TA-Lib LINEARREG_ANGLE (degrees)", "new");
@@ -24,7 +24,7 @@ export const tsf = reg("tsf", "Time Series Forecast", COLORS.pink, (r, g) => g.m
 
 export const stddev = defineStudy({
   id: "stddev", name: "Standard Deviation", family: "statistic", needs: "value", pane: "new",
-  inputs: [len(5, 1), float("nbdev", 1, 0, 100, 0.1), source()], columns: ["stddev"], plots: [line("stddev", COLORS.blue)],
+  inputs: [len(5, 1), float("nbdev", 1, 0, 100, 0.1), source()], columns: ["stddev"], plots: [line("stddev", COLORS.neutral)],
   label: (p) => `${p.length}`,
   build: (g, p) => [g.map(g.stdev(g.src(p.source), p.length), (v) => v * p.nbdev)],
   reference: "TA-Lib STDDEV (population)",
@@ -32,7 +32,7 @@ export const stddev = defineStudy({
 
 export const variance = defineStudy({
   id: "var", name: "Variance", family: "statistic", needs: "value", pane: "new",
-  inputs: [len(5, 1), source()], columns: ["var"], plots: [line("var", COLORS.blue)],
+  inputs: [len(5, 1), source()], columns: ["var"], plots: [line("var", COLORS.neutral)],
   label: (p) => `${p.length}`,
   build: (g, p) => [g.variance(g.src(p.source), p.length)],
   reference: "TA-Lib VAR (population)",

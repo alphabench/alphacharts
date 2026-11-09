@@ -7,7 +7,7 @@ import { SOURCE_NAMES } from "../engine/graph.js";
 
 const unary = (id: string, name: string, f: (x: number) => number, ref = `TA-Lib ${id.toUpperCase()}`) =>
   defineStudy({
-    id, name, family: "math", needs: "value", pane: "new", inputs: [source()], columns: [id], plots: [line(id, COLORS.blue)],
+    id, name, family: "math", needs: "value", pane: "new", inputs: [source()], columns: [id], plots: [line(id, COLORS.neutral)],
     build: (g, p) => [g.map(g.src(p.source), (x) => { const r = f(x); return Number.isFinite(r) ? r : Number.NaN; })],
     reference: ref,
   });
@@ -45,21 +45,21 @@ const win = (def = 30) => int("length", def, 1, 5000);
 
 export const max = defineStudy({
   id: "max", name: "Highest value over a period", family: "math", needs: "value", pane: "overlay",
-  inputs: [win(), source()], columns: ["max"], plots: [line("max", COLORS.green)],
+  inputs: [win(), source()], columns: ["max"], plots: [line("max", COLORS.teal)],
   label: (p) => `${p.length}`,
   build: (g, p) => [g.highest(g.src(p.source), p.length)],
   reference: "TA-Lib MAX",
 });
 export const min = defineStudy({
   id: "min", name: "Lowest value over a period", family: "math", needs: "value", pane: "overlay",
-  inputs: [win(), source()], columns: ["min"], plots: [line("min", COLORS.red)],
+  inputs: [win(), source()], columns: ["min"], plots: [line("min", COLORS.orange)],
   label: (p) => `${p.length}`,
   build: (g, p) => [g.lowest(g.src(p.source), p.length)],
   reference: "TA-Lib MIN",
 });
 export const sum = defineStudy({
   id: "sum", name: "Summation", family: "math", needs: "value", pane: "new",
-  inputs: [win(), source()], columns: ["sum"], plots: [line("sum", COLORS.blue)],
+  inputs: [win(), source()], columns: ["sum"], plots: [line("sum", COLORS.neutral)],
   label: (p) => `${p.length}`,
   build: (g, p) => [g.sum(g.src(p.source), p.length)],
   reference: "TA-Lib SUM",
@@ -70,14 +70,14 @@ const idx = (g: Graph, bars: Node): Node => g.calc((i) => i - bars.v[i]!);
 
 export const maxindex = defineStudy({
   id: "maxindex", name: "Index of highest value over a period", family: "math", needs: "value", pane: "new",
-  inputs: [win(), source()], columns: ["maxindex"], plots: [line("maxindex", COLORS.green)],
+  inputs: [win(), source()], columns: ["maxindex"], plots: [line("maxindex", COLORS.teal)],
   label: (p) => `${p.length}`,
   build: (g, p) => [idx(g, g.highestBars(g.src(p.source), p.length, true))],
   reference: "TA-Lib MAXINDEX",
 });
 export const minindex = defineStudy({
   id: "minindex", name: "Index of lowest value over a period", family: "math", needs: "value", pane: "new",
-  inputs: [win(), source()], columns: ["minindex"], plots: [line("minindex", COLORS.red)],
+  inputs: [win(), source()], columns: ["minindex"], plots: [line("minindex", COLORS.orange)],
   label: (p) => `${p.length}`,
   build: (g, p) => [idx(g, g.lowestBars(g.src(p.source), p.length))],
   reference: "TA-Lib MININDEX",

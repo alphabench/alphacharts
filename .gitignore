@@ -6,3 +6,4 @@ bench/results/*
 bench/test-results/
 bench/playwright-report/
 .svelte-kit/
+.playwright-cli/

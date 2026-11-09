@@ -71,6 +71,9 @@ export interface Command {
   readonly label: string;
   /** Ids of drawings the command touches (for events). */
   readonly ids: readonly string[];
+  /** Stamped by the history: when the command was done (`doneAt`) and when it was last undone (`undoneAt`), from the history's clock. */
+  doneAt?: number;
+  undoneAt?: number;
   apply(s: DrawingStore): void;
   revert(s: DrawingStore): void;
 }
@@ -153,7 +156,9 @@ export class History {
   private undoStack: Command[] = [];
   private redoStack: Command[] = [];
 
-  constructor(private readonly store: DrawingStore, private readonly max = 500) {}
+  private tick = 0;
+  /** `clock` returns a number that grows with every call: it orders this history's entries against another history's (the host's studies). */
+  constructor(private readonly store: DrawingStore, private readonly max = 500, private readonly clock: () => number = () => ++this.tick) {}
 
   get canUndo(): boolean {
     return this.undoStack.length > 0;
@@ -165,6 +170,7 @@ export class History {
   /** Apply a new command and make it undoable; clears redo. */
   run(c: Command): void {
     c.apply(this.store);
+    c.doneAt = this.clock();
     this.undoStack.push(c);
     if (this.undoStack.length > this.max) this.undoStack.shift();
     this.redoStack = [];
@@ -172,6 +178,7 @@ export class History {
 
   /** Record a command whose effect is already in the store (a finished drag). */
   record(c: Command): void {
+    c.doneAt = this.clock();
     this.undoStack.push(c);
     if (this.undoStack.length > this.max) this.undoStack.shift();
     this.redoStack = [];
@@ -181,6 +188,7 @@ export class History {
     const c = this.undoStack.pop();
     if (!c) return undefined;
     c.revert(this.store);
+    c.undoneAt = this.clock();
     this.redoStack.push(c);
     return c;
   }

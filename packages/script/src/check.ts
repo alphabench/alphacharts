@@ -17,6 +17,7 @@ import { BOOL_S, BUILTIN_SERIES, ENUMS, FLOAT_S, INT_S, MEMBER_CONSTS, NAMESPACE
 import { DEFAULT_LIMITS, MAX_HISTORY } from "./limits.js";
 import { feedKey, feedsOf, parseTimeframe, type Dependency } from "./feeds.js";
 import { SOURCE_NAMES } from "@alphacharts/indicators";
+import { isColorSlot, slotAlpha } from "@alphacharts/core";
 
 export type ColorRef = { value: string } | { input: string };
 
@@ -775,9 +776,10 @@ class Checker {
     const style = (b[4] ? (this.constVal(b[4]) as string | undefined) : undefined) ?? "line";
     const width = this.int(b[3]);
     const shift = this.offsetArg(b[5]);
-    const down = b[6] ? this.colorRef(b[6], "#f23645") : undefined;
+    const down = b[6] ? this.colorRef(b[6], "chart-down") : undefined;
     if (down && "input" in down) this.err("color_down must be a constant color", b[6]!);
-    const dflt = ["#2962ff", "#ff6d00", "#089981", "#f23645", "#9c27b0", "#fbc02d"][n % 6]!;
+    // an uncoloured plot takes the next colour of the chart theme's palette (a colour slot, see resolveColor in @alphacharts/core)
+    const dflt = ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"][n % 5]!;
     // a color that depends on the bar: `cond ? colorA : colorB` with a bool series for the condition
     const ce = b[2];
     let color: ColorRef;
@@ -804,7 +806,7 @@ class Checker {
     const x = b[0]!;
     if (x.ty && x.ty !== ERR && x.ty.b !== "bool") this.err(`${name} needs a bool condition, got ${show(x.ty)}`, x);
     const title = `${name === "barcolor" ? "Bar color" : "Background"} ${n + 1}`;
-    this.plan.plots.push({ kind: name, key: this.nextKey(title, n + 1), title, color: this.colorRef(b[1], name === "barcolor" ? "#fdd835" : "#2962ff33"), expr: x, span: c });
+    this.plan.plots.push({ kind: name, key: this.nextKey(title, n + 1), title, color: this.colorRef(b[1], name === "barcolor" ? "#fdd835" : "#a3a3a333"), expr: x, span: c });
     return t("void");
   }
 
@@ -846,7 +848,7 @@ class Checker {
     const n = this.plan.plots.length;
     const title = this.str(b[1]) ?? `Level ${n + 1}`;
     const ls = b[3] ? (this.constVal(b[3]) as string | undefined) : undefined;
-    this.plan.plots.push({ kind: "hline", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[2], "#787b86"), expr: b[0]!, ...(ls && { lineStyle: ls }), span: c });
+    this.plan.plots.push({ kind: "hline", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[2], "muted"), expr: b[0]!, ...(ls && { lineStyle: ls }), span: c });
     return t("plot");
   }
 
@@ -862,7 +864,7 @@ class Checker {
       else if (plot.kind !== "line") this.err("fill needs line plots or hline levels (not histogram, area or markers)", e!);
     }
     if (a !== undefined && a === bb) this.err("fill needs two different plots", c);
-    this.plan.plots.push({ kind: "fill", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[2], "#2962ff33"), ...(a !== undefined && { a }), ...(bb !== undefined && { b: bb }), span: c });
+    this.plan.plots.push({ kind: "fill", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[2], "#a3a3a333"), ...(a !== undefined && { a }), ...(bb !== undefined && { b: bb }), span: c });
     return t("void");
   }
 
@@ -881,7 +883,7 @@ class Checker {
     const shift = this.offsetArg(b[5]);
     const last = this.int(b[6]);
     const within = this.int(b[7]);
-    this.plan.plots.push({ kind: "markers", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[4], "#2962ff"), expr: x, shape, position: loc, ...shift, ...(last !== undefined && { last }), ...(within !== undefined && { within }), span: c });
+    this.plan.plots.push({ kind: "markers", key: this.nextKey(title, n + 1), title, color: this.colorRef(b[4], "#a3a3a3"), expr: x, shape, position: loc, ...shift, ...(last !== undefined && { last }), ...(within !== undefined && { within }), span: c });
     return t("void");
   }
 
@@ -953,6 +955,8 @@ class Checker {
 }
 
 export function withTransparency(hex: string, transp: number): string {
+  // a colour slot keeps its name and carries the opacity: drawn with the chart theme's colour
+  if (isColorSlot(hex)) return slotAlpha(hex, Math.round((1 - transp / 100) * 1000) / 1000);
   const h = hex.slice(1);
   const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
   const a = Math.round((1 - transp / 100) * 1000) / 1000;

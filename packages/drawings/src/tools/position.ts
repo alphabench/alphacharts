@@ -108,7 +108,7 @@ function positionTool(side: Side): ToolDef {
       const st = statsOf(side, d);
       const [e, t, s] = pxs(c, d) as [Pt, Pt, Pt];
       const xl = Math.min(e.x, t.x), xr = Math.max(e.x, t.x);
-      const good = "#26a69a", bad = "#ef5350";
+      const good = "chart-up", bad = "chart-down";
       const out: Shape[] = [
         // Hittable: the whole box selects the position, as on a trading platform.
         poly([{ x: xl, y: e.y }, { x: xr, y: e.y }, { x: xr, y: t.y }, { x: xl, y: t.y }], { close: true, fill: withAlpha(good, 0.2), width: 0 }),
@@ -128,7 +128,7 @@ function positionTool(side: Side): ToolDef {
       out.push(text(ctr, (e.y + s.y) / 2, stp.join("\n"), { align: "center", base: "middle", textColor: bad, hit: false }));
       const mid = [`Entry ${c.fmt(A(d, 0).price)}`, st.rr === null ? "R:R n/a" : `R:R ${st.rr.toFixed(2)}`];
       if (st.qty !== null) mid.push(`Qty ${st.qty}`);
-      out.push(text(ctr, e.y, mid.join("  "), { align: "center", base: "middle", bg: withAlpha(d.style.color, 0.9), textColor: "#ffffff", pad: 3, hit: false }));
+      out.push(text(ctr, e.y, mid.join("  "), { align: "center", base: "middle", bg: withAlpha(d.style.color, 0.9), textColor: "contrast", pad: 3, hit: false }));
       return out;
     },
   });
@@ -139,7 +139,7 @@ export const shortPosition = positionTool("short");
 
 export const forecast = tool({
   id: "forecast", label: "Forecast", family: "position", gesture: "drag", anchors: 2,
-  defaults: () => ({ style: { fill: "rgba(41,98,255,0.15)" } }),
+  defaults: () => ({ style: { fill: "rgba(138,138,138,0.15)" } }),
   validate: finiteAnchors,
   shapes(d, c) {
     const [a0, a1] = [A(d, 0), A(d, 1)];
@@ -151,7 +151,7 @@ export const forecast = tool({
       line({ x: q.x, y: p.y }, q, { dash: "dotted", width: 1, hit: false }),
       line(p, q, { dash: "dashed" }),
       { k: "ellipse", cx: q.x, cy: q.y, rx: 4, ry: 4, fill: d.style.color, width: 1 },
-      text(q.x + 8, q.y, measureLines(m, c).join("\n"), { align: "left", base: "middle", bg: d.style.color, textColor: "#ffffff", pad: 4, hit: false }),
+      text(q.x + 8, q.y, measureLines(m, c).join("\n"), { align: "left", base: "middle", bg: d.style.color, textColor: "contrast", pad: 4, hit: false }),
     ];
   },
 });
@@ -180,7 +180,7 @@ export const projection = tool({
 
 // ---- bar overlays ---------------------------------------------------------------
 
-const UP = "#26a69a", DOWN = "#ef5350";
+const UP = "chart-up", DOWN = "chart-down";
 
 function barShapes(x: number, w: number, o: number, h: number, l: number, cl: number, candle: boolean): Shape[] {
   const col = cl >= o ? UP : DOWN;

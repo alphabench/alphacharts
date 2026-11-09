@@ -7,14 +7,14 @@
 import type { Pt } from "../geometry.js";
 import { withAlpha } from "../shapes.js";
 import type { Drawing, ToolCtx, ToolDef } from "../types.js";
-import { A, finiteAnchors, line, measure, measureLines, poly, pxs, text, tool, head, barsText, fmtDuration } from "./util.js";
+import { A, finiteAnchors, needDistinctTimes, line, measure, measureLines, poly, pxs, text, tool, head, barsText, fmtDuration } from "./util.js";
 
 function colour(d: Drawing, dPrice: number): string {
-  return dPrice < 0 ? "#ef5350" : d.style.color;
+  return dPrice < 0 ? "chart-down" : d.style.color;
 }
 
 const label = (x: number, y: number, t: string, col: string) =>
-  text(x, y, t, { align: "center", base: "middle", bg: withAlpha(col, 0.9), textColor: "#ffffff", pad: 4, hit: false });
+  text(x, y, t, { align: "center", base: "middle", bg: withAlpha(col, 0.9), textColor: "contrast", pad: 4, hit: false });
 
 function priceText(d: Drawing, c: ToolCtx): string {
   const m = measure(A(d, 0), A(d, 1), c.source);
@@ -78,5 +78,32 @@ export const dateAndPriceRange = tool({
   },
 });
 
-export const measureTools: ToolDef[] = [dateRange, priceRange, dateAndPriceRange];
+/**
+ * A sector of a circle: click the centre, click a point on the first edge (it sets the radius), click a point toward the second
+ * edge. The sweep is the shorter way round, so a sector is never more than a half circle.
+ */
+export const sector = tool({
+  id: "sector", label: "Sector", family: "measure", gesture: "clicks", anchors: 3,
+  defaults: () => ({}),
+  validate(d) {
+    finiteAnchors(d);
+    needDistinctTimes(d, 0, 1);
+  },
+  shapes(d, c) {
+    const [o, p, q] = pxs(c, d) as [Pt, Pt, Pt];
+    const r = Math.hypot(p.x - o.x, p.y - o.y);
+    const a0 = Math.atan2(p.y - o.y, p.x - o.x);
+    let delta = Math.atan2(q.y - o.y, q.x - o.x) - a0;
+    delta = Math.atan2(Math.sin(delta), Math.cos(delta)); // the shorter way round: (-π, π]
+    const a1 = a0 + delta;
+    const end = { x: o.x + r * Math.cos(a1), y: o.y + r * Math.sin(a1) };
+    return [
+      { k: "arc", cx: o.x, cy: o.y, r, a0, a1, fill: d.style.fill ?? withAlpha(d.style.color, 0.18) },
+      line(o, p),
+      line(o, end),
+    ];
+  },
+});
+
+export const measureTools: ToolDef[] = [dateRange, priceRange, dateAndPriceRange, sector];
 export { measureLines };

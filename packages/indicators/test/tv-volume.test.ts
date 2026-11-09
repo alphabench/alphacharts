@@ -203,9 +203,15 @@ describe("pivot-points", () => {
     // P +/- 0.382*15 = 5.73, 0.618*15 = 9.27, 15; no fourth level
     expectSeries(at(levelsOf("fibonacci"), 2), [P, P + 5.73, P + 9.27, P + 15, NaN_, P - 5.73, P - 9.27, P - 15, NaN_]);
   });
-  it("woodie", () => {
-    // P = (20+5+24)/4 = 12.25; R1 = 24.5-5 = 19.5, S1 = 24.5-20 = 4.5, R2 = 27.25, S2 = -2.75, R3 = H+2*15 = 50, S3 = L-30 = -25, R4 = 65, S4 = -40
-    expectSeries(at(levelsOf("woodie"), 2), [12.25, 19.5, 27.25, 50, 65, 4.5, -2.75, -25, -40]);
+  it("woodie: the pivot takes the CURRENT period's open (TradingView's definition), not the previous close", () => {
+    // the next day opens at 14, not at the previous close 12: P = (H + L + 2 open) / 4 = (20 + 5 + 28) / 4 = 13.25
+    const w = bars([[D1, 10, 20, 8, 15, 1], [D1 + 3.6e6, 15, 18, 5, 12, 1], [D2, 14, 15, 11, 12, 1], [D2 + 3.6e6, 12, 14, 10, 13, 1]]);
+    const c = runStudy(pivotPoints, { kind: "woodie" }, w);
+    // R1 = 2P - L = 21.5, S1 = 2P - H = 6.5, R2 = P + 15 = 28.25, S2 = P - 15 = -1.75,
+    // R3 = H + 2 (P - L) = 20 + 16.5 = 36.5, S3 = L - 2 (H - P) = 5 - 13.5 = -8.5, R4 = R3 + 15 = 51.5, S4 = S3 - 15 = -23.5
+    const want = [13.25, 21.5, 28.25, 36.5, 51.5, 6.5, -1.75, -8.5, -23.5];
+    expectSeries(at(c, 2), want);
+    expectSeries(at(c, 3), want); // constant over the period; the open is the period's first bar's, not the running bar's
   });
   it("classic", () => {
     // P = 37/3; R1 = 2P-L, S1 = 2P-H; R2..R4 = P + 15, 30, 45; S2..S4 = P - 15, 30, 45

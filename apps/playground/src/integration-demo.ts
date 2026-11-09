@@ -87,21 +87,21 @@ export function runIntegrationDemo(app: HTMLElement, theme: Theme, extra: Record
       price: hi + range * (0.3 + i * 0.35),
       lineStyle,
       lineWidth: i % 2 ? 2 : 1,
-      color: ["#f7a600", "#ab47bc", "#26c6da", "#ef5350", "#66bb6a"][i]!,
+      color: ["chart-2", "chart-3", "chart-4", "chart-down", "chart-up"][i]!,
       title: lineStyle,
-      ...(i === 1 ? { axisLabelColor: "#1b5e20", labelTextColor: "#ffffff" } : {}),
+      ...(i === 1 ? { axisLabelColor: "chart-up", labelTextColor: "#ffffff" } : {}),
     }),
   );
-  lines.push(chart.createPriceLine(candles, { price: farPrice, color: "#2962ff", lineStyle: "large-dashed", lineWidth: 2, title: "far target" }));
+  lines.push(chart.createPriceLine(candles, { price: farPrice, color: "foreground", lineStyle: "large-dashed", lineWidth: 2, title: "far target" }));
 
   // Markers: on bars of the series; two on one bar stack; one has no id.
   const at = (k: number) => d.time[N - k]!;
   const markers: SeriesMarker[] = [
-    { time: at(30), position: "belowBar", shape: "arrowUp", color: "#26a69a", text: "Buy", id: "m-buy" },
-    { time: at(20), position: "aboveBar", shape: "arrowDown", color: "#ef5350", text: "Sell", id: "m-sell" },
-    { time: at(12), position: "aboveBar", shape: "circle", color: "#f7a600", id: "m-stack-1" },
-    { time: at(12), position: "aboveBar", shape: "circle", color: "#ab47bc", text: "2nd", id: "m-stack-2", size: 1.3 },
-    { time: at(12), position: "belowBar", shape: "arrowUp", color: "#26c6da" },
+    { time: at(30), position: "belowBar", shape: "arrowUp", color: "chart-up", text: "Buy", id: "m-buy" },
+    { time: at(20), position: "aboveBar", shape: "arrowDown", color: "chart-down", text: "Sell", id: "m-sell" },
+    { time: at(12), position: "aboveBar", shape: "circle", color: "chart-2", id: "m-stack-1" },
+    { time: at(12), position: "aboveBar", shape: "circle", color: "chart-3", text: "2nd", id: "m-stack-2", size: 1.3 },
+    { time: at(12), position: "belowBar", shape: "arrowUp", color: "chart-4" },
   ];
   candles.setMarkers(markers);
 

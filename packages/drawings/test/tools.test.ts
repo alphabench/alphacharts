@@ -8,7 +8,7 @@ import { allTools } from "../src/tools/all.js";
 import { arcThrough, rotatedRectCorners } from "../src/tools/figures.js";
 import { forkGeometry } from "../src/tools/channels.js";
 import type { Shape } from "../src/types.js";
-import { H, W, ctx, fixture, k, plugin, px, recorder, view } from "./helpers.js";
+import { BARS, H, W, ctx, fixture, k, plugin, px, recorder, view } from "./helpers.js";
 
 const measure = (t: string, f: string) => t.length * parseFloat(f.match(/(\d+(?:\.\d+)?)px/)![1]!) * 0.6;
 
@@ -32,9 +32,9 @@ function pointOn(s: Shape): { x: number; y: number } | null {
 }
 
 describe("every tool", () => {
-  it("has 82 tools with unique ids", () => {
-    expect(allTools.length).toBe(82);
-    expect(new Set(allTools.map((t) => t.id)).size).toBe(82);
+  it("has 90 tools with unique ids", () => {
+    expect(allTools.length).toBe(90);
+    expect(new Set(allTools.map((t) => t.id)).size).toBe(90);
   });
 
   for (const def of allTools) {
@@ -207,5 +207,94 @@ describe("invalid drawings fail loudly", () => {
     expect(() => p.validateState({ version: 1, drawings: [{}] })).toThrow();
     expect(() => p.validateState(p.toJSON())).not.toThrow();
     expect(JSON.stringify(p.toJSON())).toBe(before);
+  });
+});
+
+describe("trend angle, sector, side arrows, pin, table, icon, anchored volume profile", () => {
+  it("trend angle prints the screen angle: 45° when the line rises as many pixels as it runs", () => {
+    // 4 px per bar, 10 px per price unit: 10 bars right is 40 px; 4 price units up is 40 px.
+    const { p } = plugin();
+    const d = p.add({ tool: "trendAngle", anchors: [k(20, 100), k(30, 104)] });
+    const label = p.toolDef("trendAngle").shapes(d, ctx()).find((s): s is Extract<Shape, { k: "text" }> => s.k === "text")!;
+    expect(label.text).toBe("45.0°");
+    const down = p.add({ tool: "trendAngle", anchors: [k(20, 100), k(30, 96)] });
+    expect(p.toolDef("trendAngle").shapes(down, ctx()).find((s) => s.k === "text")).toMatchObject({ text: "-45.0°" });
+    const left = p.add({ tool: "trendAngle", anchors: [k(30, 100), k(20, 104)] });
+    expect(p.toolDef("trendAngle").shapes(left, ctx()).find((s) => s.k === "text")).toMatchObject({ text: "135.0°" });
+  });
+
+  it("trend angle draws the short arc when the line points left and up", () => {
+    const { p } = plugin();
+    // 10 bars left (40 px) and 4 price units up (40 px): 135 degrees counter-clockwise from the rightward horizontal
+    const d = p.add({ tool: "trendAngle", anchors: [k(30, 100), k(20, 104)] });
+    const a = p.toolDef("trendAngle").shapes(d, ctx()).find((s): s is Extract<Shape, { k: "arc" }> => s.k === "arc")!;
+    expect(a.a0).toBeCloseTo(Math.PI, 9);
+    expect(Math.abs(a.a1 - a.a0)).toBeCloseTo(Math.PI / 4, 9); // 45 degrees to the horizontal on the left, not 315
+  });
+
+  it("trend angle refuses two anchors at one time", () => {
+    const { p } = plugin();
+    expect(() => p.add({ tool: "trendAngle", anchors: [k(5, 1), k(5, 2)] })).toThrow(/different times/);
+  });
+
+  it("sector sweeps the shorter way between its edges, with the radius of the first edge", () => {
+    const { p } = plugin();
+    // centre (20,100); first edge 10 bars right (40 px, level); second edge straight up 40 px: a quarter turn counter-clockwise.
+    const d = p.add({ tool: "sector", anchors: [k(20, 100), k(30, 100), k(20, 104)] });
+    const arcShape = p.toolDef("sector").shapes(d, ctx()).find((s): s is Extract<Shape, { k: "arc" }> => s.k === "arc")!;
+    expect(arcShape.r).toBeCloseTo(40, 9);
+    expect(arcShape.a0).toBeCloseTo(0, 9);
+    expect(arcShape.a1).toBeCloseTo(-Math.PI / 2, 9); // canvas angles: up is negative
+    // A third point just past straight left sweeps the short way (through the top), not 270° the long way.
+    const wide = p.add({ tool: "sector", anchors: [k(20, 100), k(30, 100), k(10, 100.5)] });
+    const a = p.toolDef("sector").shapes(wide, ctx()).find((s): s is Extract<Shape, { k: "arc" }> => s.k === "arc")!;
+    expect(Math.abs(a.a1 - a.a0)).toBeLessThanOrEqual(Math.PI + 1e-9);
+  });
+
+  it("left and right arrow marks have their tip at the anchor and extend away from it", () => {
+    const { p } = plugin();
+    const at = px(k(40, 110));
+    for (const [tool, sign] of [["arrowMarkLeft", 1], ["arrowMarkRight", -1]] as const) {
+      const d = p.add({ tool, anchors: [k(40, 110)] });
+      const poly = p.toolDef(tool).shapes(d, ctx())[0] as Extract<Shape, { k: "poly" }>;
+      expect([poly.pts[0], poly.pts[1]]).toEqual([at.x, at.y]);
+      const xs = poly.pts.filter((_, i) => i % 2 === 0);
+      expect(Math.max(...xs.map((x) => sign * (x - at.x)))).toBe(28);
+      expect(Math.min(...xs.map((x) => sign * (x - at.x)))).toBeCloseTo(0, 9);
+    }
+  });
+
+  it("table draws one cell per entry, positioned by fraction of the pane, and refuses bad cells", () => {
+    const { p } = plugin();
+    const d = p.add({ tool: "table", anchors: [], props: { fx: 0.5, fy: 0.25, cells: [["a", "b", "c"], ["d", "e", "f"]] } });
+    const shapes = p.toolDef("table").shapes(d, ctx());
+    expect(shapes.filter((s) => s.k === "poly")).toHaveLength(6);
+    expect(shapes.filter((s) => s.k === "text")).toHaveLength(6);
+    expect((shapes[0] as Extract<Shape, { k: "poly" }>).pts.slice(0, 2)).toEqual([W * 0.5, H * 0.25]);
+    const bad = (cells: unknown) => () => p.add({ tool: "table", anchors: [], props: { fx: 0.5, fy: 0.5, cells } });
+    expect(bad([])).toThrow(/rows/);
+    expect(bad([[]])).toThrow(/cells/);
+    expect(bad([[1]])).toThrow(/text/);
+    expect(bad([["x".repeat(201)]])).toThrow(/at most 200/);
+    expect(bad(Array.from({ length: 21 }, () => ["x"]))).toThrow(/rows/);
+  });
+
+  it("icon draws its glyph at the anchor and refuses an empty or long glyph", () => {
+    const { p } = plugin();
+    const d = p.add({ tool: "icon", anchors: [k(40, 110)], props: { glyph: "🚀" } });
+    expect(p.toolDef("icon").shapes(d, ctx())[0]).toMatchObject({ k: "text", text: "🚀", size: 24 });
+    expect(() => p.add({ tool: "icon", anchors: [k(40, 110)], props: { glyph: "  " } })).toThrow(/glyph/);
+    expect(() => p.add({ tool: "icon", anchors: [k(40, 110)], props: { glyph: "x".repeat(17) } })).toThrow(/glyph/);
+    expect(() => p.add({ tool: "icon", anchors: [k(40, 110)], props: { glyph: 7 } })).toThrow(/glyph/);
+  });
+
+  it("anchored volume profile covers the bars from the anchor to the last bar and draws nothing when none follow", () => {
+    const { p, src } = plugin();
+    const d = p.add({ tool: "anchoredVolumeProfile", anchors: [k(100, 110)] });
+    const shapes = p.toolDef("anchoredVolumeProfile").shapes(d, ctx(src));
+    expect(shapes.filter((s) => s.k === "poly").length).toBeGreaterThan(0);
+    const last = p.add({ tool: "anchoredVolumeProfile", anchors: [k(BARS - 1, 110)] });
+    expect(p.toolDef("anchoredVolumeProfile").shapes(last, ctx(src))).toEqual([]);
+    expect(() => p.add({ tool: "anchoredVolumeProfile", anchors: [k(100, 110)], props: { rows: 0 } })).toThrow(/rows/);
   });
 });

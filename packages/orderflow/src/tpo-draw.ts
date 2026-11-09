@@ -10,7 +10,7 @@
 // dotted lines. `mode: "merged"` draws one composite of the sessions in view
 // (counts only) at the right edge instead of one profile per session.
 
-import { crisp, dashPattern, type PaneView, type PanePrimitive, type PrimitiveHost, type Series, type SeriesType } from "@alphacharts/core";
+import { crisp, dashPattern, resolveColors, type PaneView, type PanePrimitive, type PrimitiveHost, type Series, type SeriesType } from "@alphacharts/core";
 import type { FootprintSource } from "./footprint.js";
 import { mergeTpo, periodLetter, tpoSessions, type TpoOptions, type TpoProfile } from "./tpo.js";
 
@@ -35,7 +35,7 @@ export class TpoPrimitive implements PanePrimitive {
   last: { profiles: TpoProfile[]; letters: boolean } = { profiles: [], letters: false };
 
   constructor(private readonly source: FootprintSource, options: Partial<TpoDrawOptions> = {}) {
-    this.opts = { mode: "split", textColor: "#d1d4dc", accentColor: "#2962ff", pocColor: "#ffc107", valueAreaColor: "rgba(120,130,150,0.22)", ibColor: "#9598a1", mergedCellPx: 6, ...options };
+    this.opts = { mode: "split", textColor: "#a3a3a3", accentColor: "#a3a3a3", pocColor: "foreground", valueAreaColor: "rgba(163,163,163,0.22)", ibColor: "#737373", mergedCellPx: 6, ...options };
   }
 
   applyOptions(o: Partial<TpoDrawOptions>): void {
@@ -103,7 +103,7 @@ export class TpoPrimitive implements PanePrimitive {
   }
 
   private paintSession(ctx: CanvasRenderingContext2D, view: PaneView, p: TpoProfile, x0: number, periodPx: number): void {
-    const o = this.opts;
+    const o = resolveColors(this.opts, view.theme);
     const sample = this.rowY(view, p, 0);
     const rowH = sample[1] - sample[0];
     const letters = periodPx >= MIN_LETTER && rowH >= MIN_LETTER;
@@ -171,7 +171,7 @@ export class TpoPrimitive implements PanePrimitive {
   }
 
   private paintMerged(ctx: CanvasRenderingContext2D, view: PaneView, p: TpoProfile): void {
-    const o = this.opts;
+    const o = resolveColors(this.opts, view.theme);
     const w = o.mergedCellPx;
     for (let r = 0; r < p.rowCount; r++) {
       if (p.counts[r] === 0) continue;

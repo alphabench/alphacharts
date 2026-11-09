@@ -135,7 +135,7 @@ const FIRST_LONG = 63;
 
 export const htDcPeriod = defineStudy({
   id: "ht-dcperiod", name: "Hilbert Transform - Dominant Cycle Period", family: "cycle", needs: "value", pane: "new",
-  inputs: [source()], columns: ["period"], plots: [line("period", COLORS.blue)],
+  inputs: [source()], columns: ["period"], plots: [line("period", COLORS.neutral)],
   build: (g, p) => [from(g, hilbertCore(g, g.src(p.source), 9).sper, FIRST_SHORT)],
   reference: "TA-Lib HT_DCPERIOD",
 });
@@ -150,7 +150,7 @@ export const htDcPhase = defineStudy({
 export const htPhasor = defineStudy({
   id: "ht-phasor", name: "Hilbert Transform - Phasor Components", family: "cycle", needs: "value", pane: "new",
   inputs: [source()], columns: ["inphase", "quadrature"],
-  plots: [line("inphase", COLORS.blue), line("quadrature", COLORS.orange)],
+  plots: [line("inphase", COLORS.neutral), line("quadrature", COLORS.orange)],
   build: (g, p) => {
     const c = hilbertCore(g, g.src(p.source), 9);
     const inphase = g.calc((i) => (i >= FIRST_SHORT ? c.det.v[i - 3]! : Number.NaN));
@@ -162,7 +162,7 @@ export const htPhasor = defineStudy({
 export const htSine = defineStudy({
   id: "ht-sine", name: "Hilbert Transform - SineWave", family: "cycle", needs: "value", pane: "new",
   inputs: [source()], columns: ["sine", "leadsine"],
-  plots: [line("sine", COLORS.blue), line("leadsine", COLORS.orange)],
+  plots: [line("sine", COLORS.neutral), line("leadsine", COLORS.orange)],
   build: (g, p) => {
     const ph = dcPhase(g, hilbertCore(g, g.src(p.source), 34));
     return [
@@ -175,7 +175,7 @@ export const htSine = defineStudy({
 
 export const htTrendline = defineStudy({
   id: "ht-trendline", name: "Hilbert Transform - Instantaneous Trendline", family: "cycle", needs: "value", pane: "overlay",
-  inputs: [source()], columns: ["trendline"], plots: [line("trendline", COLORS.blue)],
+  inputs: [source()], columns: ["trendline"], plots: [line("trendline", COLORS.neutral)],
   build: (g, p) => {
     const x = g.src(p.source);
     return [from(g, trendline(g, x, hilbertCore(g, x, 34)), FIRST_LONG)];
@@ -185,7 +185,7 @@ export const htTrendline = defineStudy({
 
 export const htTrendMode = defineStudy({
   id: "ht-trendmode", name: "Hilbert Transform - Trend vs Cycle Mode", family: "cycle", needs: "value", pane: "new",
-  inputs: [source()], columns: ["trendmode"], plots: [hist("trendmode", COLORS.green)],
+  inputs: [source()], columns: ["trendmode"], plots: [hist("trendmode", COLORS.teal)],
   build: (g, p) => {
     const x = g.src(p.source);
     const c = hilbertCore(g, x, 34);
@@ -222,7 +222,7 @@ export const mama = defineStudy({
   id: "mama", name: "MESA Adaptive Moving Average", family: "overlap", needs: "value", pane: "overlay",
   inputs: [float("fastlimit", 0.5, 0.01, 0.99, 0.01), float("slowlimit", 0.05, 0.01, 0.99, 0.01), source()],
   columns: ["mama", "fama"],
-  plots: [line("mama", COLORS.blue), line("fama", COLORS.orange)],
+  plots: [line("mama", COLORS.neutral), line("fama", COLORS.orange)],
   label: (p) => `${p.fastlimit}, ${p.slowlimit}`,
   build: (g, p) => {
     const fast: number = p.fastlimit, slow: number = p.slowlimit;

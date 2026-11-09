@@ -4,8 +4,12 @@
 // copy). If either side changes alone, this file stops compiling, so
 // `pnpm typecheck` catches it. One direction only: the UI's callback type is
 // looser than the script package's richer diagnostic, by design.
-import type { ScriptRunAdapter as UiAdapter } from "@alphacharts/ui";
+import type { AnalysisEntry as UiEntry, ScriptRunAdapter as UiAdapter } from "@alphacharts/ui";
+import type { analysisEntry } from "@alphacharts/extend";
 import type { ScriptRunAdapter as ScriptAdapter } from "@alphacharts/script";
 
 type Assert<T extends true> = T;
 export type ScriptAdapterFitsUi = Assert<ScriptAdapter extends UiAdapter ? true : false>;
+
+// The shell's `analyses` entry is what extend's `analysisEntry` builds (again, neither package imports the other).
+export type AnalysisEntryFitsUi = Assert<ReturnType<typeof analysisEntry> extends UiEntry ? true : false>;

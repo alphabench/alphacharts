@@ -13,6 +13,7 @@
     "@alphacharts/core": "workspace:*",
     "@alphacharts/alerts": "workspace:*",
     "@alphacharts/drawings": "workspace:*",
+    "@alphacharts/extend": "workspace:*",
     "@alphacharts/i18n": "workspace:*",
     "@alphacharts/indicators": "workspace:*",
     "@alphacharts/orderflow": "workspace:*",

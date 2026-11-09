@@ -1,7 +1,7 @@
 // AlertsPlugin against the pure evaluator: same definitions, same ticks, same
 // triggers; plus what only the plugin does (follow drawings, persist, draw).
 
-import type { PluginApi, PluginPaneView } from "@alphacharts/core";
+import { LUMA_DARK, type PluginApi, type PluginPaneView } from "@alphacharts/core";
 import { ArrayBarSource, DrawingsPlugin, allTools } from "@alphacharts/drawings";
 import { describe, expect, it } from "vitest";
 import { AlertEvaluator, AlertsPlugin, seriesIndicator, type AlertDefinition, type AlertTrigger, type Tick } from "../src/index.js";
@@ -17,7 +17,7 @@ function view(): PluginPaneView {
     priceScaleMode: () => "linear",
   };
 }
-const api = (): PluginApi => ({ requestRender() {}, paneCount: 1, paneView: view, barTimeAtOrBefore: (t) => t, setCursor() {} });
+const api = (): PluginApi => ({ requestRender() {}, paneCount: 1, paneView: view, barTimeAtOrBefore: (t) => t, setCursor() {}, theme: LUMA_DARK });
 
 function barSource(n = 100): ArrayBarSource {
   const time = Array.from({ length: n }, (_, i) => T0 + i * STEP);

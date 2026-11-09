@@ -27,7 +27,7 @@ export const rsi = defineStudy({
 export const cmo = defineStudy({
   id: "cmo", name: "Chande Momentum Oscillator", family: "momentum", needs: "value", pane: "new",
   inputs: [len(9), source(), select("method", "sum", ["sum", "wilder"])], columns: ["cmo"],
-  plots: [line("cmo", COLORS.blue), hline("upper", 50), hline("lower", -50), hline("zero", 0, COLORS.gray, "dotted")],
+  plots: [line("cmo", COLORS.neutral), hline("upper", 50), hline("lower", -50), hline("zero", 0, COLORS.gray, "dotted")],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const ch = g.change(g.src(p.source), 1);
@@ -43,7 +43,7 @@ export const cmo = defineStudy({
 
 export const mom = defineStudy({
   id: "mom", name: "Momentum", family: "momentum", needs: "value", pane: "new",
-  inputs: [len(10), source()], columns: ["mom"], plots: [line("mom", COLORS.blue), hline("zero", 0, COLORS.gray, "dotted")],
+  inputs: [len(10), source()], columns: ["mom"], plots: [line("mom", COLORS.neutral), hline("zero", 0, COLORS.gray, "dotted")],
   label: (p) => `${p.length}`,
   build: (g, p) => [g.change(g.src(p.source), p.length)],
   reference: "TA-Lib MOM",
@@ -69,7 +69,7 @@ export const rocr100 = rocLike("rocr100", "Rate of Change Ratio 100 scale", (x, 
 
 export const trix = defineStudy({
   id: "trix", name: "TRIX", family: "momentum", needs: "value", pane: "new",
-  inputs: [len(18), source()], columns: ["trix"], plots: [line("trix", COLORS.red), hline("zero", 0, COLORS.gray, "dotted")],
+  inputs: [len(18), source()], columns: ["trix"], plots: [line("trix", COLORS.orange), hline("zero", 0, COLORS.gray, "dotted")],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const e3 = g.ema(g.ema(g.ema(g.src(p.source), p.length), p.length), p.length);
@@ -90,7 +90,7 @@ function twoMas(g: Graph, x: Col, fast: number, slow: number, type: MaType, gate
 export const apo = defineStudy({
   id: "apo", name: "Absolute Price Oscillator", family: "momentum", needs: "value", pane: "new",
   inputs: [int("fast", 12, 1, 5000), int("slow", 26, 2, 5000), source(), maInput("ema")], columns: ["apo"],
-  plots: [line("apo", COLORS.blue), hline("zero", 0, COLORS.gray, "dotted")],
+  plots: [line("apo", COLORS.neutral), hline("zero", 0, COLORS.gray, "dotted")],
   label: (p) => `${p.fast}, ${p.slow}`,
   build: (g, p) => {
     if (p.fast >= p.slow) throw new RangeError(`apo: fast (${p.fast}) must be below slow (${p.slow})`);
@@ -103,7 +103,7 @@ export const apo = defineStudy({
 export const ppo = defineStudy({
   id: "ppo", name: "Percentage Price Oscillator", family: "momentum", needs: "value", pane: "new",
   inputs: [int("fast", 12, 1, 5000), int("slow", 26, 2, 5000), int("signal", 9, 1, 5000), source(), maInput("ema")], columns: ["ppo", "signal", "histogram"],
-  plots: [hist("histogram", COLORS.green, COLORS.red), line("ppo", COLORS.blue), line("signal", COLORS.orange)],
+  plots: [hist("histogram", COLORS.green, COLORS.red), line("ppo", COLORS.neutral), line("signal", COLORS.orange)],
   label: (p) => `${p.fast}, ${p.slow}, ${p.signal}`,
   build: (g, p) => {
     if (p.fast >= p.slow) throw new RangeError(`ppo: fast (${p.fast}) must be below slow (${p.slow})`);
@@ -116,7 +116,7 @@ export const ppo = defineStudy({
 });
 
 const macdColumns = ["macd", "signal", "histogram"];
-const macdPlots = [hist("histogram", COLORS.green, COLORS.red), line("macd", COLORS.blue), line("signal", COLORS.orange)];
+const macdPlots = [hist("histogram", COLORS.green, COLORS.red), line("macd", COLORS.neutral), line("signal", COLORS.orange)];
 
 export const macd = defineStudy({
   id: "macd", name: "MACD", family: "momentum", needs: "value", pane: "new",
@@ -179,7 +179,7 @@ function rawStoch(g: Graph, x: Col, hi: Col, lo: Col, p: number): Node {
   });
 }
 
-const stochPlots = [line("k", COLORS.blue, { title: "%K" }), line("d", COLORS.orange, { title: "%D" }), hline("upper", 80), hline("lower", 20)];
+const stochPlots = [line("k", COLORS.neutral, { title: "%K" }), line("d", COLORS.orange, { title: "%D" }), hline("upper", 80), hline("lower", 20)];
 
 export const stoch = defineStudy({
   id: "stoch", name: "Stochastic", family: "momentum", needs: "ohlc", pane: "new",
@@ -209,7 +209,7 @@ export const stochrsi = defineStudy({
   id: "stochrsi", name: "Stochastic RSI", family: "momentum", needs: "value", pane: "new",
   inputs: [int("rsiLength", 14, 1, 5000), int("stochLength", 14, 1, 5000), int("kSmooth", 3, 1, 5000), int("dSmooth", 3, 1, 5000), source()],
   columns: ["raw", "k", "d"],
-  plots: [line("k", COLORS.blue, { title: "%K" }), line("d", COLORS.orange, { title: "%D" }), hline("upper", 80), hline("lower", 20)],
+  plots: [line("k", COLORS.neutral, { title: "%K" }), line("d", COLORS.orange, { title: "%D" }), hline("upper", 80), hline("lower", 20)],
   label: (p) => `${p.rsiLength}, ${p.stochLength}, ${p.kSmooth}, ${p.dSmooth}`,
   build: (g, p) => {
     const ch = g.change(g.src(p.source), 1);
@@ -243,7 +243,7 @@ export const willr = defineStudy({
 export const cci = defineStudy({
   id: "cci", name: "Commodity Channel Index", family: "momentum", needs: "ohlc", pane: "new",
   inputs: [len(20)], columns: ["cci"],
-  plots: [line("cci", COLORS.blue), hline("upper", 100), hline("lower", -100)],
+  plots: [line("cci", COLORS.neutral), hline("upper", 100), hline("lower", -100)],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const tp = g.src("hlc3"), m = g.sma(tp, p.length), n = p.length;
@@ -287,7 +287,7 @@ export const mfi = defineStudy({
 export const ultosc = defineStudy({
   id: "ultosc", name: "Ultimate Oscillator", family: "momentum", needs: "ohlc", pane: "new",
   inputs: [int("fast", 7, 1, 5000), int("middle", 14, 1, 5000), int("slow", 28, 1, 5000)], columns: ["ultosc"],
-  plots: [line("ultosc", COLORS.blue), hline("upper", 70), hline("lower", 30)],
+  plots: [line("ultosc", COLORS.neutral), hline("upper", 70), hline("lower", 30)],
   label: (p) => `${p.fast}, ${p.middle}, ${p.slow}`,
   build: (g, p) => {
     const [a, b, c] = [p.fast, p.middle, p.slow].sort((x: number, y: number) => x - y) as [number, number, number];
@@ -319,7 +319,7 @@ export const aroon = defineStudy({
 
 export const aroonosc = defineStudy({
   id: "aroonosc", name: "Aroon Oscillator", family: "momentum", needs: "ohlc", pane: "new",
-  inputs: [len(14)], columns: ["aroonosc"], plots: [line("aroonosc", COLORS.blue), hline("zero", 0, COLORS.gray, "dotted")],
+  inputs: [len(14)], columns: ["aroonosc"], plots: [line("aroonosc", COLORS.neutral), hline("zero", 0, COLORS.gray, "dotted")],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const hb = g.highestBars(g.high, p.length + 1), lb = g.lowestBars(g.low, p.length + 1);
@@ -370,7 +370,7 @@ function dm(g: Graph, p: number) {
   return { sp, sm, pdi, mdi, dx };
 }
 
-const diPlots = [line("adx", COLORS.red, { title: "ADX" }), line("plusDi", COLORS.blue, { title: "+DI" }), line("minusDi", COLORS.orange, { title: "-DI" })];
+const diPlots = [line("adx", COLORS.red, { title: "ADX" }), line("plusDi", COLORS.neutral, { title: "+DI" }), line("minusDi", COLORS.orange, { title: "-DI" })];
 
 export const adx = defineStudy({
   id: "adx", name: "Average Directional Index", family: "momentum", needs: "ohlc", pane: "new",
@@ -385,7 +385,7 @@ export const adx = defineStudy({
 
 export const adxr = defineStudy({
   id: "adxr", name: "Average Directional Movement Index Rating", family: "momentum", needs: "ohlc", pane: "new",
-  inputs: [len(14, 2)], columns: ["adxr"], plots: [line("adxr", COLORS.red)],
+  inputs: [len(14, 2)], columns: ["adxr"], plots: [line("adxr", COLORS.orange)],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const a = g.rma(dm(g, p.length).dx, p.length);
@@ -410,9 +410,9 @@ const diStudy = (id: string, name: string, pick: (d: ReturnType<typeof dm>) => N
     reference: `TA-Lib ${id.replace("-", "_").toUpperCase()}`,
   });
 
-export const plusDi = diStudy("plus-di", "Plus Directional Indicator", (d) => d.pdi, COLORS.blue);
+export const plusDi = diStudy("plus-di", "Plus Directional Indicator", (d) => d.pdi, COLORS.neutral);
 export const minusDi = diStudy("minus-di", "Minus Directional Indicator", (d) => d.mdi, COLORS.orange);
-export const plusDm = diStudy("plus-dm", "Plus Directional Movement", (d) => d.sp, COLORS.blue);
+export const plusDm = diStudy("plus-dm", "Plus Directional Movement", (d) => d.sp, COLORS.neutral);
 export const minusDm = diStudy("minus-dm", "Minus Directional Movement", (d) => d.sm, COLORS.orange);
 
 void band;

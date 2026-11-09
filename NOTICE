@@ -10,4 +10,14 @@ packages/indicators/fixtures/talib contains reference outputs generated with TA-
 
 The fixtures are test data and are not published to npm.
 
+packages/ui/src/ui/icons.generated.ts contains icon data from Lucide (https://lucide.dev), distributed under the ISC licence:
+
+  Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (c) for
+  Lucide are held by Lucide Contributors 2022. Permission to use, copy, modify, and/or distribute this software for any purpose
+  with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+  THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+
+The colour tokens the shell reads (--background, --foreground, --muted-foreground, --border, --primary, --radius) are the names
+shadcn/ui (MIT) uses; no shadcn code is included.
+
 @alphacharts/report collects nothing by default and has no default server. When a host enables it with its own endpoint and key, it sends anonymous crash fields (listed in packages/report/README.md) to that endpoint.

@@ -13,3 +13,5 @@ Line: `ta.name(parameters) -> outputs · placement · needs · title`. Legend in
 - `ta.stddev(source:series=close, length:int=5[1..5000], nbdev:float=1[0..100])` -> series · own pane · Standard Deviation
 - `ta.tsf(source:series=close, length:int=14[2..5000])` -> series · overlay · Time Series Forecast
 - `ta.var(source:series=close, length:int=5[1..5000])` -> series · own pane · Variance · NOT CALLABLE: the name is a reserved word of the language, so it cannot be written
+- `ta.std_error(length:int=21[3..5000])` -> series · own pane · Standard Error
+- `ta.trend_strength(length:int=14[2..5000])` -> series · own pane · Trend Strength Index

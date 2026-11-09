@@ -5,6 +5,7 @@ import { COL_C, COL_H, COL_L, COL_O, COL_V } from "../data/model.js";
 import type { SeriesRenderer2D } from "../render/canvas2d.js";
 import type { SeriesRenderer } from "../render/renderers.js";
 import { parseColor } from "../render/color.js";
+import { isColorSlot, resolveColors } from "./slots.js";
 import { createFormatter, decimalsOf, type Formatter } from "../scale/format.js";
 import { checkMarkers, type SeriesMarker } from "./markers.js";
 import type { PanePrimitive } from "./primitives.js";
@@ -22,8 +23,9 @@ const SAMPLE = 2048;
 function validateColors(options: object): void {
   const a = (options as { autoscale?: unknown }).autoscale;
   if (a !== undefined && typeof a !== "function") throw new TypeError(`alphacharts: series option autoscale must be a function, got ${typeof a}`);
-  for (const [k, v] of Object.entries(options)) if (/color$/i.test(k) && v !== undefined) parseColor(v as string);
+  for (const [k, v] of Object.entries(options)) if (/color$/i.test(k) && v !== undefined && !isColorSlot(v as string)) parseColor(v as string);
 }
+
 
 export const DEFAULT_COMMON: CommonSeriesOptions = {
   id: "",
@@ -66,6 +68,8 @@ export class Series<T extends SeriesType> {
   private markerList: SeriesMarker[] = [];
   private user: Partial<SeriesOptions<T>>;
   private effective: SeriesOptions<T>;
+  /** The chart's theme the colour slots were last resolved with. */
+  private theme: Theme;
 
   /** @internal */
   constructor(
@@ -78,6 +82,7 @@ export class Series<T extends SeriesType> {
     this.def = seriesType(type);
     validateColors(options);
     this.user = { ...options };
+    this.theme = theme;
     this.effective = this.resolve(theme);
     this.formatter = this.makeFormatter();
   }
@@ -224,14 +229,15 @@ export class Series<T extends SeriesType> {
 
   /** @internal Re-resolve defaults after a theme change. */
   themeChanged(theme: Theme): void {
+    this.theme = theme;
     this.effective = this.resolve(theme);
   }
 
   private resolve(theme: Theme): SeriesOptions<T> {
-    return { ...DEFAULT_COMMON, ...this.def.defaults(theme), ...this.user } as SeriesOptions<T>;
+    return { ...DEFAULT_COMMON, ...this.def.defaults(theme), ...resolveColors(this.user, theme) } as SeriesOptions<T>;
   }
 
   private resolveFrom(prev: SeriesOptions<T>): SeriesOptions<T> {
-    return { ...prev, ...this.user } as SeriesOptions<T>;
+    return { ...prev, ...resolveColors(this.user, this.theme) } as SeriesOptions<T>;
   }
 }

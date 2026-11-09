@@ -46,7 +46,7 @@ function noteShapes(d: Drawing, p: Pt): Shape[] {
   return [
     line(p, { x: p.x + 14, y: p.y - 14 }, { width: 1 }),
     { k: "ellipse", cx: p.x, cy: p.y, rx: 3, ry: 3, fill: d.style.color, width: 1 },
-    text(p.x + 14, p.y - 14, content(d, "Note"), { align: "left", base: "bottom", bg: withAlpha(d.style.color, 0.9), textColor: "#ffffff", ...BOX }),
+    text(p.x + 14, p.y - 14, content(d, "Note"), { align: "left", base: "bottom", bg: withAlpha(d.style.color, 0.9), textColor: "contrast", ...BOX }),
   ];
 }
 
@@ -72,7 +72,7 @@ export const callout = tool({
     return [
       line(boxAt, target, { width: 1 }),
       { k: "ellipse", cx: target.x, cy: target.y, rx: 3, ry: 3, fill: d.style.color, width: 1 },
-      text(boxAt.x, boxAt.y, content(d, "Callout"), { align: "center", base: "middle", bg: withAlpha(d.style.color, 0.9), textColor: "#ffffff", ...BOX }),
+      text(boxAt.x, boxAt.y, content(d, "Callout"), { align: "center", base: "middle", bg: withAlpha(d.style.color, 0.9), textColor: "contrast", ...BOX }),
     ];
   },
 });
@@ -85,7 +85,7 @@ export const comment = tool({
     const p = px(c, A(d, 0));
     return [
       poly([p, { x: p.x - 6, y: p.y - 14 }, { x: p.x + 6, y: p.y - 14 }], { close: true, fill: withAlpha(d.style.color, 0.9), width: 0, hit: false }),
-      text(p.x, p.y - 14, content(d, "Comment"), { align: "center", base: "bottom", bg: withAlpha(d.style.color, 0.9), textColor: "#ffffff", ...BOX }),
+      text(p.x, p.y - 14, content(d, "Comment"), { align: "center", base: "bottom", bg: withAlpha(d.style.color, 0.9), textColor: "contrast", ...BOX }),
     ];
   },
 });
@@ -99,7 +99,7 @@ export const priceLabel = tool({
     const label = `${d.style.text ? d.style.text + " " : ""}${c.fmt(A(d, 0).price)}`;
     return [
       poly([p, { x: p.x + 8, y: p.y - 9 }, { x: p.x + 8, y: p.y + 9 }], { close: true, fill: d.style.color, width: 0, hit: false }),
-      text(p.x + 8, p.y, label, { align: "left", base: "middle", bg: d.style.color, textColor: "#ffffff", ...BOX }),
+      text(p.x + 8, p.y, label, { align: "left", base: "middle", bg: d.style.color, textColor: "contrast", ...BOX }),
     ];
   },
 });
@@ -115,7 +115,7 @@ export const priceNote = tool({
       line(a, { x: b.x, y: a.y }, { dash: "dashed", width: 1 }),
       line({ x: b.x, y: a.y }, b, { width: 1 }),
       { k: "ellipse", cx: a.x, cy: a.y, rx: 3, ry: 3, fill: d.style.color, width: 1 },
-      text(b.x, b.y, label, { align: "center", base: "middle", bg: d.style.color, textColor: "#ffffff", ...BOX }),
+      text(b.x, b.y, label, { align: "center", base: "middle", bg: d.style.color, textColor: "contrast", ...BOX }),
     ];
   },
 });
@@ -130,7 +130,7 @@ export const signpost = tool({
     return [
       line(p, top),
       { k: "ellipse", cx: p.x, cy: p.y, rx: 3, ry: 3, fill: d.style.color, width: 1 },
-      text(top.x, top.y, content(d, "Sign"), { align: "left", base: "bottom", bg: d.style.color, textColor: "#ffffff", ...BOX }),
+      text(top.x, top.y, content(d, "Sign"), { align: "left", base: "bottom", bg: d.style.color, textColor: "contrast", ...BOX }),
     ];
   },
 });
@@ -160,7 +160,7 @@ export const arrow = tool({
 
 export const arrowMarker = tool({
   id: "arrowMarker", label: "Arrow marker", family: "annotations", gesture: "drag", anchors: 2,
-  defaults: () => ({ style: { fill: "#2962ff" } }),
+  defaults: () => ({ style: { fill: "#8a8a8a" } }),
   validate: finiteAnchors,
   shapes(d, c) {
     const [a, b] = pxs(c, d) as [Pt, Pt];
@@ -184,18 +184,101 @@ function markShape(d: Drawing, p: Pt, dirUp: boolean): Shape[] {
 
 export const arrowMarkUp = tool({
   id: "arrowMarkUp", label: "Arrow mark up", family: "annotations", gesture: "single", anchors: 1,
-  defaults: () => ({ style: { color: "#26a69a" } }),
+  defaults: () => ({ style: { color: "chart-up" } }),
   validate: finiteAnchors,
   shapes: (d, c) => markShape(d, px(c, A(d, 0)), true),
 });
 
 export const arrowMarkDown = tool({
   id: "arrowMarkDown", label: "Arrow mark down", family: "annotations", gesture: "single", anchors: 1,
-  defaults: () => ({ style: { color: "#ef5350" } }),
+  defaults: () => ({ style: { color: "chart-down" } }),
   validate: finiteAnchors,
   shapes: (d, c) => markShape(d, px(c, A(d, 0)), false),
 });
 
+/** The side arrows: the tip is the anchor, the body extends away from it along x. */
+function markShapeX(d: Drawing, p: Pt, pointsRight: boolean): Shape[] {
+  const s = pointsRight ? -1 : 1;
+  const pts: Pt[] = [
+    p, { x: p.x + s * 11, y: p.y - 9 }, { x: p.x + s * 11, y: p.y - 4 }, { x: p.x + s * 28, y: p.y - 4 },
+    { x: p.x + s * 28, y: p.y + 4 }, { x: p.x + s * 11, y: p.y + 4 }, { x: p.x + s * 11, y: p.y + 9 },
+  ];
+  return [poly(pts, { close: true, fill: d.style.color, width: 1 })];
+}
+
+export const arrowMarkLeft = tool({
+  id: "arrowMarkLeft", label: "Arrow mark left", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { color: "#8a8a8a" } }),
+  validate: finiteAnchors,
+  shapes: (d, c) => markShapeX(d, px(c, A(d, 0)), false),
+});
+
+export const arrowMarkRight = tool({
+  id: "arrowMarkRight", label: "Arrow mark right", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { color: "#8a8a8a" } }),
+  validate: finiteAnchors,
+  shapes: (d, c) => markShapeX(d, px(c, A(d, 0)), true),
+});
+
+/** A pin: a round head on a stem whose tip is the anchor, with the text above it. */
+export const pin = tool({
+  id: "pin", label: "Pin", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { text: "" } }),
+  validate: finiteAnchors,
+  shapes(d, c) {
+    const p = px(c, A(d, 0));
+    const out: Shape[] = [line(p, { x: p.x, y: p.y - 18 }), { k: "ellipse", cx: p.x, cy: p.y - 24, rx: 6, ry: 6, fill: d.style.color, width: 1 }];
+    if (d.style.text) out.push(text(p.x, p.y - 34, d.style.text, { align: "center", base: "bottom", bg: withAlpha(d.style.color, 0.9), textColor: "contrast", ...BOX }));
+    return out;
+  },
+});
+
+const TABLE_CELL = { w: 76, h: 24 } as const;
+export const TABLE_MAX = 20;
+export const TABLE_TEXT_MAX = 200;
+
+/** A table of text on the pane (props.cells: rows of strings), positioned like the anchored notes. */
+export const table = tool({
+  id: "table", label: "Table", family: "annotations", gesture: "single", anchors: 0, screen: true,
+  defaults: () => ({ props: { fx: 0.5, fy: 0.5, cells: [["", ""], ["", ""]] } }),
+  validate(d) {
+    const cells = d.props.cells;
+    if (!Array.isArray(cells) || cells.length < 1 || cells.length > TABLE_MAX) throw new RangeError(`drawings: table "${d.id}" prop "cells" must be 1..${TABLE_MAX} rows`);
+    for (const row of cells) {
+      if (!Array.isArray(row) || row.length < 1 || row.length > TABLE_MAX) throw new RangeError(`drawings: table "${d.id}" every row of "cells" must have 1..${TABLE_MAX} cells`);
+      for (const cell of row) if (typeof cell !== "string" || cell.length > TABLE_TEXT_MAX) throw new TypeError(`drawings: table "${d.id}" every cell must be text of at most ${TABLE_TEXT_MAX} characters`);
+    }
+  },
+  shapes(d, c) {
+    const p = screenPoint(d, c);
+    const cells = d.props.cells as string[][];
+    const out: Shape[] = [];
+    cells.forEach((row, r) => row.forEach((cell, col) => {
+      const x = p.x + col * TABLE_CELL.w, y = p.y + r * TABLE_CELL.h;
+      out.push(poly([{ x, y }, { x: x + TABLE_CELL.w, y }, { x: x + TABLE_CELL.w, y: y + TABLE_CELL.h }, { x, y: y + TABLE_CELL.h }], { close: true, fill: withAlpha(d.style.color, 0.12), width: 1 }));
+      if (cell) out.push(text(x + TABLE_CELL.w / 2, y + TABLE_CELL.h / 2, cell, { align: "center", base: "middle", textColor: d.style.textColor, hit: false }));
+    }));
+    return out;
+  },
+});
+
+export const ICON_GLYPH_MAX = 16;
+
+/** A symbol on the chart: `props.glyph` is any text, an emoji or a pictogram character. The host's picker decides which glyphs it offers. */
+export const icon = tool({
+  id: "icon", label: "Icon", family: "annotations", gesture: "single", anchors: 1,
+  defaults: () => ({ style: { fontSize: 24 }, props: { glyph: "★" } }),
+  validate(d) {
+    finiteAnchors(d);
+    const g = d.props.glyph;
+    if (typeof g !== "string" || !g.trim() || g.length > ICON_GLYPH_MAX) throw new TypeError(`drawings: icon "${d.id}" prop "glyph" must be 1..${ICON_GLYPH_MAX} characters of text`);
+  },
+  shapes(d, c) {
+    const p = px(c, A(d, 0));
+    return [text(p.x, p.y, d.props.glyph as string, { align: "center", base: "middle", size: d.style.fontSize, textColor: d.style.color })];
+  },
+});
+
 export const annotationTools: ToolDef[] = [
-  textTool, anchoredText, note, anchoredNote, callout, comment, priceLabel, priceNote, signpost, flagMark, arrow, arrowMarker, arrowMarkUp, arrowMarkDown,
+  textTool, anchoredText, note, anchoredNote, callout, comment, priceLabel, priceNote, signpost, flagMark, arrow, arrowMarker, arrowMarkUp, arrowMarkDown, arrowMarkLeft, arrowMarkRight, pin, table, icon,
 ];

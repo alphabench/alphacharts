@@ -4,7 +4,7 @@ import type { Condition, TriggerMode } from "@alphacharts/alerts";
 import { DRAWING_LINES } from "@alphacharts/alerts";
 import type { AlertPrefill } from "../engine/app.js";
 import { useApp, useT } from "./context.js";
-import { Button, Dialog, Field, IconButton, NumberField, SelectField } from "./primitives.js";
+import { Badge, Button, Dialog, Field, IconButton, Input, Item, ItemGroup, NumberField, SelectField, slot } from "./primitives.js";
 
 type Op = "crossing" | "crossingUp" | "crossingDown" | "greaterThan" | "lessThan" | "enteringChannel" | "exitingChannel" | "movingUp" | "movingDown";
 const PRICE_OPS: Op[] = ["crossing", "crossingUp", "crossingDown", "greaterThan", "lessThan", "enteringChannel", "exitingChannel", "movingUp", "movingDown"];
@@ -81,10 +81,10 @@ export function AlertDialog({ prefill }: { prefill?: AlertPrefill | undefined })
         {needsHigh && kind === "price" ? <NumberField label={t("ui.alert.high")} value={high} onChange={setHigh} /> : null}
         {op === "movingUp" || op === "movingDown" ? (<><NumberField label={t("unit.bars", { count: 2 })} min={1} step={1} value={bars} onChange={setBars} /><NumberField label={t("alerts.value")} min={0} value={amount} onChange={setAmount} /></>) : null}
         <SelectField label={t("alerts.trigger")} value={mode} options={(["once", "everyTime", "oncePerBar", "oncePerBarClose"] as TriggerMode[]).map((m) => ({ value: m, label: t(`alerts.trigger.${m}` as never) }))} onChange={setMode} testid="alert-trigger" />
-        <Field label={t("alerts.expiration")} hint={`${t("alerts.expiration.never")} · ${t("format.timeZone.utc")}`}>{(id) => <input id={id} type="datetime-local" value={expiry} onChange={(e) => setExpiry((e.currentTarget as HTMLInputElement).value)} />}</Field>
-        <Field label={t("alerts.message")}>{(id) => <input id={id} value={label} data-testid="alert-label" onInput={(e) => setLabel((e.currentTarget as HTMLInputElement).value)} />}</Field>
-        {err ? <p class="error-text" role="alert">{err}</p> : null}
-        <div class="actions"><Button onClick={() => app.closeDialog()}>{t("common.cancel")}</Button><Button type="submit" primary testid="alert-create">{t("alerts.create")}</Button></div>
+        <Field label={t("alerts.expiration")} hint={`${t("alerts.expiration.never")} · ${t("format.timeZone.utc")}`}>{(id) => <Input id={id} type="datetime-local" value={expiry} onChange={(e) => setExpiry((e.currentTarget as HTMLInputElement).value)} />}</Field>
+        <Field label={t("alerts.message")}>{(id) => <Input id={id} value={label} testid="alert-label" onInput={(e) => setLabel((e.currentTarget as HTMLInputElement).value)} />}</Field>
+        {err ? <p {...slot("field-error")} role="alert">{err}</p> : null}
+        <div {...slot("dialog-footer")}><Button onClick={() => app.closeDialog()}>{t("common.cancel")}</Button><Button type="submit" primary testid="alert-create">{t("alerts.create")}</Button></div>
       </form>
     </Dialog>
   );
@@ -108,24 +108,25 @@ export function AlertsPanel() {
   };
   return (
     <Dialog title={t("alerts.title")} onClose={() => app.closeDialog()} wide testid="alerts-dialog" footer={<Button primary testid="alerts-new" onClick={() => app.openDialog({ kind: "alert" })}>{t("alerts.create")}</Button>}>
-      <h3>{t("alerts.count", { count: list.length })}</h3>
+      <h3 class="section-title">{t("alerts.count", { count: list.length })}</h3>
       {inst.pausedAlerts() > 0 ? <p class="muted" data-testid="alerts-paused" role="status">{t("ui.alert.paused", { count: inst.pausedAlerts() })}</p> : null}
       {list.length === 0 ? <p class="muted">{t("alerts.empty")}</p> : (
-        <ul class="named-list" data-testid="alert-list" aria-label={t("alerts.title")}>
+        <ItemGroup label={t("alerts.title")} testid="alert-list">
           {list.map((a) => (
-            <li key={a.definition.id} class="row" data-status={a.status}>
-              <span class="row-main static"><span>{a.definition.label ?? describe(a.definition.condition)}</span><span class="muted">{a.definition.label ? describe(a.definition.condition) : ""}</span></span>
-              <span class={`badge ${a.status}`} data-testid="alert-status">{a.status === "active" ? t("alerts.status.active") : a.status === "triggered" ? t("alerts.status.triggered") : a.status === "expired" ? t("alerts.status.expired") : a.status}</span>
+            <Item key={a.definition.id} status={a.status} actions={<>
+              <Badge variant={a.status === "active" ? "default" : a.status === "triggered" ? "secondary" : "outline"} testid="alert-status">{a.status === "active" ? t("alerts.status.active") : a.status === "triggered" ? t("alerts.status.triggered") : a.status === "expired" ? t("alerts.status.expired") : a.status}</Badge>
               <IconButton icon="trash" label={`${t("alerts.delete")}: ${describe(a.definition.condition)}`} onClick={() => inst.removeAlert(a.definition.id)} />
-            </li>
+            </>}>
+              <span {...slot("item-content")}><span {...slot("item-title")}>{a.definition.label ?? describe(a.definition.condition)}</span><span {...slot("item-description")}>{a.definition.label ? describe(a.definition.condition) : ""}</span></span>
+            </Item>
           ))}
-        </ul>
+        </ItemGroup>
       )}
-      <h3>{t("ui.alert.log")}</h3>
+      <h3 class="section-title">{t("ui.alert.log")}</h3>
       {app.alertLog.length === 0 ? <p class="muted">{t("common.none")}</p> : (
-        <ul class="named-list" data-testid="alert-log" aria-label={t("ui.alert.log")}>
-          {app.alertLog.map((l, i) => <li key={i} class="row"><span class="row-main static"><bdi>{l.symbol}</bdi> {l.priceText}</span><span class="muted">{app.i18n.dateTime(l.time, { date: "medium", time: "seconds", timeZone: inst.chart.options().timeZone })}</span></li>)}
-        </ul>
+        <ItemGroup label={t("ui.alert.log")} testid="alert-log">
+          {app.alertLog.map((l, i) => <Item key={i}><span {...slot("item-content")}><span {...slot("item-title")}><bdi>{l.symbol}</bdi> {l.priceText}</span><span {...slot("item-description")}>{app.i18n.dateTime(l.time, { date: "medium", time: "seconds", timeZone: inst.chart.options().timeZone })}</span></span></Item>)}
+        </ItemGroup>
       )}
     </Dialog>
   );

@@ -10,8 +10,10 @@ import { ConfirmDialog, IntervalDialog, LayoutsDialog, PromptDialog, SymbolSearc
 import { IndicatorsDialog, StudyDialog } from "./dialogs-study.js";
 import { SettingsDialog } from "./dialog-settings.js";
 import { DrawingDialog } from "./dialog-drawing.js";
+import { ObjectsDialog } from "./dialog-objects.js";
 import { AlertDialog, AlertsPanel } from "./dialog-alerts.js";
-import { Button, MenuView, IconButton } from "./primitives.js";
+import { Button, MenuView, IconButton, TooltipLayer, slot } from "./primitives.js";
+import { Icon } from "./icons.js";
 import { STYLES } from "../styles.js";
 
 function DialogHost({ d }: { d: DialogSpec }) {
@@ -25,6 +27,7 @@ function DialogHost({ d }: { d: DialogSpec }) {
     case "alert": return <AlertDialog prefill={d.prefill} />;
     case "alerts": return <AlertsPanel />;
     case "layouts": return <LayoutsDialog />;
+    case "objects": return <ObjectsDialog />;
     case "templates": return <TemplatesDialog />;
     case "confirm": return <ConfirmDialog message={d.message} confirmLabel={d.confirmLabel} danger={d.danger ?? false} onConfirm={d.onConfirm} />;
     case "prompt": return <PromptDialog title={d.title} label={d.label} value={d.value} onSubmit={d.onSubmit} />;
@@ -49,7 +52,8 @@ function ScriptPanel() {
       <header>
         <h2>{t("ui.script.title")}</h2>
         <span>
-          <Button primary testid="script-run" onClick={() => app.runScript(app.scriptCode)}>{t("ui.script.run")}</Button>
+          <Button size="sm" testid="script-save" onClick={() => app.openDialog({ kind: "prompt", title: t("scripts.save"), label: t("common.name"), value: "", onSubmit: (v) => app.saveScript(v, app.scriptCode).catch((e) => app.report(e)) })}>{t("scripts.save")}</Button>
+          <Button primary size="sm" testid="script-run" onClick={() => app.runScript(app.scriptCode)}>{t("ui.script.run")}</Button>
           <IconButton icon="close" label={t("common.close")} onClick={() => app.toggleScript()} />
         </span>
       </header>
@@ -73,33 +77,44 @@ function Shell() {
   const dialog = app.dialogs[app.dialogs.length - 1];
   const f = app.features;
   return (
-    <div class="app" data-compact={app.compact ? "" : undefined} style={app.vars()} data-theme={app.themeName}>
+    <div class="app" data-compact={app.compact ? "" : undefined} style={app.vars()} data-theme={app.themeName} data-mode={app.mode}>
       <Toolbar />
       <div class="body">
         {f.drawings && !app.compact ? <DrawingBar /> : null}
         <div class="stage">
           <div class="grid" ref={gridRef} data-testid="grid" data-charts={app.instances.length} />
-          {app.scriptOpen && app.hasScript ? <ScriptPanel /> : null}
+          {app.scriptOpen && app.hasScript ? <ScriptPanel key={app.scriptEpoch} /> : null}
         </div>
       </div>
       {app.compact ? <BottomBar /> : null}
       {app.drawingSheetOpen ? <DrawingSheet /> : null}
       {dialog ? <DialogHost d={dialog} key={app.dialogs.length} /> : null}
       {app.menu ? <MenuView label={app.menu.label} at={app.menu.at} items={app.menu.items} onClose={() => app.closeMenu()} /> : null}
-      <div class="toasts" data-testid="toasts">
+      <ol {...slot("toaster")} data-testid="toasts" aria-label={t("ui.notifications")}>
         {app.toasts.map((x) => (
-          <div key={x.id} class={`toast ${x.kind}`}><span>{x.text}</span><IconButton icon="close" label={t("common.close")} onClick={() => app.dismissToast(x.id)} /></div>
+          <li key={x.id} {...slot("toast")} data-type={x.kind} class={`toast ${x.kind}`}>
+            <Icon name={x.kind === "error" ? "error" : x.kind === "alert" ? "bell" : "info"} />
+            <span {...slot("toast-title")}>{x.text}</span>
+            <IconButton icon="close" label={t("common.close")} size="icon-xs" onClick={() => app.dismissToast(x.id)} />
+          </li>
         ))}
-      </div>
+      </ol>
+      <TooltipLayer />
       <div class="sr-only" role="status" aria-live="polite" data-testid="live">{app.liveText}</div>
     </div>
   );
 }
 
 export function mountShell(app: ChartApp, root: ShadowRoot): () => void {
-  const style = document.createElement("style");
-  style.textContent = STYLES;
-  root.appendChild(style);
+  // The built-in sheet (unless the host brings its own), then the host's, in that order: later rules win.
+  const o = app.options;
+  const extra = o.styles === undefined ? [] : typeof o.styles === "string" ? [o.styles] : [...o.styles];
+  const sheets = [...(o.stylesheet === "none" ? [] : [STYLES]), ...extra].map((css, i) => {
+    const el = document.createElement("style");
+    el.textContent = css;
+    el.dataset.alphacharts = i === 0 && o.stylesheet !== "none" ? "default" : "host";
+    return root.appendChild(el);
+  });
   const mount = document.createElement("div");
   mount.className = "mount";
   root.appendChild(mount);
@@ -108,6 +123,6 @@ export function mountShell(app: ChartApp, root: ShadowRoot): () => void {
     render(null, mount);
     for (const r of app.legendRoots) render(null, r);
     mount.remove();
-    style.remove();
+    for (const el of sheets) el.remove();
   };
 }

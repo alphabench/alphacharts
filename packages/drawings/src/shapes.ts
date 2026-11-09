@@ -5,7 +5,7 @@
 // inside; text hits its (padded) box. Ellipses and arcs are tested as
 // polylines, so the test and the picture can differ by a sub-pixel.
 
-import { parseColor, rgba } from "@alphacharts/core";
+import { isColorSlot, parseColor, rgba } from "@alphacharts/core";
 import { arcPoints, clipLine, distToPolyline, distToSegment, ellipsePoints, pointInPolygon } from "./geometry.js";
 import type { Dash, DrawingStyle, Shape } from "./types.js";
 
@@ -13,11 +13,20 @@ export function dashPattern(d: Dash, w: number): number[] {
   return d === "solid" ? [] : d === "dashed" ? [4 * w, 3 * w] : [w, 2 * w];
 }
 
+/** Black or white, whichever has more contrast with `bg` (WCAG relative luminance). */
+export function contrastOn(bg: string): string {
+  const c = rgba(parseColor(bg));
+  const lin = (v: number) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const l = 0.2126 * lin(c[0]!) + 0.7152 * lin(c[1]!) + 0.0722 * lin(c[2]!);
+  return (1.05 / (l + 0.05)) >= ((l + 0.05) / 0.05) ? "#ffffff" : "#000000";
+}
+
 /** Tools call withAlpha for every shape on every frame; the colours repeat. */
 const alphaCache = new Map<string, string>();
 
-/** `color` with its alpha replaced by `a` (0..1), as an rgba() string. */
+/** `color` with its alpha replaced by `a` (0..1), as an rgba() string; a colour slot keeps its name ("chart-2/0.07"). */
 export function withAlpha(color: string, a: number): string {
+  if (isColorSlot(color)) return `${color.split("/")[0]}/${a}`;
   const key = `${color}|${a}`;
   let out = alphaCache.get(key);
   if (out === undefined) {
@@ -121,9 +130,11 @@ function offPane(x0: number, y0: number, x1: number, y1: number, W: number, H: n
 
 export function drawShapes(
   ctx: CanvasRenderingContext2D, shapes: readonly Shape[], style: DrawingStyle, W: number, H: number,
-  opts: { widthBoost?: number } = {},
+  opts: { widthBoost?: number; resolve?: (color: string) => string } = {},
 ): void {
   const boost = opts.widthBoost ?? 0;
+  // A colour slot ("chart-2", "chart-up" …) is the chart theme's colour; the plugin passes the resolver.
+  const R = opts.resolve ?? ((c: string) => c);
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   // Only touch a context property when it changes: each assignment is a call into the browser.
@@ -131,7 +142,7 @@ export function drawShapes(
   const stroke = (s: Shape): boolean => {
     const w = (s.width ?? style.width) + boost;
     if (w <= 0) return false;
-    const c = s.color ?? style.color;
+    const c = R(s.color ?? style.color);
     if (c !== curStroke) ctx.strokeStyle = curStroke = c;
     if (w !== curWidth) ctx.lineWidth = curWidth = w;
     const d = s.dash ?? style.dash;
@@ -142,7 +153,8 @@ export function drawShapes(
     }
     return true;
   };
-  const fill = (c: string): void => {
+  const fill = (raw: string): void => {
+    const c = R(raw);
     if (c !== curFill) ctx.fillStyle = curFill = c;
   };
   for (const s of shapes) {
@@ -216,13 +228,14 @@ export function drawShapes(
           ctx.fillRect(b.x, b.y, b.w, b.h);
         }
         if (s.border) {
-          ctx.strokeStyle = curStroke = s.border;
+          ctx.strokeStyle = curStroke = R(s.border);
           ctx.lineWidth = curWidth = 1;
           ctx.setLineDash([]);
           curDash = "";
           ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
         }
-        fill(s.textColor ?? style.textColor);
+        // "contrast": black or white, whichever reads on the label's own background (a label drawn in the drawing's colour)
+        fill(s.textColor === "contrast" ? contrastOn(s.bg ? R(s.bg) : "#000000") : s.textColor ?? style.textColor);
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
         const pad = s.pad ?? (s.bg || s.border ? 4 : 0);

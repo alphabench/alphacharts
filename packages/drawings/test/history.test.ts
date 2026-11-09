@@ -118,3 +118,40 @@ describe("undo / redo inverse property", () => {
     expect(log).toEqual(["created trendLine", "changed trendLine", "changed trendLine", "removed trendLine", "created trendLine"]);
   });
 });
+
+describe("a shared clock orders this history against the host's", () => {
+  it("stamps each change when it is made and when it is undone, from the host's clock", () => {
+    let n = 100;
+    const { p } = plugin({ clock: () => ++n });
+    expect([p.nextUndoAt(), p.nextRedoAt()]).toEqual([null, null]);
+    p.add(fixture("horizontalLine"));          // clock 101
+    n = 200;                                   // the host did something in between
+    p.add({ ...fixture("verticalLine") });     // clock 201
+    expect(p.nextUndoAt()).toBe(201);
+    p.undo();                                  // undone at 202
+    expect([p.nextUndoAt(), p.nextRedoAt()]).toEqual([101, 202]);
+    p.undo();                                  // undone at 203: redo takes the most recently undone first
+    expect(p.nextRedoAt()).toBe(203);
+  });
+
+  it("with no clock given the stamps still grow", () => {
+    const { p } = plugin();
+    p.add(fixture("horizontalLine"));
+    const a = p.nextUndoAt()!;
+    p.add(fixture("verticalLine"));
+    expect(p.nextUndoAt()!).toBeGreaterThan(a);
+  });
+
+  it("Ctrl+Z and Ctrl+Shift+Z call the host's hooks when given, and the plugin's own undo when not", () => {
+    const calls: string[] = [];
+    const host = plugin({ onUndo: () => (calls.push("undo"), true), onRedo: () => (calls.push("redo"), true) });
+    host.p.add(fixture("horizontalLine"));
+    for (const [shift, key] of [[false, "z"], [true, "z"], [false, "y"]] as const) host.p.key({ key, ctrlKey: true, metaKey: false, shiftKey: shift, preventDefault() {} } as never);
+    expect(calls).toEqual(["undo", "redo", "redo"]);
+    expect(host.p.list()).toHaveLength(1); // the plugin's own undo did not run
+    const own = plugin();
+    own.p.add(fixture("horizontalLine"));
+    own.p.key({ key: "z", ctrlKey: true, metaKey: false, shiftKey: false, preventDefault() {} } as never);
+    expect(own.p.list()).toHaveLength(0);
+  });
+});

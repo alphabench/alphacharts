@@ -18,10 +18,8 @@ import type { PlotDef } from "../types.js";
 
 const NaN_ = Number.NaN;
 const len = (def: number, min = 1) => int("length", def, min, 5000);
-const rgba = (hex: string, a: number) => {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
-};
+/** A palette slot made translucent: "chart-1/0.08". */
+const rgba = (slot: string, a: number) => `${slot}/${a}`;
 
 /**
  * Least-squares line over the last p bars against x = 0..p-1 (oldest..newest): `value` at the newest bar, `slope`
@@ -84,7 +82,7 @@ export const hma = defineStudy({
 export const alma = defineStudy({
   id: "alma", name: "Arnaud Legoux Moving Average", family: "tv", needs: "value", pane: "overlay",
   inputs: [len(9), float("offset", 0.85, 0, 1, 0.05), float("sigma", 6, 0.1, 100, 0.5), source()],
-  columns: ["alma"], plots: [line("alma", COLORS.blue)],
+  columns: ["alma"], plots: [line("alma", COLORS.neutral)],
   label: (p) => `${p.length}, ${p.offset}, ${p.sigma}`,
   build: (g, p) => {
     const n: number = p.length;
@@ -121,7 +119,7 @@ export const lsma = defineStudy({
 
 export const mcginley = defineStudy({
   id: "mcginley", name: "McGinley Dynamic", family: "tv", needs: "value", pane: "overlay",
-  inputs: [len(14), source()], columns: ["mcginley"], plots: [line("mcginley", COLORS.green)],
+  inputs: [len(14), source()], columns: ["mcginley"], plots: [line("mcginley", COLORS.teal)],
   label: (p) => `${p.length}`,
   build: (g, p) => {
     const n: number = p.length;
@@ -137,7 +135,8 @@ export const mcginley = defineStudy({
   reference: "TradingView McGinley Dynamic: mg := na(mg[1]) ? ta.ema(src, n) : mg[1] + (src - mg[1]) / (n * (src / mg[1])^4)",
 });
 
-const RIBBON_COLORS = [COLORS.blue, COLORS.teal, COLORS.green, COLORS.lime, COLORS.yellow, COLORS.orange, COLORS.red, COLORS.pink];
+// eight lines and five palette colours: the last three repeat the first, fainter
+const RIBBON_COLORS = ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5", "chart-1/0.55", "chart-2/0.55", "chart-3/0.55"];
 const RIBBON_COLS = RIBBON_COLORS.map((_, k) => `ma${k + 1}`);
 
 export const maRibbon = defineStudy({
@@ -160,7 +159,7 @@ export const maCross = defineStudy({
   inputs: [select("type", "sma", ["sma", "ema"]), int("fast", 9, 1, 5000), int("slow", 21, 1, 5000), source()],
   columns: ["fast", "slow", "crossUp", "crossDown"],
   plots: [
-    line("fast", COLORS.blue, { title: "Fast MA" }),
+    line("fast", COLORS.neutral, { title: "Fast MA" }),
     line("slow", COLORS.orange, { title: "Slow MA" }),
     markers("crossUp", "circle", "value", COLORS.green, { title: "Cross up" }),
     markers("crossDown", "circle", "value", COLORS.red, { title: "Cross down" }),
@@ -182,7 +181,7 @@ export const envelopes = defineStudy({
   id: "envelopes", name: "Moving Average Envelopes", family: "tv", needs: "value", pane: "overlay",
   inputs: [len(20), float("percent", 10, 0, 100, 0.5), select("basis", "sma", ["sma", "ema"]), source()],
   columns: ["basis", "upper", "lower"],
-  plots: [line("basis", COLORS.orange, { title: "Basis" }), band("band", "upper", "lower", COLORS.blue, rgba(COLORS.blue, 0.08), "Envelope")],
+  plots: [line("basis", COLORS.orange, { title: "Basis" }), band("band", "upper", "lower", COLORS.neutral, rgba(COLORS.neutral, 0.08), "Envelope")],
   label: (p) => `${p.length}, ${p.percent}, ${p.basis}`,
   build: (g, p) => {
     const m = maOf(g, p.basis, g.src(p.source), p.length);
@@ -196,7 +195,7 @@ export const keltner = defineStudy({
   id: "keltner", name: "Keltner Channels", family: "tv", needs: "ohlc", pane: "overlay",
   inputs: [len(20), float("mult", 2, 0, 100, 0.25), int("atrLength", 10, 1, 5000), bool("useEma", true), source()],
   columns: ["basis", "upper", "lower"],
-  plots: [line("basis", COLORS.blue, { title: "Basis" }), band("band", "upper", "lower", COLORS.blue, rgba(COLORS.blue, 0.08), "Channel")],
+  plots: [line("basis", COLORS.neutral, { title: "Basis" }), band("band", "upper", "lower", COLORS.neutral, rgba(COLORS.neutral, 0.08), "Channel")],
   label: (p) => `${p.length}, ${p.mult}, ${p.atrLength}`,
   build: (g, p) => {
     const x = g.src(p.source);
@@ -215,7 +214,7 @@ function channel(g: Graph, n: number): { upper: Node; lower: Node; mid: Node } {
 export const donchian = defineStudy({
   id: "donchian", name: "Donchian Channels", family: "tv", needs: "ohlc", pane: "overlay",
   inputs: [len(20)], columns: ["upper", "lower", "basis"],
-  plots: [band("band", "upper", "lower", COLORS.blue, rgba(COLORS.blue, 0.08), "Channel"), line("basis", COLORS.orange, { title: "Basis" })],
+  plots: [band("band", "upper", "lower", COLORS.neutral, rgba(COLORS.neutral, 0.08), "Channel"), line("basis", COLORS.orange, { title: "Basis" })],
   label: (p) => `${p.length}`,
   build: (g, p) => { const c = channel(g, p.length); return [c.upper, c.lower, c.mid]; },
   reference: "TradingView Donchian Channels: upper = ta.highest(high, n), lower = ta.lowest(low, n), basis = (upper + lower) / 2; equals TA-Lib MAX(high), MIN(low), MIDPRICE",
@@ -248,7 +247,7 @@ export const linregChannel = defineStudy({
   id: "linreg-channel", name: "Linear Regression Channel", family: "tv", needs: "value", pane: "overlay",
   inputs: [len(100, 2), float("upperDev", 2, 0, 100, 0.25), float("lowerDev", 2, 0, 100, 0.25), source()],
   columns: ["base", "upper", "lower"],
-  plots: [line("base", COLORS.orange, { title: "Base" }), band("band", "upper", "lower", COLORS.blue, rgba(COLORS.blue, 0.08), "Channel")],
+  plots: [line("base", COLORS.orange, { title: "Base" }), band("band", "upper", "lower", COLORS.neutral, rgba(COLORS.neutral, 0.08), "Channel")],
   label: (p) => `${p.length}, ${p.upperDev}, ${p.lowerDev}`,
   build: (g, p) => {
     const n: number = p.length;
@@ -273,7 +272,7 @@ export const median = defineStudy({
   id: "median", name: "Median", family: "tv", needs: "ohlc", pane: "overlay",
   inputs: [len(3), int("atrLength", 14, 1, 5000), float("mult", 2, 0, 100, 0.25), source("hl2")],
   columns: ["median", "upper", "lower"],
-  plots: [line("median", COLORS.blue, { title: "Median" }), band("band", "upper", "lower", COLORS.gray, rgba(COLORS.gray, 0.08), "ATR band")],
+  plots: [line("median", COLORS.neutral, { title: "Median" }), band("band", "upper", "lower", COLORS.gray, rgba(COLORS.gray, 0.08), "ATR band")],
   label: (p) => `${p.length}, ${p.atrLength}, ${p.mult}`,
   build: (g, p) => {
     const n: number = p.length;
@@ -304,7 +303,7 @@ export const ichimoku = defineStudy({
   inputs: [int("conversion", 9, 1, 5000), int("base", 26, 1, 5000), int("spanB", 52, 1, 5000)],
   columns: ["conversion", "base", "spanA", "spanB", "lagging"],
   plots: [
-    line("conversion", COLORS.blue, { title: "Conversion line" }),
+    line("conversion", COLORS.neutral, { title: "Conversion line" }),
     line("base", COLORS.red, { title: "Base line" }),
     fillBetween("cloud", "spanA", "spanB", COLORS.green, "Cloud"),
     line("spanA", COLORS.green, { title: "Leading span A", offset: DISPLACEMENT - 1 }),
@@ -367,7 +366,7 @@ export const alligator = defineStudy({
   inputs: [int("jawLength", 13, 1, 5000), int("teethLength", 8, 1, 5000), int("lipsLength", 5, 1, 5000), source("hl2")],
   columns: ["jaw", "teeth", "lips"],
   plots: [
-    line("jaw", COLORS.blue, { title: "Jaw", offset: 8 }),
+    line("jaw", COLORS.neutral, { title: "Jaw", offset: 8 }),
     line("teeth", COLORS.red, { title: "Teeth", offset: 5 }),
     line("lips", COLORS.green, { title: "Lips", offset: 3 }),
   ],
@@ -441,7 +440,7 @@ export const zigzag = defineStudy({
   id: "zigzag", name: "ZigZag", family: "tv", needs: "ohlc", pane: "overlay",
   inputs: [float("deviation", 5, 0.01, 100, 0.5), int("depth", 10, 1, 5000)],
   columns: ["price", "back", "live", "liveBack"],
-  plots: [{ kind: "zigzag", key: "zigzag", title: "ZigZag", price: "price", back: "back", color: COLORS.blue, width: 2 } satisfies PlotDef],
+  plots: [{ kind: "zigzag", key: "zigzag", title: "ZigZag", price: "price", back: "back", color: COLORS.neutral, width: 2 } satisfies PlotDef],
   label: (p) => `${p.deviation}, ${p.depth}`,
   build: (g, p) => {
     const { high, low } = g;

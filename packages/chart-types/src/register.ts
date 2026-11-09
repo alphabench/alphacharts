@@ -8,6 +8,7 @@ import { registerBaseline } from "./series/baseline.js";
 import { registerBricks } from "./series/bricks.js";
 import { registerColumns } from "./series/columns.js";
 import { registerHiLo } from "./series/hi-lo.js";
+import { registerHollowCandles } from "./series/hollow-candles.js";
 import { registerKagi } from "./series/kagi.js";
 import { registerLineMarkers } from "./series/line-markers.js";
 import { registerOhlcDots } from "./series/ohlc-dots.js";
@@ -19,6 +20,7 @@ export function registerAllChartTypes(): void {
   registerStepLine();
   registerColumns();
   registerHiLo();
+  registerHollowCandles();
   registerOhlcDots();
   registerLineMarkers();
   registerBricks();

@@ -80,7 +80,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "typecheck:dist": "tsc -p tsconfig.dist.json",
     "test": "vitest run",
-    "fixtures": "python scripts/gen_fixtures.py"
+    "fixtures": "python scripts/gen_fixtures.py",
+    "fixtures:reference": "python3 scripts/gen_reference.py"
   },
   "dependencies": {
     "@alphacharts/wasm": "workspace:*"

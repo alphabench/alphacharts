@@ -36,9 +36,9 @@ function oiMirror(): PlotSpec {
     scales: { y: { type: "band", reverse: true } },
     axes: { x: { format: "compact-abs", label: "Open interest" }, y: { label: "Strike" } },
     marks: [
-      { type: "bar", name: "Put OI", orient: "h", y: strikes.map(String), x: put, mirror: true, color: "#ef5350" },
-      { type: "bar", name: "Call OI", orient: "h", y: strikes.map(String), x: call, color: "#26a69a" },
-      { type: "rule", y: [SPOT, 24_700], labels: ["Spot 24,960", "Max pain 24,700"], color: "#f57c00" },
+      { type: "bar", name: "Put OI", orient: "h", y: strikes.map(String), x: put, mirror: true, color: "#ef4444" },
+      { type: "bar", name: "Call OI", orient: "h", y: strikes.map(String), x: call, color: "#10b981" },
+      { type: "rule", y: [SPOT, 24_700], labels: ["Spot 24,960", "Max pain 24,700"], color: "#525252" },
     ],
   };
 }
@@ -53,9 +53,9 @@ function payoff(): PlotSpec {
     axes: { x: { label: "Expiry price", format: "auto" }, y: { label: "P&L (₹ per unit)" } },
     scales: { x: { type: "linear" } },
     marks: [
-      { type: "area", name: "P&L", x: xs, y, y0: 0, split: { above: "#26a69a", below: "#ef5350" }, opacity: 0.3 },
-      { type: "rule", x: [k1 + prem, SPOT], labels: ["Breakeven 24,980", "Spot"], color: "#f57c00" },
-      { type: "band", x: [24_200, k1], label: "Max loss", color: "#ef5350", opacity: 0.06 },
+      { type: "area", name: "P&L", x: xs, y, y0: 0, split: { above: "#10b981", below: "#ef4444" }, opacity: 0.3 },
+      { type: "rule", x: [k1 + prem, SPOT], labels: ["Breakeven 24,980", "Spot"], color: "#525252" },
+      { type: "band", x: [24_200, k1], label: "Max loss", color: "#ef4444", opacity: 0.06 },
     ],
   };
 }
@@ -76,7 +76,7 @@ function flows(): PlotSpec {
     marks: [
       { type: "bar", name: "FII", x: t, y: fii, stack: "flows" },
       { type: "bar", name: "DII", x: t, y: dii, stack: "flows" },
-      { type: "line", name: "Cumulative", x: t, y: cum, yAxis: "y2", color: "#7b1fa2", curve: "monotone" },
+      { type: "line", name: "Cumulative", x: t, y: cum, yAxis: "y2", color: "#a3a3a3", curve: "monotone" },
     ],
   };
 }
@@ -152,7 +152,7 @@ function returnsHistogram(): PlotSpec {
     axes: { x: { label: "Daily return (%)" }, y: { label: "Days" } },
     marks: [
       { type: "histogram", name: "Returns", values, bins: "fd" },
-      { type: "rule", x: 0, labels: ["0"], color: "#9598a1" },
+      { type: "rule", x: 0, labels: ["0"], color: "#a3a3a3" },
     ],
   };
 }
@@ -180,7 +180,7 @@ function peerLabels(theme: "light" | "dark"): PlotSpec {
   const x = [13.11, 12.82, 15.79, 21.7, 10.01, 10.62, 8.73, 5.45, 6.1, 6.26, 6.69];
   const y = [1.8181, 1.677, 2.5859, 2.431, 1.5279, 1.372, 1.4467, 0.9101, 0.9282, 1.005, 0.7304];
   const cap = [1450, 370, 390, 1050, 760, 95, 80, 85, 120, 100, 55];
-  const ink = theme === "dark" ? "#e9eaee" : "#131722";
+  const ink = theme === "dark" ? "#fafafa" : "#0a0a0a";
   const peer = { background: t.background, border: t.grid, color: ink };
   const focus = { background: "#ff5a1f", color: "#0a0a0a", etch: { color: "rgba(0,0,0,0.28)", spacing: 6, width: 1.5 } };
   return {
@@ -201,14 +201,14 @@ function ivSmile(): PlotSpec {
     title: "IV smile (stale strikes hollow)",
     axes: { x: { label: "Strike" }, y: { label: "IV (%)" } },
     marks: [
-      { type: "line", name: "Smile", x: ks, y: iv, curve: "monotone", color: "#7a7f8a", width: 1 },
+      { type: "line", name: "Smile", x: ks, y: iv, curve: "monotone", color: "#737373", width: 1 },
       {
-        type: "scatter", name: "Quotes", x: ks, y: iv, size: 4.5, color: "#2962ff",
+        type: "scatter", name: "Quotes", x: ks, y: iv, size: 4.5, color: "#737373",
         hollow: stale, shapes: ks.map((_, i) => (stale[i] ? "diamond" : "circle")), opacities: ks.map((_, i) => (stale[i] ? 0.8 : 0.95)),
-        colors: ks.map((k, i) => (stale[i] ? "#f57c00" : k < SPOT ? "#2962ff" : "#089981")),
+        colors: ks.map((k, i) => (stale[i] ? "#525252" : k < SPOT ? "#737373" : "#10b981")),
         states: stale.map((s) => (s ? "stale quote" : "live")), labels: ks.map((k) => `${k} CE`),
       },
-      { type: "rule", x: SPOT, labels: ["Spot"], color: "#9598a1" },
+      { type: "rule", x: SPOT, labels: ["Spot"], color: "#a3a3a3" },
     ],
   };
 }
@@ -222,8 +222,8 @@ function equity(): { equity: PlotSpec; drawdown: PlotSpec } {
   const dd = eq.map((e) => (peak = Math.max(peak, e), Math.round(((e / peak - 1) * 100) * 100) / 100));
   const common = { timeZone: "Asia/Kolkata", interactions: { brush: true, zoom: true }, scales: { x: { type: "time" as const } } };
   return {
-    equity: { ...common, title: "Equity curve", axes: { y: { label: "Equity (base 100)" }, x: { format: "date" } }, marks: [{ type: "area", name: "Equity", x: t, y: eq, color: "#2962ff", opacity: 0.18 }, { type: "line", name: "Benchmark", x: t, y: eq.map((e, i) => 100 + (e - 100) * 0.6 + Math.sin(i / 20)), color: "#9598a1", width: 1, dash: [4, 3] }] },
-    drawdown: { ...common, title: "Underwater", axes: { y: { label: "Drawdown (%)" }, x: { format: "date" } }, marks: [{ type: "area", name: "Drawdown", x: t, y: dd, y0: 0, color: "#ef5350", opacity: 0.3 }] },
+    equity: { ...common, title: "Equity curve", axes: { y: { label: "Equity (base 100)" }, x: { format: "date" } }, marks: [{ type: "area", name: "Equity", x: t, y: eq, color: "#737373", opacity: 0.18 }, { type: "line", name: "Benchmark", x: t, y: eq.map((e, i) => 100 + (e - 100) * 0.6 + Math.sin(i / 20)), color: "#a3a3a3", width: 1, dash: [4, 3] }] },
+    drawdown: { ...common, title: "Underwater", axes: { y: { label: "Drawdown (%)" }, x: { format: "date" } }, marks: [{ type: "area", name: "Drawdown", x: t, y: dd, y0: 0, color: "#ef4444", opacity: 0.3 }] },
   };
 }
 
@@ -249,14 +249,14 @@ function marks(): PlotSpec {
     title: "Line curves, step, bands and text",
     axes: { x: { label: "t" }, y: { label: "value" } },
     marks: [
-      { type: "band", x: [6, 10], label: "event", color: "#7b1fa2", opacity: 0.1 },
+      { type: "band", x: [6, 10], label: "event", color: "#a3a3a3", opacity: 0.1 },
       { type: "errorBand", name: "±8", x, lo: base.map((v) => v - 8), hi: base.map((v) => v + 8), opacity: 0.12 },
       { type: "line", name: "linear", x, y: base },
       { type: "line", name: "monotone", x, y: base.map((v) => v + 24), curve: "monotone" },
       { type: "line", name: "step", x, y: base.map((v) => Math.round(v) - 24), curve: "step", points: true },
       { type: "scatter", name: "marks", x: [3, 12, 20], y: [70, 40, 66], size: 5, shapes: ["square", "triangle", "cross"] },
       { type: "text", x: [3, 12, 20], y: [76, 46, 72], text: ["A", "B", "C"] },
-      { type: "rule", y: 50, labels: ["50"], color: "#9598a1" },
+      { type: "rule", y: 50, labels: ["50"], color: "#a3a3a3" },
     ],
   };
 }
@@ -287,7 +287,7 @@ function facets(): PlotSpec {
       columns: 2,
       cells: ["NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCAP"].map((t, i) => ({ title: t, marks: [{ type: "line", name: "Close", x, y: walk(0.001 * (i - 1)) }] })),
     },
-    marks: [{ type: "rule", y: 100, color: "#9598a1" }],
+    marks: [{ type: "rule", y: 100, color: "#a3a3a3" }],
     legend: false,
   };
 }
@@ -337,7 +337,7 @@ function sparkline(): PlotSpec {
     tooltip: false,
     axes: { x: false, y: false },
     theme: { background: "rgba(0,0,0,0)" },
-    marks: [{ type: "area", x, y, color: "#2962ff", opacity: 0.4, gradient: true, strokeColor: "#1b44b3", width: 1.25 }],
+    marks: [{ type: "area", x, y, color: "#737373", opacity: 0.4, gradient: true, strokeColor: "#525252", width: 1.25 }],
   };
 }
 
@@ -356,13 +356,13 @@ function replay(): PlotSpec {
     scales: { x: { type: "time" } },
     axes: { x: { format: "datetime" }, y: { side: "right" } },
     marks: [
-      { type: "line", name: "Price", x: t, y: px, color: "#7a7f8a", width: 1.25 },
+      { type: "line", name: "Price", x: t, y: px, color: "#737373", width: 1.25 },
       {
         type: "scatter", name: "Fills", x: fills.map((f) => t[f.i]!), y: fills.map((f) => px[f.i]!), size: 6,
-        shapes: fills.map((f) => (f.buy ? "triangle" : "triangleDown")), colors: fills.map((f) => (f.buy ? "#089981" : "#f23645")), opacities: fills.map(() => 0.95),
+        shapes: fills.map((f) => (f.buy ? "triangle" : "triangleDown")), colors: fills.map((f) => (f.buy ? "#10b981" : "#ef4444")), opacities: fills.map(() => 0.95),
         states: fills.map((f) => (f.buy ? "buy" : "sell")),
       },
-      { type: "rule", x: t[52]!, color: "#f57c00", tooltip: false },
+      { type: "rule", x: t[52]!, color: "#525252", tooltip: false },
     ],
   };
 }
@@ -375,7 +375,7 @@ function sweep(): PlotSpec {
     title: "Sweep: Sharpe by lookback",
     legend: false,
     axes: { x: { label: "Lookback (bars)" }, y: { label: "Sharpe", width: 56, tickMarks: false } },
-    marks: [{ type: "bar", name: "Sharpe", x: params, y: sharpe, colors: sharpe.map((v) => (v >= 0 ? "#089981" : "#f23645")), strokes: params.map((p) => (p === "20" ? "#131722" : null)), strokeWidth: 2 }],
+    marks: [{ type: "bar", name: "Sharpe", x: params, y: sharpe, colors: sharpe.map((v) => (v >= 0 ? "#10b981" : "#ef4444")), strokes: params.map((p) => (p === "20" ? "#0a0a0a" : null)), strokeWidth: 2 }],
   };
 }
 
@@ -390,7 +390,7 @@ function tight(): PlotSpec {
     padding: 0,
     scales: { x: { type: "point", padding: 0 } },
     axes: { y: false, x: { tickMarks: false } },
-    marks: [{ type: "line", x: months, y: months.map(() => (v += gauss(r) * 4)), color: "#2962ff" }],
+    marks: [{ type: "line", x: months, y: months.map(() => (v += gauss(r) * 4)), color: "#737373" }],
   };
 }
 
@@ -407,7 +407,7 @@ function perfSpec(n: number): PlotSpec {
     title: "10k points",
     interactions: { zoom: true, brush: true },
     marks: [
-      { type: "scatter", name: "ticks", x, y: y2, size: 1.5, opacity: 0.35, color: "#9598a1" },
+      { type: "scatter", name: "ticks", x, y: y2, size: 1.5, opacity: 0.35, color: "#a3a3a3" },
       { type: "line", name: "close", x, y },
     ],
   };
@@ -433,12 +433,12 @@ export function replaySpecs(len: number): [PlotSpec, PlotSpec] {
     {
       ...common, title: "Replay price",
       marks: [
-        { type: "bar", name: "Volume", x: t, y: vol, yAxis: "y2", color: "#9598a1" },
+        { type: "bar", name: "Volume", x: t, y: vol, yAxis: "y2", color: "#a3a3a3" },
         { type: "line", name: "Price", x: t, y: px },
-        { type: "rule", x: t[len - 1]!, color: "#f57c00" },
+        { type: "rule", x: t[len - 1]!, color: "#525252" },
       ],
     },
-    { ...common, title: "Replay P&L", marks: [{ type: "area", name: "P&L", x: t, y: pnl, color: "#2962ff" }] },
+    { ...common, title: "Replay P&L", marks: [{ type: "area", name: "P&L", x: t, y: pnl, color: "#737373" }] },
   ];
 }
 
@@ -472,7 +472,7 @@ export function runPlotDemo(app: HTMLElement, theme: "light" | "dark", params: U
     }
     const cell = document.createElement("div");
     cell.dataset.plot = id;
-    cell.style.cssText = only ? "width:640px;height:360px;" : "height:320px;border:1px solid var(--line);border-radius:4px;overflow:hidden;";
+    cell.style.cssText = only ? "width:640px;height:360px;" : "height:320px;border:1px solid var(--pg-line);border-radius:4px;overflow:hidden;";
     host.appendChild(cell);
     if (id === "sparkline") cell.style.cssText = "width:240px;height:56px;background:#e8eefc;";
     // A spec that brings its own theme (transparent background) keeps it.
@@ -482,7 +482,7 @@ export function runPlotDemo(app: HTMLElement, theme: "light" | "dark", params: U
       cell.style.height = "200px";
       const dd = document.createElement("div");
       dd.dataset.plot = "drawdown";
-      dd.style.cssText = "height:120px;border:1px solid var(--line);border-top:0;overflow:hidden;";
+      dd.style.cssText = "height:120px;border:1px solid var(--pg-line);border-top:0;overflow:hidden;";
       const wrap = document.createElement("div");
       host.replaceChild(wrap, cell);
       wrap.append(cell, dd);

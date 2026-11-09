@@ -21,13 +21,13 @@ const NAMES: Record<string, string> = { en: "English", "hi-IN": "हिन्द
 
 const STYLE = `
 .i18n-shell { display: flex; flex-direction: column; block-size: 100%; }
-.i18n-shell .strip { padding-block: 6px; padding-inline: 12px; border-block-end: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
-.i18n-shell .strip.alt { color: var(--muted); }
-.i18n-shell .btn { padding-block: 2px; padding-inline: 8px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: inherit; font: inherit; }
-.i18n-shell .btn[aria-pressed="true"] { background: var(--line); }
+.i18n-shell .strip { padding-block: 6px; padding-inline: 12px; border-block-end: 1px solid var(--pg-line); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.i18n-shell .strip.alt { color: var(--pg-muted); }
+.i18n-shell .btn { padding-block: 2px; padding-inline: 8px; border: 1px solid var(--pg-line); border-radius: 4px; background: transparent; color: inherit; font: inherit; }
+.i18n-shell .btn[aria-pressed="true"] { background: var(--pg-line); }
 .i18n-shell .grow { margin-inline-start: auto; display: flex; gap: 4px; }
-.i18n-shell .chip { padding-inline: 6px; border-radius: 4px; background: var(--line); }
-.i18n-shell input { padding-block: 2px; padding-inline: 6px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: inherit; font: inherit; inline-size: 14em; }
+.i18n-shell .chip { padding-inline: 6px; border-radius: 4px; background: var(--pg-line); }
+.i18n-shell input { padding-block: 2px; padding-inline: 6px; border: 1px solid var(--pg-line); border-radius: 4px; background: transparent; color: inherit; font: inherit; inline-size: 14em; }
 .i18n-shell .chart { flex: 1; min-block-size: 0; position: relative; }
 `;
 

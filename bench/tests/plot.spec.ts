@@ -203,8 +203,8 @@ test.describe("plot behaviour", () => {
       };
       return { outlined: probe("20"), plain: probe("15") };
     });
-    expect(r.outlined).toEqual([19, 23, 34]); // #131722
-    expect(r.plain).toEqual([8, 153, 129]); // #089981
+    expect(r.outlined).toEqual([10, 10, 10]); // #0a0a0a
+    expect(r.plain).toEqual([16, 185, 129]); // #10b981
   });
 
   test("the new chrome fields are refused when they mean nothing, and leave nothing behind", async ({ page }) => {
@@ -515,7 +515,7 @@ test.describe("plot behaviour", () => {
     expect(await page.evaluate(() => (document.querySelector(".ac-plot canvas") as HTMLCanvasElement).width)).toBe(400);
     const spec0 = await page.evaluate(() => (window as unknown as Win).__plotDemo.specs.payoff);
     await page.evaluate((s) => (window as unknown as Win).__plots[0]!.update({ ...(s as object), theme: "dark" }), spec0);
-    expect(await page.evaluate(() => getComputedStyle(document.querySelector(".ac-plot")!).backgroundColor)).toBe("rgb(15, 17, 21)");
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector(".ac-plot")!).backgroundColor)).toBe("rgb(0, 0, 0)"); // Luma dark is black
     // Host-resolved token colours are accepted.
     await page.evaluate((s) => (window as unknown as Win).__plots[0]!.update({ ...(s as object), theme: { background: "#101820" } }), spec0);
     expect(await page.evaluate(() => getComputedStyle(document.querySelector(".ac-plot")!).backgroundColor)).toBe("rgb(16, 24, 32)");
@@ -523,6 +523,12 @@ test.describe("plot behaviour", () => {
 
   test("bars are snapped to whole device pixels: a scan across a stack has no blended pixels", async ({ page }) => {
     await open(page, "only=shareholding&theme=light");
+    // The brand mark sits at the bottom-left of the plot, on this row; its glyph is anti-aliased, the bars must not be.
+    await page.evaluate(() => {
+      const w = window as unknown as Win;
+      w.__plots[0]!.update({ ...(w.__plotDemo.specs.shareholding as object), watermark: { visible: false } });
+    });
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const colours = await page.evaluate(() => {
       const p = (window as unknown as Win).__plots[0]!;
       const c = p.root.querySelector("canvas") as HTMLCanvasElement;
@@ -533,7 +539,7 @@ test.describe("plot behaviour", () => {
       for (let i = 0; i < row.length; i += 4) set.add(`${row[i]},${row[i + 1]},${row[i + 2]}`);
       return set.size;
     });
-    expect(colours).toBe(2); // background and the Promoter blue
+    expect(colours).toBe(2); // background and the Promoter bar
   });
 
   test("a rejected spec leaves nothing in the page; a time axis needs a time zone", async ({ page }) => {

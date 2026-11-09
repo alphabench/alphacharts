@@ -5,19 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>alphacharts playground</title>
     <style>
-      :root { color-scheme: dark; --bg: #0f1115; --fg: #d1d4dc; --muted: #8b909a; --line: #2a2e39; }
-      :root[data-theme="light"] { color-scheme: light; --bg: #ffffff; --fg: #131722; --muted: #5d606b; --line: #e0e3eb; }
-      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px system-ui, sans-serif; }
+      /* The page's own colours: --pg-* names, so they never pass for the shadcn tokens a chart reads under theme "inherit". */
+      :root { color-scheme: dark; --pg-bg: #000000; --pg-fg: #fafafa; --pg-muted: #a3a3a3; --pg-line: #262626; }
+      :root[data-theme="light"] { color-scheme: light; --pg-bg: #ffffff; --pg-fg: #0a0a0a; --pg-muted: #737373; --pg-line: #e5e5e5; }
+      html, body { margin: 0; height: 100%; background: var(--pg-bg); color: var(--pg-fg); font: 13px system-ui, sans-serif; }
       body { display: flex; flex-direction: column; }
       /* One row whatever the number of examples, so the chart area (and every
          snapshot) does not change height when a route is added. */
-      nav { display: flex; gap: 4px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
-      nav a { color: var(--muted); text-decoration: none; padding: 4px 8px; border-radius: 4px; }
-      nav a[aria-current="page"] { color: var(--fg); background: var(--line); }
-      nav .stat { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+      nav { display: flex; gap: 4px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--pg-line); flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+      nav a { color: var(--pg-muted); text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+      nav a[aria-current="page"] { color: var(--pg-fg); background: var(--pg-line); }
+      nav .stat { margin-left: auto; color: var(--pg-muted); font-variant-numeric: tabular-nums; }
       main { flex: 1; min-height: 0; position: relative; }
-      .grid { display: grid; height: 100%; gap: 1px; background: var(--line); }
-      .grid > div { background: var(--bg); min-width: 0; min-height: 0; }
+      .grid { display: grid; height: 100%; gap: 1px; background: var(--pg-line); }
+      .grid > div { background: var(--pg-bg); min-width: 0; min-height: 0; }
     </style>
   </head>
   <body>

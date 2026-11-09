@@ -14,6 +14,7 @@
 // the recent bar interval, so a drawing can extend into the future.
 
 import type { DataChange } from "../data/model.js";
+import type { Theme } from "./theme.js";
 
 export interface PluginPointer {
   type: "down" | "move" | "up" | "click" | "dblclick" | "leave";
@@ -63,6 +64,8 @@ export interface PluginApi {
   barTimeAtOrBefore(time: number): number | undefined;
   /** Cursor while the pointer is over the chart; null restores the default. */
   setCursor(css: string | null): void;
+  /** The chart's current theme: what colour slots ("chart-1", "chart-up" …, see `resolveColor`) draw with. */
+  readonly theme: Theme;
 }
 
 export interface ChartPlugin {

@@ -36,7 +36,7 @@ export const cyclicLines = tool({
 
 export const timeCycles = tool({
   id: "timeCycles", label: "Time cycles", family: "cycles", gesture: "drag", anchors: 2,
-  defaults: () => ({ style: { fill: "rgba(41,98,255,0.1)" } }),
+  defaults: () => ({ style: { fill: "rgba(138,138,138,0.1)" } }),
   validate: (d) => { finiteAnchors(d); needDistinctTimes(d, 0, 1); },
   shapes(d, c) {
     const [p0, p1] = pxs(c, d) as [Pt, Pt];

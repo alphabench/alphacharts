@@ -15,12 +15,14 @@ import { registerStudies, type InputValue, type StudyDef } from "@alphacharts/in
 import { Emitter } from "../emitter.js";
 import { CHART_TYPES, chartTypeDef, isChartType, type ChartTypeId } from "../model/chartTypes.js";
 import { GRID_PRESETS, cellStyle, gridPreset, gridStyle, type GridPreset } from "../model/grids.js";
-import { DEFAULT_FAVOURITE_INTERVALS, normalizeInterval, sortIntervals } from "../model/intervals.js";
+import { DEFAULT_FAVOURITE_INTERVALS, intervalId, isIntraday, normalizeInterval, sortIntervals } from "../model/intervals.js";
+import { decimalsOf } from "../model/chartTypes.js";
 import { NamedStore, PrefsStore, pushRecent, toggled, type Prefs, EMPTY_PREFS } from "../model/persistence.js";
-import { TOOL_GROUPS } from "../model/tools.js";
+import { TOOL_GROUPS, toolGroups } from "../model/tools.js";
 import { buildCatalogue, type CatalogueEntry, type StudyFamily } from "../model/studies.js";
-import { resolveTheme, themeVars } from "../theme.js";
-import { DEFAULT_FEATURES, type ChartAppOptions, type Features, type SymbolInfo, type SyncKey, type ThemeName, type ScriptDiagnostic } from "../types.js";
+import { isDark, resolveTheme, themeVars } from "../theme.js";
+import { sameTheme, watchTheme } from "@alphacharts/core";
+import { DEFAULT_FEATURES, type ChartAppOptions, type Features, type SymbolInfo, type SyncKey, type ThemeName, type ScriptDiagnostic, type AnalysisEntry } from "../types.js";
 import { ChartInstance, type InstanceHost, type InstanceState } from "./instance.js";
 
 void registerSeriesType;
@@ -35,6 +37,7 @@ export type Dialog =
   | { kind: "alert"; prefill?: AlertPrefill; editId?: string }
   | { kind: "alerts" }
   | { kind: "layouts" }
+  | { kind: "objects" }
   | { kind: "templates" }
   | { kind: "interval" }
   | { kind: "confirm"; message: string; confirmLabel: string; danger?: boolean; onConfirm: () => void }
@@ -52,6 +55,8 @@ export interface MenuItem {
   label: string;
   /** Right-aligned hint (a price, a shortcut). */
   hint?: string;
+  /** An icon name (see `icons`) drawn before the label. */
+  icon?: string;
   checked?: boolean;
   disabled?: boolean;
   danger?: boolean;
@@ -69,6 +74,15 @@ export interface MenuSpec {
   items: MenuItem[];
   /** The element focus returns to when the menu closes. */
   returnFocus: HTMLElement | null;
+}
+
+/** The `styles` and `stylesheet` options, checked once so a wrong value fails at creation, not as an unstyled shell. */
+export function checkStyles(o: Pick<ChartAppOptions, "styles" | "stylesheet">): void {
+  const sheet = o.stylesheet ?? "default";
+  if (sheet !== "default" && sheet !== "none") throw new TypeError(`alphacharts/ui: stylesheet is "${String(sheet)}"; it is "default" or "none"`);
+  const extra = o.styles === undefined ? [] : typeof o.styles === "string" ? [o.styles] : o.styles;
+  if (!Array.isArray(extra) || extra.some((x) => typeof x !== "string")) throw new TypeError("alphacharts/ui: styles is a CSS string or an array of them");
+  if (sheet === "none" && extra.every((x) => x.trim() === "")) throw new TypeError('alphacharts/ui: stylesheet "none" drops the built-in styles, so styles must carry yours (a copy of @alphacharts/ui/styles.css)');
 }
 
 export interface Toast {
@@ -144,6 +158,8 @@ export class ChartApp implements InstanceHost {
   readonly prefsStore: PrefsStore;
   readonly layouts: NamedStore<LayoutBody>;
   readonly templates: NamedStore<TemplateBody>;
+  /** "My scripts": the scripts the user saved, by name, in the app's storage. */
+  readonly scripts: NamedStore<{ code: string }>;
   i18n!: I18n;
   prefs: Prefs = EMPTY_PREFS;
 
@@ -167,7 +183,10 @@ export class ChartApp implements InstanceHost {
   /** What the legend shows (Settings, Status line). */
   legendOpts = { symbol: true, ohlc: true, change: true, volume: true, studyValues: true, studyInputs: true };
   alertDefaults: { mode: TriggerOptions["mode"] } = { mode: "once" };
+  readonly toolGroups: ReturnType<typeof toolGroups>;
   scriptOpen = false;
+  /** Bumps when the panel text is replaced from outside, so the panel remounts on it. */
+  scriptEpoch = 0;
   scriptCode = "";
   scriptDiagnostics: ScriptDiagnostic[] = [];
   catalogue: CatalogueEntry[] | null = null;
@@ -201,17 +220,21 @@ export class ChartApp implements InstanceHost {
 
   constructor(readonly host: HTMLElement, readonly options: ChartAppOptions) {
     // A Run button that cannot run is worse than no panel: refuse the half pair.
+    if (options.assistant && !options.scriptRunner) throw new Error("alphacharts/ui: assistant needs scriptRunner (createScriptRunAdapter from @alphacharts/script)");
     if (options.scriptEditor && !options.scriptRunner) throw new Error("alphacharts/ui: scriptEditor needs scriptRunner (createScriptRunAdapter from @alphacharts/script)");
+    checkStyles(options);
     this.features = { ...DEFAULT_FEATURES, ...options.features };
     this.feed = options.datafeed;
     this.store = options.storage ?? new MemoryStore();
     this.tools = options.tools ?? allTools;
+    this.toolGroups = toolGroups(this.tools);
     this.prefsStore = new PrefsStore(this.store);
     this.layouts = new NamedStore<LayoutBody>(this.store, "layout");
     this.templates = new NamedStore<TemplateBody>(this.store, "template");
+    this.scripts = new NamedStore<{ code: string }>(this.store, "script");
     this.gridId = options.layout ?? "1";
     gridPreset(this.gridId);
-    const th = options.theme ?? "dark";
+    const th = options.theme ?? "inherit";
     if (typeof th === "string") this.themeName = th;
     else (this.themeName = "custom", (this.customTheme = th));
     this.resolveTheme();
@@ -232,10 +255,12 @@ export class ChartApp implements InstanceHost {
     this.i18n.on("localeChange", () => this.localeApplied());
     this.mql = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: light)") : null;
     const onScheme = () => {
-      if (this.themeName === "auto") this.applyTheme();
+      if (this.themeName === "auto") this.pageThemeChanged();
     };
     this.mql?.addEventListener("change", onScheme);
     this.offs.push(() => this.mql?.removeEventListener("change", onScheme));
+    // "inherit" follows the page: its class, style or theme attributes (shadcn toggles `.dark` on the document) and the OS scheme.
+    this.offs.push(watchTheme(this.host, () => { if (this.themeName === "inherit") this.pageThemeChanged(); }));
     this.resizeObs = new ResizeObserver(() => this.measureHost());
     this.resizeObs.observe(this.host);
     this.offs.push(() => this.resizeObs?.disconnect());
@@ -324,6 +349,18 @@ export class ChartApp implements InstanceHost {
     return this.magnetMode;
   }
 
+  /** "Snap to indicators": the magnet also takes the values of indicators drawn on the price pane. */
+  snapToIndicators = false;
+  snapIndicators(): boolean {
+    return this.snapToIndicators;
+  }
+
+  setSnapToIndicators(on: boolean): void {
+    this.snapToIndicators = on;
+    this.announce(this.t(on ? "drawing.snapIndicators.on" : "drawing.snapIndicators.off"));
+    this.bump();
+  }
+
   hostTheme(): Theme {
     return this.theme;
   }
@@ -331,20 +368,36 @@ export class ChartApp implements InstanceHost {
   // ---- theme and locale -----------------------------------------------------------------
 
   private resolveTheme(): void {
-    this.theme = resolveTheme(this.themeName, this.customTheme, this.theme ?? undefined);
+    this.theme = resolveTheme(this.themeName, this.customTheme, this.theme ?? undefined, this.host);
   }
 
   private chartTheme(): Theme | ThemeName {
-    return this.themeName === "custom" ? this.theme : this.themeName;
+    // The shell resolves "inherit" and the named presets itself (one place), and hands the chart a finished theme.
+    return this.themeName === "auto" ? "auto" : this.theme;
   }
 
   private applyTheme(): void {
     this.resolveTheme();
+    this.pushTheme();
+    this.userChanged();
+  }
+
+  /**
+   * The page changed under "inherit" (or the OS under "auto"): not the user's act, so it neither lifts a suspended autosave
+   * nor saves; and a class or style change that left the variables as they were does nothing at all.
+   */
+  private pageThemeChanged(): void {
+    const prev = this.theme;
+    this.resolveTheme();
+    if (prev && sameTheme(prev, this.theme)) return;
+    this.pushTheme();
+  }
+
+  private pushTheme(): void {
     for (const i of this.instances) {
-      i.chart.applyOptions({ theme: this.chartTheme() === "auto" ? "auto" : (this.chartTheme() as never) });
+      i.chart.applyOptions({ theme: this.chartTheme() as never });
       i.themeChanged();
     }
-    this.userChanged();
     this.bump();
   }
 
@@ -356,11 +409,16 @@ export class ChartApp implements InstanceHost {
   }
 
   themeLabel(n: ThemeName): string {
-    return n === "dark" ? this.t("toolbar.theme.dark") : n === "light" ? this.t("toolbar.theme.light") : n === "high-contrast" ? this.t("toolbar.theme.highContrast") : n === "auto" ? this.t("toolbar.theme.auto") : this.t("ui.theme.custom");
+    return n === "inherit" ? this.t("toolbar.theme.inherit") : n === "dark" ? this.t("toolbar.theme.dark") : n === "light" ? this.t("toolbar.theme.light") : n === "high-contrast" ? this.t("toolbar.theme.highContrast") : n === "auto" ? this.t("toolbar.theme.auto") : this.t("ui.theme.custom");
   }
 
   vars(): Record<string, string> {
-    return themeVars(this.theme);
+    return themeVars(this.theme, this.themeName);
+  }
+
+  /** "dark" or "light", by the resolved theme's background: the stylesheet's few mode-specific recipes key on it. */
+  get mode(): "dark" | "light" {
+    return isDark(this.theme) ? "dark" : "light";
   }
 
   async setLocale(locale: string): Promise<void> {
@@ -626,7 +684,7 @@ export class ChartApp implements InstanceHost {
   }
 
   async rememberTool(tool: string): Promise<void> {
-    const g = TOOL_GROUPS.find((x) => x.tools.includes(tool));
+    const g = this.toolGroups.find((x) => x.tools.includes(tool));
     if (!g || this.prefs.lastTool[g.id] === tool) return;
     try {
       this.prefs = await this.prefsStore.update((p) => ({ ...p, lastTool: { ...p.lastTool, [g.id]: tool } }));
@@ -672,12 +730,15 @@ export class ChartApp implements InstanceHost {
   }
 
   toolLabel(id: string): string {
+    // A host's own tool has no catalogue key: it names itself.
+    if (!TOOL_GROUPS.some((g) => g.tools.includes(id))) return this.tools.find((x) => x.id === id)?.label ?? id;
     return this.t(`ui.tool.${id}` as Key);
   }
 
   addStudy(def: StudyDef, inputs: Record<string, InputValue> = {}): void {
     try {
-      this.current.addStudy(def, inputs);
+      const study = this.current.addStudy(def, inputs);
+      this.current.recordStudyAction(study.id, null);
       this.announce(this.t("indicators.added", { name: def.name }));
     } catch (e) {
       this.report(new Error(this.t("indicators.error", { name: def.name, reason: e instanceof Error ? e.message : String(e) })));
@@ -687,7 +748,9 @@ export class ChartApp implements InstanceHost {
 
   removeStudy(id: string): void {
     const s = this.current.studies().find((x) => x.study.id === id);
+    const state = s ? this.current.studyState(id) : null;
     this.current.removeStudy(id);
+    if (s && state) this.current.recordStudyAction(id, state);
     if (s) this.announce(this.t("indicators.removed", { name: s.study.def.name }));
     this.userChanged();
   }
@@ -768,30 +831,81 @@ export class ChartApp implements InstanceHost {
     this.bump();
   }
 
+  // ---- cursor, indicator visibility, objects -------------------------------------------------------------------------------------------
+
+  /** "cross": the crosshair follows the pointer; "arrow": the plain pointer, no crosshair lines. Read from the chart, so a restored layout shows its own. */
+  get cursorMode(): "cross" | "arrow" {
+    return this.hasCurrent && !this.current.chart.options().crosshair.visible ? "arrow" : "cross";
+  }
+
+  setCursorMode(mode: "cross" | "arrow"): void {
+    for (const i of this.instances) i.chart.applyOptions({ crosshair: { ...i.chart.options().crosshair, visible: mode === "cross" } });
+    this.announce(this.t(mode === "cross" ? "cursor.cross" : "cursor.arrow"));
+    this.userChanged();
+    this.bump();
+  }
+
+  get allIndicatorsHidden(): boolean {
+    if (!this.hasCurrent) return false;
+    const s = this.current.studies();
+    return s.length > 0 && s.every((x) => x.userHidden);
+  }
+
+  toggleHideIndicators(): void {
+    const i = this.current;
+    const hide = !this.allIndicatorsHidden;
+    for (const s of i.studies()) i.setStudyHidden(s.study.id, hide);
+    this.announce(this.t(hide ? "indicators.hideAll" : "indicators.showAll"));
+    this.userChanged();
+    this.bump();
+  }
+
+  /** Remove every drawing made with `tool` (one undo step). */
+  removeDrawingsOfTool(tool: string): void {
+    const p = this.current.drawings;
+    if (!p) return;
+    const ids = p.list().filter((d) => d.tool === tool).map((d) => d.id);
+    if (ids.length) p.remove(ids);
+  }
+
   removeAllDrawings(): void {
     const n = this.allDrawings().length;
     if (n === 0) return;
     this.confirm(this.t("drawing.removeAll.confirm", { count: n }), this.t("common.remove"), () => this.current.drawings?.clear(), true);
   }
 
-  undo(): void {
-    if (this.current.drawings?.undo()) this.announce(this.t("history.undone", { action: "" }).trim());
-    else this.announce(this.t("history.nothingToUndo"));
+  /** Undo takes back the last change made to the chart, a study's or a drawing's. */
+  undo(): boolean {
+    const done = this.current.undoLatest();
+    this.announce(this.t(done ? "history.undone" : "history.nothingToUndo", { action: "" }).trim());
+    this.userChanged();
     this.bump();
+    return done;
   }
 
-  redo(): void {
-    if (this.current.drawings?.redo()) this.announce(this.t("history.redone", { action: "" }).trim());
-    else this.announce(this.t("history.nothingToRedo"));
+  /** Redo puts back the change undone last. */
+  redo(): boolean {
+    const done = this.current.redoLatest();
+    this.announce(this.t(done ? "history.redone" : "history.nothingToRedo", { action: "" }).trim());
+    this.userChanged();
     this.bump();
+    return done;
+  }
+
+  undoRequested(): boolean {
+    return this.undo();
+  }
+
+  redoRequested(): boolean {
+    return this.redo();
   }
 
   get canUndo(): boolean {
-    return this.hasCurrent && (this.current.drawings?.canUndo ?? false);
+    return this.hasCurrent && this.current.canUndoAny;
   }
 
   get canRedo(): boolean {
-    return this.hasCurrent && (this.current.drawings?.canRedo ?? false);
+    return this.hasCurrent && this.current.canRedoAny;
   }
 
   // ---- alerts -----------------------------------------------------------------------------------------------------------
@@ -825,7 +939,9 @@ export class ChartApp implements InstanceHost {
     this.bump();
   }
 
+  /** Open a menu; opening it again from the element it is anchored to closes it (a trigger toggles its menu). */
   openMenu(m: MenuSpec): void {
+    if (this.menu && m.at instanceof HTMLElement && this.menu.at === m.at) return this.closeMenu();
     this.menu = m;
     this.bump();
   }
@@ -931,7 +1047,7 @@ export class ChartApp implements InstanceHost {
         items.push({ id: "hline", label: t("menu.chart.drawHorizontal", { price: fp }), onSelect: () => this.addHorizontalLine(price) });
       }
       if (price !== undefined) items.push({ id: "copy", label: t("menu.chart.copyPrice", { price: fp }), onSelect: () => void this.copyText(fp) });
-      if (inst.studies().length) items.push({ id: "rmstudies", label: t("menu.chart.removeIndicators"), onSelect: () => [...inst.studies()].forEach((s) => inst.removeStudy(s.study.id)) });
+      if (inst.studies().length) items.push({ id: "rmstudies", label: t("menu.chart.removeIndicators"), onSelect: () => [...inst.studies()].forEach((s) => this.removeStudy(s.study.id)) });
       if (this.features.settings) items.push({ id: "sep", label: "", separator: true }, { id: "settings", label: t("menu.chart.settings"), onSelect: () => this.openDialog({ kind: "settings" }) });
       void x; void y;
       return items;
@@ -981,6 +1097,7 @@ export class ChartApp implements InstanceHost {
       { id: "template", label: t("menu.drawing.template"), onSelect: () => this.openDialog({ kind: "drawing", id: d.id }) },
       ...(canAlert ? [{ id: "alert", label: t("alerts.create"), onSelect: () => this.openDialog({ kind: "alert", prefill: { kind: "drawing", drawingId: d.id } }) }] : []),
       { id: "sep3", label: "", separator: true },
+      ...(p.list().filter((x) => x.tool === d.tool).length > 1 ? [{ id: "deleteType", label: t("drawing.removeAllOfTool", { tool: this.toolLabel(d.tool) }), danger: true, onSelect: () => this.removeDrawingsOfTool(d.tool) }] : []),
       { id: "delete", label: t("common.delete"), danger: true, onSelect: () => p.remove([d.id]) },
     ];
   }
@@ -1021,20 +1138,98 @@ export class ChartApp implements InstanceHost {
     const k = canvases[0]!.width / gr.width;
     const sx = Math.round((cr.left - gr.left) * k), sy = Math.round((cr.top - gr.top) * k);
     const w = Math.round(cr.width * k), h = Math.round(cr.height * k);
+    // A header with what the DOM legend shows (symbol, interval, the last bar's values, the indicators): the canvases do not hold it.
+    const head = this.options.snapshotHeader === false ? 0 : Math.round(this.snapshotHeaderHeight() * k);
     const out = document.createElement("canvas");
     out.width = w;
-    out.height = h;
+    out.height = h + head;
     const ctx = out.getContext("2d");
     if (!ctx) throw new Error(this.t("error.unsupported"));
+    if (head > 0) this.drawSnapshotHeader(ctx, w, head, k);
+    ctx.save();
+    ctx.translate(0, head);
     for (const c of canvases) ctx.drawImage(c, sx, sy, w, h, 0, 0, w, h);
+    ctx.restore();
     return new Promise<Blob>((res, rej) => out.toBlob((b) => (b ? res(b) : rej(new Error("the canvas produced no PNG"))), "image/png"));
+  }
+
+  private snapshotHeaderHeight(): number {
+    return Math.round(this.theme.fontSize * 3.2);
+  }
+
+  /** The text lines of the snapshot header: the title with the time of the last bar, and the last bar's values with the indicators' names. */
+  snapshotHeaderText(): { title: string; when: string; values: Array<{ text: string; color: "up" | "down" | "muted" | "text" }> } {
+    const inst = this.current;
+    const title = `${inst.symbol} · ${this.intervalLabel(inst.interval)}`;
+    const n = inst.raw.length;
+    if (n === 0) return { title, when: "", values: [] };
+    const last = inst.raw.at(n - 1), prev = n > 1 ? inst.raw.at(n - 2) : null;
+    const dec = decimalsOf(inst.minMove);
+    const f = (v: number) => v.toFixed(dec);
+    const when = new Intl.DateTimeFormat(this.i18n.locale, { dateStyle: "medium", timeStyle: isIntraday(inst.interval) ? "short" : undefined, timeZone: this.options.timeZone ?? "UTC" }).format(last.time);
+    const up = last.close >= last.open;
+    const values: Array<{ text: string; color: "up" | "down" | "muted" | "text" }> = [{ text: `O ${f(last.open)}  H ${f(last.high)}  L ${f(last.low)}  C ${f(last.close)}`, color: up ? "up" : "down" }];
+    if (prev && prev.close !== 0) {
+      const d = last.close - prev.close;
+      values.push({ text: `${d >= 0 ? "+" : "−"}${f(Math.abs(d))} (${d >= 0 ? "+" : "−"}${Math.abs((d / prev.close) * 100).toFixed(2)}%)`, color: d >= 0 ? "up" : "down" });
+    }
+    const names = inst.studies().filter((s) => !s.userHidden).map((s) => s.study.def.name);
+    if (names.length) values.push({ text: names.slice(0, 4).join(" · ") + (names.length > 4 ? ` +${names.length - 4}` : ""), color: "muted" });
+    return { title, when, values };
+  }
+
+  private drawSnapshotHeader(ctx: CanvasRenderingContext2D, w: number, head: number, k: number): void {
+    const th = this.theme, pad = Math.round(10 * k), fs = th.fontSize * k;
+    const { title, when, values } = this.snapshotHeaderText();
+    ctx.fillStyle = th.background;
+    ctx.fillRect(0, 0, w, head);
+    ctx.fillStyle = th.border;
+    ctx.fillRect(0, head - Math.max(1, Math.round(k)), w, Math.max(1, Math.round(k)));
+    ctx.textBaseline = "middle";
+    ctx.font = `600 ${fs * 1.15}px ${th.fontFamily}`;
+    ctx.fillStyle = th.text;
+    ctx.textAlign = "left";
+    ctx.fillText(title, pad, head * 0.32);
+    ctx.font = `${fs * 0.9}px ${th.fontFamily}`;
+    ctx.fillStyle = th.textMuted;
+    ctx.textAlign = "right";
+    ctx.fillText(when, w - pad, head * 0.32);
+    ctx.textAlign = "left";
+    ctx.font = `${fs * 0.95}px ${th.fontFamily}`;
+    let x = pad;
+    for (const v of values) {
+      ctx.fillStyle = v.color === "up" ? th.up : v.color === "down" ? th.down : v.color === "muted" ? th.textMuted : th.text;
+      ctx.fillText(v.text, x, head * 0.72);
+      x += ctx.measureText(v.text).width + 16 * k;
+    }
+  }
+
+  /**
+   * Copy the chart image to the clipboard, ready to paste into a post or a message. The image is made while the clipboard
+   * request is open (Safari needs the request made in the click itself), so call this straight from a click handler.
+   * A host's `onSnapshot` gets the PNG instead (with "copy"), for pages that cannot reach the clipboard.
+   */
+  async copySnapshot(): Promise<void> {
+    try {
+      if (this.options.onSnapshot) {
+        this.options.onSnapshot(await this.snapshot(), "copy");
+        return;
+      }
+      const clip = navigator.clipboard;
+      if (!clip || typeof clip.write !== "function" || typeof ClipboardItem === "undefined") throw new Error(this.t("snapshot.copy.unsupported"));
+      await clip.write([new ClipboardItem({ "image/png": this.snapshot() })]);
+      this.toast("info", this.t("snapshot.copied"));
+    } catch (e) {
+      // A blocked clipboard (no permission, an insecure page) is the user's to know about, with the way out.
+      this.report(e instanceof DOMException ? new Error(`${this.t("snapshot.copy.blocked")} (${e.name})`) : e);
+    }
   }
 
   async takeSnapshot(): Promise<void> {
     try {
       const png = await this.snapshot();
       if (this.options.onSnapshot) {
-        this.options.onSnapshot(png);
+        this.options.onSnapshot(png, "download");
         return;
       }
       const url = URL.createObjectURL(png);
@@ -1189,10 +1384,14 @@ export class ChartApp implements InstanceHost {
    * running; one that does not leaves the last good plot and shows why.
    */
   runScript(code: string): void {
-    const runner = this.options.scriptRunner;
-    const inst = this.instances[this.active];
-    if (!runner || !inst) return;
     this.scriptCode = code;
+    this.execScript(code, this.instances[this.active]);
+  }
+
+  /** Run `code` on `inst` without touching the panel's text, so a script that is not in the editor never becomes what its Run button runs. */
+  private execScript(code: string, inst: ChartInstance | undefined): void {
+    const runner = this.options.scriptRunner;
+    if (!runner || !inst) return;
     if (!inst.main) {
       this.setScriptDiagnostics([{ line: 1, column: 1, from: 0, to: 0, message: this.t("ui.script.noData"), severity: "error" }]);
       return;
@@ -1204,10 +1403,161 @@ export class ChartApp implements InstanceHost {
     this.scriptRun = { instance: inst, remove: () => r.remove() };
   }
 
+  /** Largest script the app stores (the script language refuses more than this anyway). */
+  static readonly SCRIPT_MAX = 200_000;
+
+  async saveScript(name: string, code: string): Promise<void> {
+    if (!this.hasScript) return;
+    if (!code.trim()) throw new Error(this.t("scripts.empty"));
+    if (code.length > ChartApp.SCRIPT_MAX) throw new Error(this.t("scripts.tooLong", { max: ChartApp.SCRIPT_MAX }));
+    await this.scripts.save(name, { code });
+    this.toast("info", this.t("scripts.saved", { name }));
+    this.bump();
+  }
+
+  /** Put a saved script in the panel (opened), and run it when `run`. */
+  async openScript(name: string, run: boolean): Promise<void> {
+    const doc = await this.scripts.load(name);
+    // Opening replaces the panel's text: ask first when that would lose edits that are not this script.
+    if (this.scriptCode.trim() && this.scriptCode !== doc.body.code) {
+      this.confirm(this.t("scripts.replaceConfirm", { name }), this.t("scripts.replace"), () => this.applyOpenedScript(doc.body.code, run), true);
+      return;
+    }
+    this.applyOpenedScript(doc.body.code, run);
+  }
+
+  private applyOpenedScript(code: string, run: boolean): void {
+    this.scriptCode = code;
+    this.scriptEpoch++;
+    this.scriptOpen = true;
+    if (run) this.runScript(code);
+    this.closeDialog();
+    this.bump();
+  }
+
   private setScriptDiagnostics(d: readonly ScriptDiagnostic[]): void {
     this.scriptDiagnostics = [...d];
     this.scriptEditorHandle?.setDiagnostics(d);
     this.bump();
+  }
+
+  // ---- assistant (describe an indicator) ------------------------------------------------------------------------------------------
+
+  get hasAssistant(): boolean {
+    return this.options.assistant !== undefined;
+  }
+
+  /** The assistant's state, read by the Indicators dialog. `ready` carries a script that compiled, waiting for the user's Add. */
+  assistant: { status: "idle" } | { status: "working" } | { status: "ready"; script: string; explanation: string | null; instance: ChartInstance } | { status: "failed"; message: string } = { status: "idle" };
+  private assistantAbort: AbortController | null = null;
+
+  /** Ask for a script. Replaces an ask in flight. Nothing reaches the chart until `addAssistantScript`. */
+  async askAssistant(prompt: string): Promise<void> {
+    const seam = this.options.assistant;
+    const inst = this.instances[this.active];
+    if (!seam || !inst) return;
+    this.assistantAbort?.abort();
+    const ac = new AbortController();
+    this.assistantAbort = ac;
+    this.assistant = { status: "working" };
+    this.bump();
+    try {
+      const r = await seam.ask({ prompt, symbol: inst.symbol, interval: intervalId(inst.interval), signal: ac.signal });
+      if (ac.signal.aborted) return;
+      if (typeof r?.script !== "string" || !r.script.trim()) throw new Error(this.t("assistant.empty"));
+      this.assistant = { status: "ready", script: r.script, explanation: r.explanation ?? null, instance: inst };
+    } catch (e) {
+      if (ac.signal.aborted) return;
+      this.assistant = { status: "failed", message: e instanceof Error ? e.message : String(e) };
+      this.report(e);
+    } finally {
+      if (this.assistantAbort === ac) this.assistantAbort = null;
+    }
+    this.bump();
+  }
+
+  cancelAssistant(): void {
+    this.assistantAbort?.abort();
+    this.assistantAbort = null;
+    this.assistant = { status: "idle" };
+    this.bump();
+  }
+
+  /** Run the reviewed script like the script panel's Run: it replaces the script now running, and a compile error stays in the panel's diagnostics. */
+  addAssistantScript(): void {
+    if (this.assistant.status !== "ready") return;
+    // The script was written for one chart's symbol and interval: it does not follow the user to another chart.
+    if (this.instances[this.active] !== this.assistant.instance) {
+      this.assistant = { status: "failed", message: this.t("assistant.chartChanged") };
+      this.bump();
+      return;
+    }
+    this.execScript(this.assistant.script, this.assistant.instance);
+    if (this.scriptDiagnostics.some((d) => d.severity === "error")) {
+      this.assistant = { status: "failed", message: this.scriptDiagnostics.find((d) => d.severity === "error")!.message };
+    } else {
+      this.announce(this.t("assistant.added"));
+      this.assistant = { status: "idle" };
+      this.closeDialog();
+    }
+    this.bump();
+  }
+
+  /** Open the script panel on the assistant's script, to edit it before running. */
+  editAssistantScript(): void {
+    if (this.assistant.status !== "ready" || !this.hasScript) return;
+    this.scriptCode = this.assistant.script;
+    this.scriptEpoch++; // an open panel remounts on the new text: the editor reads its value only when it mounts
+    this.scriptOpen = true;
+    this.closeDialog();
+  }
+
+  // ---- analyses (auto drawings) -------------------------------------------------------------------------------------------------
+
+  /** Most drawings one analysis may add. */
+  static readonly ANALYSIS_MAX = 500;
+  analysisBusy: string | null = null;
+  private analysisAbort: AbortController | null = null;
+
+  get analyses(): readonly AnalysisEntry[] {
+    return this.options.analyses ?? [];
+  }
+
+  /** Run one analysis on the active chart and add what it draws as one undo step (all or none). */
+  async runAnalysis(id: string): Promise<void> {
+    const entry = this.analyses.find((a) => a.id === id);
+    const inst = this.instances[this.active];
+    if (!entry || !inst || !inst.drawings || this.analysisBusy) return;
+    if (inst.raw.length === 0) {
+      this.toast("error", this.t("analyses.noBars"));
+      return;
+    }
+    const ac = new AbortController();
+    this.analysisAbort = ac;
+    this.analysisBusy = id;
+    this.bump();
+    // What the analysis was asked about: its answer is only drawn if the chart is still showing exactly that.
+    const asked = { drawings: inst.drawings, symbol: inst.symbol, interval: inst.interval };
+    try {
+      // Closed bars only: the newest bar may still be forming, and a swing it confirms could vanish with the next tick.
+      const bars = Array.from({ length: Math.max(0, inst.raw.length - 1) }, (_, i) => inst.raw.at(i));
+      const r = await entry.run({ symbol: asked.symbol, interval: intervalId(asked.interval), bars, signal: ac.signal });
+      if (ac.signal.aborted) return;
+      if (inst.isDisposed || inst.drawings !== asked.drawings || inst.symbol !== asked.symbol || inst.interval !== asked.interval) {
+        this.toast("info", this.t("analyses.stale", { name: entry.name }));
+        return;
+      }
+      if (!r || !Array.isArray(r.drawings)) throw new Error(`analysis "${id}" must return { drawings: [...] }`);
+      if (r.drawings.length > ChartApp.ANALYSIS_MAX) throw new Error(`analysis "${id}" returned ${r.drawings.length} drawings; the limit is ${ChartApp.ANALYSIS_MAX}`);
+      const added = asked.drawings!.addMany(r.drawings);
+      this.announce(added.length === 0 ? this.t("analyses.none", { name: entry.name }) : this.t("analyses.drew", { name: entry.name, count: added.length }));
+    } catch (e) {
+      if (!ac.signal.aborted) this.report(e);
+    } finally {
+      if (this.analysisAbort === ac) this.analysisAbort = null;
+      this.analysisBusy = null;
+      this.bump();
+    }
   }
 
   // ---- compact layout ----------------------------------------------------------------------------------------------------------------
@@ -1231,9 +1581,9 @@ export class ChartApp implements InstanceHost {
     return [
       ...(f.compare && this.canSearch ? [{ id: "cmp", label: t("toolbar.compare"), onSelect: () => this.openDialog({ kind: "symbol", purpose: "compare" }) }] : []),
       ...(f.layouts ? [{ id: "lay", label: t("toolbar.layout"), onSelect: () => this.openDialog({ kind: "layouts" }) }] : []),
-      ...(f.themeSwitcher ? (["dark", "light", "high-contrast", "auto"] as ThemeName[]).map((n) => ({ id: `theme-${n}`, label: this.themeLabel(n), checked: this.themeName === n, onSelect: () => this.setTheme(n) })) : []),
+      ...(f.themeSwitcher ? (["inherit", "dark", "light", "high-contrast", "auto"] as ThemeName[]).map((n) => ({ id: `theme-${n}`, label: this.themeLabel(n), checked: this.themeName === n, onSelect: () => this.setTheme(n) })) : []),
       ...(f.localeSwitcher ? [{ id: "loc-en", label: "English", checked: this.locale === "en", onSelect: () => void this.setLocale("en") }, { id: "loc-hi", label: "हिन्दी", checked: this.locale === "hi", onSelect: () => void this.setLocale("hi") }] : []),
-      ...(f.snapshot ? [{ id: "snap", label: t("toolbar.snapshot"), onSelect: () => void this.takeSnapshot() }] : []),
+      ...(f.snapshot ? [{ id: "snap", label: t("toolbar.snapshot"), onSelect: () => void this.takeSnapshot() }, { id: "snapcopy", label: t("toolbar.snapshotCopy"), onSelect: () => void this.copySnapshot() }] : []),
       ...(f.settings ? [{ id: "set", label: t("toolbar.settings"), onSelect: () => this.openDialog({ kind: "settings" }) }] : []),
       ...(f.fullscreen ? [{ id: "fs", label: t("toolbar.fullscreen"), onSelect: () => void this.toggleFullscreen() }] : []),
     ];
@@ -1249,6 +1599,8 @@ export class ChartApp implements InstanceHost {
     // The script's worker goes with the app, not with whenever the chart happens to be collected.
     this.scriptRun?.remove();
     this.scriptRun = null;
+    this.assistantAbort?.abort();
+    this.analysisAbort?.abort();
     for (const i of this.instances) this.syncGroup?.remove(i.chart);
     for (const i of this.instances) i.dispose();
     this.dashboard?.remove();

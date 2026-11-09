@@ -73,7 +73,7 @@ export type Shape =
       text: string;
       align?: "left" | "center" | "right";
       base?: "top" | "middle" | "bottom";
-      /** Text colour (default: the drawing's text colour). */
+      /** Text colour (default: the drawing's text colour): a colour, a colour slot, or "contrast", black or white by the label's `bg`. */
       textColor?: string;
       size?: number;
       bg?: string | null;
@@ -144,11 +144,11 @@ export interface ToolDef {
 }
 
 export const DEFAULT_STYLE: DrawingStyle = {
-  color: "#2962ff",
+  color: "#8a8a8a",
   width: 1.5,
   dash: "solid",
   fill: null,
-  textColor: "#d1d4dc",
+  textColor: "#a3a3a3",
   fontSize: 12,
   bold: false,
   italic: false,

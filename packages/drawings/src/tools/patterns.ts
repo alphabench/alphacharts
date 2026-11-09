@@ -46,12 +46,12 @@ function pointLabels(ps: readonly Pt[], names: readonly string[], color: string)
 const dashed = { dash: "dashed" as const, width: 1, hit: false };
 const ratioLabel = (a: Pt, b: Pt, r: number | null, color: string): Shape => {
   const m = mid(a, b);
-  return text(m.x, m.y, ratioText(r), { align: "center", base: "middle", bg: withAlpha(color, 0.85), textColor: "#ffffff", pad: 2, size: 10, hit: false });
+  return text(m.x, m.y, ratioText(r), { align: "center", base: "middle", bg: withAlpha(color, 0.85), textColor: "contrast", pad: 2, size: 10, hit: false });
 };
 
 export const xabcd = tool({
   id: "xabcd", label: "XABCD pattern", family: "patterns", gesture: "clicks", anchors: 5,
-  defaults: () => ({ style: { fill: "rgba(41,98,255,0.12)" } }),
+  defaults: () => ({ style: { fill: "rgba(138,138,138,0.12)" } }),
   validate: finiteAnchors,
   shapes(d, c) {
     const [x, a, b, cc, dd] = pxs(c, d) as [Pt, Pt, Pt, Pt, Pt];
@@ -69,7 +69,7 @@ export const xabcd = tool({
 
 export const cypher = tool({
   id: "cypher", label: "Cypher pattern", family: "patterns", gesture: "clicks", anchors: 5,
-  defaults: () => ({ style: { fill: "rgba(156,39,176,0.12)", color: "#9c27b0" } }),
+  defaults: () => ({ style: { fill: "chart-3/0.12", color: "chart-3" } }),
   validate: finiteAnchors,
   shapes(d, c) {
     const [x, a, b, cc, dd] = pxs(c, d) as [Pt, Pt, Pt, Pt, Pt];
@@ -99,7 +99,7 @@ export const abcd = tool({
 
 export const trianglePattern = tool({
   id: "trianglePattern", label: "Triangle pattern", family: "patterns", gesture: "clicks", anchors: 4,
-  defaults: () => ({ style: { fill: "rgba(41,98,255,0.1)" } }),
+  defaults: () => ({ style: { fill: "rgba(138,138,138,0.1)" } }),
   validate: finiteAnchors,
   shapes(d, c) {
     const [a, b, cc, dd] = pxs(c, d) as [Pt, Pt, Pt, Pt];
@@ -128,7 +128,7 @@ export const threeDrives = tool({
 
 export const headAndShoulders = tool({
   id: "headAndShoulders", label: "Head and shoulders", family: "patterns", gesture: "clicks", anchors: 7,
-  defaults: () => ({ style: { fill: "rgba(239,83,80,0.12)" } }),
+  defaults: () => ({ style: { fill: "chart-down/0.12" } }),
   validate: finiteAnchors,
   shapes(d, c) {
     const ps = pxs(c, d);

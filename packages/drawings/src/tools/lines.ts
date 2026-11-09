@@ -2,7 +2,7 @@
 // horizontal ray, vertical line, cross line.
 
 import { crisp } from "@alphacharts/core";
-import type { ToolDef } from "../types.js";
+import type { Shape, ToolDef } from "../types.js";
 import { A, extension, finiteAnchors, fmtTime, line, measure, measureLines, needDistinctTimes, px, text, tool } from "./util.js";
 
 const twoPoint = (d: Parameters<NonNullable<ToolDef["validate"]>>[0]) => {
@@ -16,6 +16,38 @@ export const trendLine = tool({
   shapes: (d, c) => {
     const a = px(c, A(d, 0)), b = px(c, A(d, 1));
     return [line(a, b, extension(d.style, a, b))];
+  },
+});
+
+/** The angle of the line on the screen, counter-clockwise from the horizontal, in degrees (-180, 180]. It depends on the zoom, as on any chart. */
+export function screenAngle(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  const deg = (Math.atan2(a.y - b.y, b.x - a.x) * 180) / Math.PI;
+  return deg === -180 ? 180 : deg;
+}
+
+export const trendAngle = tool({
+  id: "trendAngle", label: "Trend angle", family: "lines", gesture: "drag", anchors: 2,
+  defaults: () => ({}),
+  validate(d) {
+    finiteAnchors(d);
+    needDistinctTimes(d, 0, 1);
+  },
+  shapes(d, c) {
+    const a = px(c, A(d, 0)), b = px(c, A(d, 1));
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    const r = Math.min(40, len / 2);
+    const theta = Math.atan2(b.y - a.y, b.x - a.x);
+    const out: Shape[] = [
+      line(a, b, extension(d.style, a, b)),
+      line(a, { x: a.x + (b.x >= a.x ? 1 : -1) * Math.max(len, 1), y: a.y }, { dash: "dashed", width: 1, hit: false }),
+    ];
+    // The arc runs from the horizontal toward the line, on the side of the second anchor.
+    const base = b.x >= a.x ? 0 : Math.PI;
+    // The short way round: the sweep from the horizontal to the line is within (-π, π].
+    const sweep = Math.atan2(Math.sin(theta - base), Math.cos(theta - base));
+    if (r > 1) out.push({ k: "arc", cx: a.x, cy: a.y, r, a0: base, a1: base + sweep, width: 1, hit: false });
+    out.push(text(a.x + (b.x >= a.x ? 1 : -1) * (r + 6), a.y, `${screenAngle(a, b).toFixed(1)}°`, { align: b.x >= a.x ? "left" : "right", base: "middle", textColor: d.style.color, hit: false }));
+    return out;
   },
 });
 
@@ -44,7 +76,7 @@ export const infoLine = tool({
     return [
       line(p, q, extension(d.style, p, q)),
       text((p.x + q.x) / 2, (p.y + q.y) / 2 - 8, [...measureLines(m, c), `${fmtTime(a.time)} → ${fmtTime(b.time)}`].join("\n"), {
-        align: "center", base: "bottom", bg: d.style.color, border: null, textColor: "#ffffff", pad: 4,
+        align: "center", base: "bottom", bg: d.style.color, border: null, textColor: "contrast", pad: 4,
       }),
     ];
   },
@@ -105,5 +137,5 @@ export const crossLine = tool({
   },
 });
 
-export const lineTools: ToolDef[] = [trendLine, ray, infoLine, extendedLine, horizontalLine, horizontalRay, verticalLine, crossLine];
+export const lineTools: ToolDef[] = [trendLine, trendAngle, ray, infoLine, extendedLine, horizontalLine, horizontalRay, verticalLine, crossLine];
 export { needDistinctTimes };

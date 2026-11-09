@@ -5,7 +5,7 @@ import type { SymbolInfo } from "../types.js";
 import { PRESET_INTERVALS, UNITS, customInterval, intervalId, sortIntervals, unitKey } from "../model/intervals.js";
 import { checkName } from "../model/persistence.js";
 import { useApp, useT } from "./context.js";
-import { Button, Dialog, Field, IconButton, SelectField } from "./primitives.js";
+import { Button, CommandEmpty, CommandGroup, CommandInput, CommandShortcut, Dialog, Field, IconButton, Input, Item, ItemGroup, SelectField, slot } from "./primitives.js";
 import { Icon } from "./icons.js";
 
 export function SymbolSearch({ purpose }: { purpose: "change" | "compare" }) {
@@ -16,7 +16,7 @@ export function SymbolSearch({ purpose }: { purpose: "change" | "compare" }) {
   const [error, setError] = useState<string | null>(null);
   const [sel, setSel] = useState(0);
   const [mode, setMode] = useState<"same" | "scale" | "pane">("same");
-  const list = useRef<HTMLUListElement>(null);
+  const list = useRef<HTMLUListElement | null>(null);
 
   useEffect(() => {
     if (q.trim() === "") return void setResults(null);
@@ -50,37 +50,43 @@ export function SymbolSearch({ purpose }: { purpose: "change" | "compare" }) {
   };
   const cur = app.current;
   return (
-    <Dialog title={t(purpose === "change" ? "symbol.search.title" : "symbol.compare.title")} onClose={() => app.closeDialog()} testid="symbol-dialog">
-      <div class="search-box">
-        <Icon name="search" size={18} />
-        <input
-          type="text" data-autofocus value={q} placeholder={t("symbol.search.placeholder")} aria-label={t("symbol.search.placeholder")} data-testid="symbol-input"
+    <Dialog title={t(purpose === "change" ? "symbol.search.title" : "symbol.compare.title")} command onClose={() => app.closeDialog()} testid="symbol-dialog">
+      <div {...slot("command")}>
+        <CommandInput
+          type="text" value={q} placeholder={t("symbol.search.placeholder")} aria-label={t("symbol.search.placeholder")} testid="symbol-input"
           role="combobox" aria-expanded="true" aria-controls="symbol-list" aria-activedescendant={shown[sel] ? `sym-${sel}` : undefined} aria-autocomplete="list"
           onInput={(e) => setQ((e.currentTarget as HTMLInputElement).value)} onKeyDown={key}
         />
+        {purpose === "compare" ? (
+          <div class="command-extra">
+            <SelectField label={t("symbol.compare.title")} value={mode} options={[{ value: "same", label: t("symbol.compare.sameScale") }, { value: "scale", label: t("symbol.compare.newScale") }, { value: "pane", label: t("symbol.compare.newPane") }]} onChange={setMode} />
+          </div>
+        ) : null}
+        {error ? <p class="error-text command-note" role="alert">{error}</p> : null}
+        <p class="command-note" aria-live="polite">{results ? t("symbol.search.results", { count: results.length }) : shown.length ? t("symbol.search.recent") : ""}</p>
+        {results && results.length === 0 && !error ? <CommandEmpty>{t("symbol.search.empty", { query: q })}</CommandEmpty> : null}
+        <div {...slot("command-list")}>
+          <CommandGroup listbox id="symbol-list" label={t("symbol.search.title")} testid="symbol-results" listRef={list}>
+            {shown.map((s, i) => (
+              <li
+                key={s.symbol} id={`sym-${i}`} role="option" aria-selected={i === sel} {...slot("command-item")} data-selected={i === sel ? "" : undefined}
+                data-testid={`symbol-option-${s.symbol}`} onPointerMove={() => setSel(i)} onClick={() => pick(s)}
+              >
+                <span {...slot("command-value")} class="sym"><bdi>{s.symbol}</bdi></span>
+                <span {...slot("command-description")}>{s.name ?? ""}</span>
+                <CommandShortcut>{[s.type ? (app.i18n.hasKey(`symbol.type.${s.type}` as never) ? t(`symbol.type.${s.type}` as never) : s.type) : "", s.exchange ?? ""].filter(Boolean).join(" · ")}</CommandShortcut>
+              </li>
+            ))}
+          </CommandGroup>
+        </div>
+        {purpose === "compare" && cur.compareList().length ? (
+          <ul class="chips command-extra" aria-label={t("symbol.compare.title")}>
+            {cur.compareList().map((c) => (
+              <li key={c.symbol}><Button variant="secondary" size="xs" label={t("symbol.compare.remove", { symbol: c.symbol })} onClick={() => cur.removeCompare(c.symbol)}><bdi>{c.symbol}</bdi><Icon name="close" /></Button></li>
+            ))}
+          </ul>
+        ) : null}
       </div>
-      {purpose === "compare" ? (
-        <SelectField label={t("symbol.compare.title")} value={mode} options={[{ value: "same", label: t("symbol.compare.sameScale") }, { value: "scale", label: t("symbol.compare.newScale") }, { value: "pane", label: t("symbol.compare.newPane") }]} onChange={setMode} />
-      ) : null}
-      {error ? <p class="error-text" role="alert">{error}</p> : null}
-      <p class="muted" aria-live="polite">{results ? t("symbol.search.results", { count: results.length }) : shown.length ? t("symbol.search.recent") : ""}</p>
-      {results && results.length === 0 && !error ? <p class="muted">{t("symbol.search.empty", { query: q })}</p> : null}
-      <ul class="results" id="symbol-list" role="listbox" aria-label={t("symbol.search.title")} ref={list} data-testid="symbol-results">
-        {shown.map((s, i) => (
-          <li key={s.symbol} id={`sym-${i}`} role="option" aria-selected={i === sel} class={i === sel ? "sel" : ""} data-testid={`symbol-option-${s.symbol}`} onPointerMove={() => setSel(i)} onClick={() => pick(s)}>
-            <span class="sym"><bdi>{s.symbol}</bdi></span>
-            <span class="desc">{s.name ?? ""}</span>
-            <span class="meta">{[s.type ? (app.i18n.hasKey(`symbol.type.${s.type}` as never) ? t(`symbol.type.${s.type}` as never) : s.type) : "", s.exchange ?? ""].filter(Boolean).join(" · ")}</span>
-          </li>
-        ))}
-      </ul>
-      {purpose === "compare" && cur.compareList().length ? (
-        <ul class="chips" aria-label={t("symbol.compare.title")}>
-          {cur.compareList().map((c) => (
-            <li key={c.symbol}><button type="button" class="btn chip" onClick={() => cur.removeCompare(c.symbol)} aria-label={t("symbol.compare.remove", { symbol: c.symbol })}><bdi>{c.symbol}</bdi> <Icon name="close" size={12} /></button></li>
-          ))}
-        </ul>
-      ) : null}
     </Dialog>
   );
 }
@@ -104,28 +110,58 @@ export function IntervalDialog() {
     void app.addCustomInterval(r.interval);
   };
   return (
-    <Dialog title={t("interval.label")} onClose={() => app.closeDialog()} testid="interval-dialog">
-      <ul class="interval-list" aria-label={t("interval.label")}>
-        {all.map((i) => (
-          <li key={i} class="row">
-            <button type="button" class="btn row-main" aria-pressed={i === cur} data-current={i === cur ? "" : undefined} data-testid={`interval-option-${i}`} onClick={() => choose(i)}>
-              {app.intervalLabel(i)}<span class="muted"> · {app.t(`interval.${unitKey(i.replace(/^\d+/, "") as ResolutionUnit)}` as never, { count: intervalCount(i) })}</span>
-            </button>
-            <IconButton icon="star" filled={favs.has(i)} pressed={favs.has(i)} label={t(favs.has(i) ? "interval.favorite.remove" : "interval.favorite.add", { interval: app.intervalLabel(i) })} onClick={() => void app.toggleFavourite("favouriteIntervals", i)} />
-          </li>
-        ))}
-      </ul>
-      <form class="custom-interval" onSubmit={submit}>
-        <h3>{t("interval.custom.title")}</h3>
-        <Field label={t("interval.custom.value")}>
-          {(id) => <input id={id} inputMode="numeric" value={value} data-testid="custom-interval-value" aria-invalid={error ? "true" : undefined} onInput={(e) => (setValue((e.currentTarget as HTMLInputElement).value), setError(null))} />}
-        </Field>
-        <SelectField label={t("interval.custom.unit")} value={unit} options={UNITS.map((u) => ({ value: u, label: t(`interval.${unitKey(u)}` as never, { count: 2 }) }))} onChange={setUnit} testid="custom-interval-unit" />
-        {error ? <p class="error-text" role="alert">{error}</p> : null}
-        <Button type="submit" primary testid="custom-interval-add">{t("common.add")}</Button>
-      </form>
+    <Dialog title={t("interval.label")} command onClose={() => app.closeDialog()} testid="interval-dialog">
+      <div {...slot("command")}>
+        <div {...slot("command-list")} class="interval-list">
+          {UNITS.map((u) => {
+            const items = all.filter((i) => i.replace(/^\d+/, "") === u);
+            if (!items.length) return null;
+            return (
+              <CommandGroup key={u} heading={t(`interval.unit.${unitKey(u)}` as never)}>
+                {items.map((i) => (
+                  <li key={i} {...slot("command-row")}>
+                    <button
+                      type="button" {...slot("command-item")} aria-pressed={i === cur} data-current={i === cur ? "" : undefined} data-testid={`interval-option-${i}`}
+                      onClick={() => choose(i)} onKeyDown={rove}
+                    >
+                      <span {...slot("command-value")}>{app.intervalLabel(i)}</span>
+                      <CommandShortcut>{app.t(`interval.${unitKey(u)}` as never, { count: intervalCount(i) })}</CommandShortcut>
+                      {i === cur ? <span {...slot("command-check")} aria-hidden="true"><Icon name="check" /></span> : null}
+                    </button>
+                    <IconButton
+                      icon="star" size="icon-xs" filled={favs.has(i)} class={favs.has(i) ? "star star-on" : "star"} tip="right"
+                      label={t(favs.has(i) ? "interval.favorite.remove" : "interval.favorite.add", { interval: app.intervalLabel(i) })} onClick={() => void app.toggleFavourite("favouriteIntervals", i)}
+                    />
+                  </li>
+                ))}
+              </CommandGroup>
+            );
+          })}
+        </div>
+        <form class="custom-interval" onSubmit={submit}>
+          <h3 class="section-title">{t("interval.custom.title")}</h3>
+          <div {...slot("field-row")}>
+            <Field label={t("interval.custom.value")} error={error}>
+              {(id) => <Input id={id} inputMode="numeric" value={value} testid="custom-interval-value" aria-invalid={error ? "true" : undefined} onInput={(e) => (setValue((e.currentTarget as HTMLInputElement).value), setError(null))} />}
+            </Field>
+            <SelectField label={t("interval.custom.unit")} value={unit} options={UNITS.map((u) => ({ value: u, label: t(`interval.unit.${unitKey(u)}` as never) }))} onChange={setUnit} testid="custom-interval-unit" />
+            <Button type="submit" primary testid="custom-interval-add">{t("common.add")}</Button>
+          </div>
+        </form>
+      </div>
     </Dialog>
   );
+}
+
+/** Arrow keys move between the items of a command list that has no search field. */
+function rove(e: KeyboardEvent): void {
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
+  const list = (e.currentTarget as HTMLElement).closest('[data-slot="command-list"]')!;
+  const items = [...list.querySelectorAll<HTMLElement>('[data-slot="command-item"]:not([disabled])')];
+  const i = items.indexOf(e.currentTarget as HTMLElement);
+  const n = e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : Math.max(0, Math.min(items.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)));
+  e.preventDefault();
+  items[n]?.focus();
 }
 
 const intervalCount = (i: string): number => Number(/^\d+/.exec(i)![0]);
@@ -135,9 +171,7 @@ export function ConfirmDialog(p: { message: string; confirmLabel: string; danger
   const app = useApp();
   const t = useT();
   return (
-    <Dialog title={p.confirmLabel} onClose={() => app.closeDialog()} testid="confirm-dialog" footer={<><Button onClick={() => app.closeDialog()}>{t("common.cancel")}</Button><Button primary={!p.danger} danger={p.danger} autofocus testid="confirm-ok" onClick={() => (app.closeDialog(), p.onConfirm())}>{p.confirmLabel}</Button></>}>
-      <p>{p.message}</p>
-    </Dialog>
+    <Dialog title={p.confirmLabel} description={p.message} onClose={() => app.closeDialog()} testid="confirm-dialog" footer={<><Button onClick={() => app.closeDialog()}>{t("common.cancel")}</Button><Button primary={!p.danger} danger={p.danger} autofocus testid="confirm-ok" onClick={() => (app.closeDialog(), p.onConfirm())}>{p.confirmLabel}</Button></>}>{null}</Dialog>
   );
 }
 
@@ -158,10 +192,9 @@ export function PromptDialog(p: { title: string; label: string; value: string; o
   };
   return (
     <Dialog title={p.title} onClose={() => app.closeDialog()} testid="prompt-dialog">
-      <form onSubmit={submit}>
-        <Field label={p.label}>{(id) => <input id={id} data-autofocus value={v} data-testid="prompt-input" aria-invalid={err ? "true" : undefined} onInput={(e) => (setV((e.currentTarget as HTMLInputElement).value), setErr(null))} />}</Field>
-        {err ? <p class="error-text" role="alert">{err}</p> : null}
-        <div class="actions"><Button onClick={() => app.closeDialog()}>{t("common.cancel")}</Button><Button type="submit" primary testid="prompt-ok">{t("common.save")}</Button></div>
+      <form class="dialog-form" onSubmit={submit}>
+        <Field label={p.label} error={err}>{(id) => <Input id={id} autofocus value={v} testid="prompt-input" aria-invalid={err ? "true" : undefined} onInput={(e) => (setV((e.currentTarget as HTMLInputElement).value), setErr(null))} />}</Field>
+        <div {...slot("dialog-footer")}><Button onClick={() => app.closeDialog()}>{t("common.cancel")}</Button><Button type="submit" primary testid="prompt-ok">{t("common.save")}</Button></div>
       </form>
     </Dialog>
   );
@@ -177,17 +210,18 @@ export function LayoutsDialog() {
   return (
     <Dialog title={t("layout.load")} onClose={() => app.closeDialog()} testid="layouts-dialog">
       {items === null ? <p class="muted">{t("common.loading")}</p> : items.length === 0 ? <p class="muted">{t("layout.empty")}</p> : (
-        <ul class="named-list" aria-label={t("layout.recent")}>
+        <ItemGroup label={t("layout.recent")}>
           {items.map((l) => (
-            <li key={l.name} class="row">
-              <button type="button" class="btn row-main" data-testid={`layout-open-${l.name}`} onClick={() => (app.closeDialog(), void app.loadLayout(l.name))}>
-                <span>{l.name}</span><span class="muted">{app.i18n.dateTime(l.savedAt, { date: "medium", time: "minutes", timeZone: app.options.timeZone ?? "UTC" })}</span>
-              </button>
+            <Item key={l.name} actions={<>
               <IconButton icon="pencil" label={`${t("common.rename")}: ${l.name}`} onClick={() => app.openDialog({ kind: "prompt", title: t("layout.rename"), label: t("layout.name"), value: l.name, onSubmit: async (v) => { try { await app.layouts.rename(l.name, v); } catch (e) { app.report(e); } } })} />
               <IconButton icon="trash" label={`${t("layout.delete")}: ${l.name}`} onClick={() => app.confirm(t("layout.delete.confirm", { name: l.name }), t("common.delete"), () => void app.layouts.remove(l.name).then(refresh, (e) => app.report(e)), true)} />
-            </li>
+            </>}>
+              <button type="button" {...slot("item-content")} data-testid={`layout-open-${l.name}`} onClick={() => (app.closeDialog(), void app.loadLayout(l.name))}>
+                <span {...slot("item-title")}>{l.name}</span><span {...slot("item-description")}>{app.i18n.dateTime(l.savedAt, { date: "medium", time: "minutes", timeZone: app.options.timeZone ?? "UTC" })}</span>
+              </button>
+            </Item>
           ))}
-        </ul>
+        </ItemGroup>
       )}
     </Dialog>
   );
@@ -202,16 +236,15 @@ export function TemplatesDialog() {
   useEffect(() => void refresh(), []);
   return (
     <Dialog title={t("settings.template")} onClose={() => app.closeDialog()} testid="templates-dialog">
-      <Button primary testid="template-save" onClick={() => app.openDialog({ kind: "prompt", title: t("settings.template.save"), label: t("common.name"), value: "", onSubmit: async (v) => { await app.saveTemplate(v); } })}>{t("settings.template.save")}</Button>
+      <Button variant="secondary" class="self-start" testid="template-save" onClick={() => app.openDialog({ kind: "prompt", title: t("settings.template.save"), label: t("common.name"), value: "", onSubmit: async (v) => { await app.saveTemplate(v); } })}>{t("settings.template.save")}</Button>
       {items === null ? <p class="muted">{t("common.loading")}</p> : items.length === 0 ? <p class="muted">{t("common.none")}</p> : (
-        <ul class="named-list" aria-label={t("settings.template")}>
+        <ItemGroup label={t("settings.template")}>
           {items.map((l) => (
-            <li key={l.name} class="row">
-              <button type="button" class="btn row-main" data-testid={`template-apply-${l.name}`} onClick={() => (app.closeDialog(), void app.applyTemplate(l.name))}>{l.name}</button>
-              <IconButton icon="trash" label={`${t("common.delete")}: ${l.name}`} onClick={() => void app.templates.remove(l.name).then(refresh, (e) => app.report(e))} />
-            </li>
+            <Item key={l.name} actions={<IconButton icon="trash" label={`${t("common.delete")}: ${l.name}`} onClick={() => void app.templates.remove(l.name).then(refresh, (e) => app.report(e))} />}>
+              <button type="button" {...slot("item-content")} data-testid={`template-apply-${l.name}`} onClick={() => (app.closeDialog(), void app.applyTemplate(l.name))}><span {...slot("item-title")}>{l.name}</span></button>
+            </Item>
           ))}
-        </ul>
+        </ItemGroup>
       )}
     </Dialog>
   );

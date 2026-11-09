@@ -32,7 +32,7 @@ export const fibRetracement = tool({
     const a0 = A(d, 0), a1 = A(d, 1);
     const p0 = px(c, a0), p1 = px(c, a1);
     const xl = Math.min(p0.x, p1.x), xr = d.style.extendRight ? c.W + 10 : Math.max(p0.x, p1.x);
-    const out: Shape[] = [line(p0, p1, { dash: "dashed", width: 1, color: "#787b86" })];
+    const out: Shape[] = [line(p0, p1, { dash: "dashed", width: 1, color: "muted" })];
     const lv = levelsProp(d);
     const ys = lv.map((r) => c.Y(fibRetracementPrice(a0, a1, r)));
     for (let i = 0; i + 1 < lv.length; i++) out.push(shade([{ x: xl, y: ys[i]! }, { x: xr, y: ys[i]! }, { x: xr, y: ys[i + 1]! }, { x: xl, y: ys[i + 1]! }], withAlpha(fibColor(lv[i + 1]!), 0.07)));
@@ -53,7 +53,7 @@ export const fibExtension = tool({
     const [a, b, cc] = [A(d, 0), A(d, 1), A(d, 2)];
     const [pa, pb, pc] = [px(c, a), px(c, b), px(c, cc)];
     const xl = pc.x, xr = d.style.extendRight ? c.W + 10 : Math.max(pc.x, pb.x) + 40;
-    const out: Shape[] = [line(pa, pb, { dash: "dashed", width: 1, color: "#787b86" }), line(pb, pc, { dash: "dashed", width: 1, color: "#787b86" })];
+    const out: Shape[] = [line(pa, pb, { dash: "dashed", width: 1, color: "muted" }), line(pb, pc, { dash: "dashed", width: 1, color: "muted" })];
     const lv = levelsProp(d);
     const ys = lv.map((r) => c.Y(fibExtensionPrice(a, b, cc, r)));
     for (let i = 0; i + 1 < lv.length; i++) out.push(shade([{ x: xl, y: ys[i]! }, { x: xr, y: ys[i]! }, { x: xr, y: ys[i + 1]! }, { x: xl, y: ys[i + 1]! }], withAlpha(fibColor(lv[i + 1]!), 0.07)));
@@ -108,7 +108,7 @@ export const fibTimeZone = tool({
     for (const n of levelsProp(d)) {
       const x = p0.x + n * unit;
       if (x < -50 || x > c.W + 50) continue;
-      out.push(line({ x, y: 0 }, { x, y: c.H }, { extA: true, extB: true, color: n === 0 || n === 1 ? "#787b86" : "#2962ff", width: 1 }), text(x + 3, 3, String(n), { base: "top", size: 10, textColor: "#787b86", hit: false }));
+      out.push(line({ x, y: 0 }, { x, y: c.H }, { extA: true, extB: true, color: n === 0 || n === 1 ? "muted" : "#8a8a8a", width: 1 }), text(x + 3, 3, String(n), { base: "top", size: 10, textColor: "muted", hit: false }));
     }
     out.push(line(p0, p1, { dash: "dashed", width: 1 }));
     return out;
@@ -152,7 +152,7 @@ export const fibTrendTime = tool({
   shapes(d, c) {
     const [pa, pb, pc] = pxs(c, d) as [Pt, Pt, Pt];
     const unit = pb.x - pa.x;
-    const out: Shape[] = [line(pa, pb, { dash: "dashed", width: 1, color: "#787b86" })];
+    const out: Shape[] = [line(pa, pb, { dash: "dashed", width: 1, color: "muted" })];
     for (const r of levelsProp(d)) {
       const x = pc.x + r * unit;
       if (x < -50 || x > c.W + 50) continue;
@@ -172,7 +172,7 @@ export const fibCircles = tool({
   shapes(d, c) {
     const [p0, p1] = pxs(c, d) as [Pt, Pt];
     const base = dist(p0.x, p0.y, p1.x, p1.y);
-    const out: Shape[] = [line(p0, p1, { dash: "dashed", width: 1, color: "#787b86" })];
+    const out: Shape[] = [line(p0, p1, { dash: "dashed", width: 1, color: "muted" })];
     for (const r of levelsProp(d)) {
       out.push({ k: "ellipse", cx: p0.x, cy: p0.y, rx: base * r, ry: base * r, color: fibColor(r), width: 1 }, text(p0.x + base * r, p0.y, String(r), { size: 10, base: "bottom", textColor: fibColor(r), hit: false }));
     }
@@ -211,7 +211,7 @@ export const fibSpeedArcs = tool({
     const [p0, p1] = pxs(c, d) as [Pt, Pt];
     const base = dist(p0.x, p0.y, p1.x, p1.y);
     const th = Math.atan2(p1.y - p0.y, p1.x - p0.x);
-    const out: Shape[] = [line(p0, p1, { dash: "dashed", width: 1, color: "#787b86" })];
+    const out: Shape[] = [line(p0, p1, { dash: "dashed", width: 1, color: "muted" })];
     for (const r of levelsProp(d)) {
       out.push({ k: "arc", cx: p1.x, cy: p1.y, r: base * r, a0: th - Math.PI / 2, a1: th + Math.PI / 2, color: fibColor(r), width: 1 });
       out.push(text(p1.x + base * r * Math.cos(th), p1.y + base * r * Math.sin(th), String(r), { size: 10, base: "middle", textColor: fibColor(r), hit: false }));

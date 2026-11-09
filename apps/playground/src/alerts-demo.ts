@@ -30,7 +30,7 @@ export function runAlerts(app: HTMLElement, theme: Theme, params: URLSearchParam
   const base = Math.round(lastClose * 100) / 100;
   const log = document.createElement("pre");
   log.id = "alert-log";
-  log.style.cssText = "position:absolute;left:8px;bottom:36px;margin:0;padding:6px 8px;max-height:30%;overflow:auto;background:rgba(0,0,0,.55);color:#f7a600;font:11px ui-monospace,monospace;pointer-events:none";
+  log.style.cssText = "position:absolute;left:8px;bottom:36px;margin:0;padding:6px 8px;max-height:30%;overflow:auto;background:rgba(0,0,0,.55);color:#e5e5e5;font:11px ui-monospace,monospace;pointer-events:none";
   app.appendChild(log);
 
   const triggers: AlertTrigger[] = [];

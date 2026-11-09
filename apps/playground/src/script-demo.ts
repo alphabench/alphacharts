@@ -36,18 +36,18 @@ export interface ScriptDemoApi {
 export function runScriptDemo(app: HTMLElement, theme: Theme, params: URLSearchParams, extra: Record<string, unknown>, stat: HTMLElement): Chart {
   const n = Number(params.get("n") ?? 2000);
   const d = ohlc(n, 31);
-  app.style.cssText = "display:grid;grid-template-columns:minmax(280px,38%) 1fr;gap:1px;background:var(--line)";
+  app.style.cssText = "display:grid;grid-template-columns:minmax(280px,38%) 1fr;gap:1px;background:var(--pg-line)";
   const left = document.createElement("div");
-  left.style.cssText = "display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)";
+  left.style.cssText = "display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--pg-bg)";
   const editorEl = document.createElement("div");
   editorEl.id = "script-editor";
   editorEl.style.cssText = "flex:1;min-height:0;overflow:auto";
   const diagEl = document.createElement("ul");
   diagEl.id = "script-diagnostics";
-  diagEl.style.cssText = "margin:0;padding:6px 10px;list-style:none;max-height:28%;overflow:auto;border-top:1px solid var(--line);font:12px ui-monospace,monospace;color:var(--muted)";
+  diagEl.style.cssText = "margin:0;padding:6px 10px;list-style:none;max-height:28%;overflow:auto;border-top:1px solid var(--pg-line);font:12px ui-monospace,monospace;color:var(--pg-muted)";
   left.append(editorEl, diagEl);
   const right = document.createElement("div");
-  right.style.cssText = "min-width:0;min-height:0;background:var(--bg)";
+  right.style.cssText = "min-width:0;min-height:0;background:var(--pg-bg)";
   app.append(left, right);
 
   const chart = createChart(right, { theme });

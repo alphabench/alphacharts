@@ -295,3 +295,32 @@ describe("Tick, volume and dollar bars", () => {
     expect(() => new TradeBars("volume", 0)).toThrow(/size must be/);
   });
 });
+
+describe("barSource: close reads only closes", () => {
+  // box 10, anchor at the first close 100. Closes 100, 105, 112, 108, 91: a close-only Renko makes an up brick 100-110 at the third close
+  // and the close 91 is above 90 (one box below the last brick's start 100), so there is no reversal. The brick opened at time 1 (the anchor), closed at time 3.
+  const bars = [bar(1, 100, 100, 100, 100), bar(2, 100, 120, 80, 105), bar(3, 105, 115, 99, 112), bar(4, 112, 113, 107, 108), bar(5, 108, 109, 85, 91)];
+  it("the OHLC path sees the wicks (80 and 120) and builds bricks the closes never reach; the close path does not", () => {
+    const ohlc = new Renko({ box: 10 });
+    ohlc.pushBars(bars);
+    const close = new Renko({ box: 10 });
+    close.barSource = "close";
+    close.pushBars(bars);
+    // closes only: 100 anchor; 112 reaches 110 -> one up brick [100, 110]; 108 and 91 stay inside (a reversal needs 90)
+    expect(rows(close.store)).toEqual([[D(0), 100, 110, 100, 110, 1, 3]]);
+    expect(close.store.length).toBe(1);
+    expect(ohlc.store.length).toBeGreaterThan(close.store.length);
+  });
+  it("a close-only Kagi and Point and Figure take only the closes too", () => {
+    const k = new Kagi({ amount: 5 });
+    k.barSource = "close";
+    k.pushBars(bars);
+    const k2 = new Kagi({ amount: 5 });
+    k2.pushBars(bars);
+    expect(k.store.length).toBeLessThanOrEqual(k2.store.length);
+    const pf = new PointFigure(5, 3);
+    pf.barSource = "close";
+    pf.pushBars(bars);
+    expect(pf.store.length).toBeGreaterThan(0);
+  });
+});

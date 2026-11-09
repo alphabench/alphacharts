@@ -1,7 +1,7 @@
 // The plot: DOM, canvases, pointer / keyboard / wheel input, legend, tooltip,
 // exports. Layout and drawing live in panel.ts and draw.ts.
 
-import { cssColor, DEFAULT_WATERMARK, parseColor } from "@alphacharts/core";
+import { cssColor, DEFAULT_WATERMARK, parseColor, watchTheme } from "@alphacharts/core";
 import { defaultMode, hitAt, stopsOf, type Hit, type HitMode, type Stop } from "./hit.js";
 import { Fmt } from "./format.js";
 import { withAlpha, type ColorScale } from "./color.js";
@@ -11,7 +11,7 @@ import { mergeExtents, prepare, type Extents, type Prepared } from "./model.js";
 import { isBand, Panel, type Rect } from "./panel.js";
 import { plotted, toCsv, type Column } from "./rows.js";
 import type { Mark, PlotSpec, TooltipContent } from "./spec.js";
-import { resolveTheme, type PlotTheme } from "./theme.js";
+import { plotThemeFromCss, resolveTheme, type PlotTheme } from "./theme.js";
 import { paddingOf, validateSpec } from "./validate.js";
 
 /** A stale screen-reader table is rebuilt within this many ms of the first update that staled it. */
@@ -281,12 +281,31 @@ export class Plot {
     if (this.overRaf) cancelAnimationFrame(this.overRaf);
     clearTimeout(this.tableTimer);
     this.ro?.disconnect();
+    this.unwatchPage?.();
+    this.unwatchPage = null;
     for (const f of this.cleanup) f();
     this.root.remove();
     this.handlers.clear();
   }
 
   // ---- setup --------------------------------------------------------------
+
+  private unwatchPage: (() => void) | null = null;
+
+  /** Theme "inherit": read the page's variables again whenever a class, style or theme attribute above the plot, or the OS scheme, changes. */
+  private followPage(on: boolean): void {
+    if (!on) {
+      this.unwatchPage?.();
+      this.unwatchPage = null;
+      return;
+    }
+    // From the host element up: the plot writes its own root's style on every resize, which is not a theme change.
+    this.unwatchPage ??= watchTheme(this.root.parentElement ?? this.root, () => {
+      if (this.disposed || this.spec.theme !== "inherit") return;
+      this.setSpec(this.spec, false);
+      this.resize();
+    });
+  }
 
   private assertLive(): void {
     if (this.disposed) throw new Error("alphacharts: the plot is disposed");
@@ -322,7 +341,7 @@ export class Plot {
   private setSpec(spec: PlotSpec, first: boolean): void {
     validateSpec(spec);
     if (!first && (spec.decorative === true) !== this.decorative) throw new TypeError("alphacharts: decorative cannot change after the plot is created (it decides which elements and listeners exist)");
-    const theme = resolveTheme(spec.theme);
+    const theme = spec.theme === "inherit" ? plotThemeFromCss(this.root) : resolveTheme(spec.theme);
     const msg = spec.messages ?? defaultPlotMessages;
     const timeAxis = spec.scales?.x?.type === "time";
     if (timeAxis && spec.timeZone === undefined) throw new TypeError('alphacharts: a time x axis needs spec.timeZone (an IANA name such as "Asia/Kolkata", or "UTC"): there is no safe default');
@@ -335,6 +354,7 @@ export class Plot {
     if (!first) this.restore = { had: this.active !== null };
     this.spec = spec;
     this.theme = theme;
+    this.followPage(spec.theme === "inherit");
     this.fmt = fmt;
     this.msg = msg;
     this.cells = cells;
