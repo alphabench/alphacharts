@@ -1,4 +1,4 @@
-// bars_per_year: the chart's bars in a year, read from its own bars made causal.
+// bars_per_year: the chart's bars in a year, read from its own bars, made causal.
 // Intraday: the median bars per UTC day over the last 60 finished days times 252. A day or longer: 252 if weekends are left
 // out, else 365 days over the median spacing. Constant within a day, nothing from after the bar, na before the first finished
 // day (six bars for a day or longer).

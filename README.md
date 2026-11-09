@@ -33,7 +33,7 @@ It is for apps that show markets: candles, lines, areas, histograms, panes, a cr
 drawing tools, technical studies, alerts and order-flow charts. Next to the real-time engine there is a declarative
 plot layer (bars, heatmaps, treemaps, scatter, small multiples) for the analytical charts around a trading screen.
 
-Version 0.1.x (`@alphacharts/core` 0.1.1; the other packages 0.1.0). The API may still change before 1.0; breaking changes are listed in the [changelog](CHANGELOG.md).
+Version 0.1.x (`@alphacharts/core`, `indicators` and `drawings` 0.1.1; the other packages 0.1.0). The API may still change before 1.0; breaking changes are listed in the [changelog](CHANGELOG.md).
 
 ## Highlights
 
@@ -65,6 +65,7 @@ That is enough for a chart. Add what you need (every package is ESM; sibling pac
 npm install @alphacharts/react       # or @alphacharts/vue, @alphacharts/svelte
 npm install @alphacharts/plot        # declarative bars, heatmaps, treemaps, scatter, ...
 npm install @alphacharts/indicators @alphacharts/drawings @alphacharts/alerts
+npm install @alphacharts/script      # a Pine-like indicator language on top of @alphacharts/indicators
 npm install @alphacharts/chart-types @alphacharts/orderflow @alphacharts/i18n
 npm install @alphacharts/report      # optional, off by default: anonymous crash reports (see below)
 ```

@@ -355,7 +355,7 @@ export class Graph {
   /**
    * Population variance over p bars (TA-Lib VAR): mean-centred two-pass over the
    * window, because running sums of squares lose ~1e-8 relative on price series.
-   * `sample` divides by p - 1 instead (the unbiased estimator; the one a Sharpe or volatility estimate from a sample uses): the
+   * `sample` divides by p - 1 instead (the unbiased estimator, the one a Sharpe or volatility estimate from a sample uses): the
    * population value scaled by p / (p - 1), undefined for p = 1.
    */
   variance(x: Col, p: number, sample = false): Node {

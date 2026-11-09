@@ -1,7 +1,7 @@
 {
   "name": "@alphacharts/indicators",
-  "version": "0.1.0",
-  "description": "Technical studies for alphacharts: a typed study model, an incremental engine, a Web Worker runner and 210 studies.",
+  "version": "0.1.1",
+  "description": "Technical studies for alphacharts: a typed study model, an incremental engine, a Web Worker runner and 211 studies.",
   "keywords": [
     "indicators",
     "technical-analysis",
@@ -86,7 +86,7 @@
     "@alphacharts/wasm": "workspace:*"
   },
   "peerDependencies": {
-    "@alphacharts/core": "^0.1.0"
+    "@alphacharts/core": "^0.1.1"
   },
   "devDependencies": {
     "@alphacharts/core": "workspace:*",

@@ -7,7 +7,7 @@ export default defineConfig({
     target: "es2022",
     sourcemap: true,
     minify: true,
-    rollupOptions: { external: ["@alphacharts/core", "@alphacharts/indicators", /^@codemirror\//, /^@lezer\//] },
+    rollupOptions: { external: [/^@alphacharts\/(core|indicators)(\/|$)/, /^@codemirror\//, /^@lezer\//] },
   },
   test: { environment: "node" },
 });

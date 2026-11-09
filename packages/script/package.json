@@ -1,8 +1,26 @@
 {
   "name": "@alphacharts/script",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "A small Pine-like indicator language for alphacharts: compiler, sandboxed Web Worker runner and a CodeMirror 6 editor adapter.",
+  "keywords": [
+    "chart",
+    "indicators",
+    "pine",
+    "scripting",
+    "trading",
+    "codemirror"
+  ],
   "license": "MIT",
+  "author": "Alphabench",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alphabench/alphacharts.git",
+    "directory": "packages/script"
+  },
+  "homepage": "https://github.com/alphabench/alphacharts#readme",
+  "bugs": {
+    "url": "https://github.com/alphabench/alphacharts/issues"
+  },
   "type": "module",
   "sideEffects": [
     "./dist/sandbox-worker.js",
@@ -46,8 +64,7 @@
     }
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
@@ -65,8 +82,8 @@
     "@lezer/highlight": "1.2.5"
   },
   "peerDependencies": {
-    "@alphacharts/core": "workspace:*",
-    "@alphacharts/indicators": "workspace:*"
+    "@alphacharts/core": "^0.1.1",
+    "@alphacharts/indicators": "^0.1.1"
   },
   "devDependencies": {
     "@alphacharts/core": "workspace:*",
