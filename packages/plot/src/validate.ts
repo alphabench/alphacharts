@@ -54,6 +54,12 @@ export function validateSpec(spec: PlotSpec): void {
       for (const k of ["top", "right", "bottom", "left"] as const) if (!finiteAtLeast0(p[k])) throw new RangeError(`alphacharts: padding.${k} must be a number of px >= 0, got ${String(p[k])}`);
     }
   }
+  const t = spec.tooltip;
+  if (t) {
+    if (t.title !== undefined && typeof t.title !== "function" && t.title !== "axis") throw new TypeError(`alphacharts: tooltip.title must be a function or "axis", got ${String(t.title)}`);
+    if (t.confine !== undefined && t.confine !== "canvas" && t.confine !== "plot") throw new TypeError(`alphacharts: tooltip.confine must be "canvas" or "plot", got ${String(t.confine)}`);
+    if (t.swatch !== undefined && typeof t.swatch !== "boolean") throw new TypeError(`alphacharts: tooltip.swatch must be true or false, got ${typeof t.swatch}`);
+  }
   if (spec.decorative !== undefined && typeof spec.decorative !== "boolean") throw new TypeError(`alphacharts: decorative must be true or false, got ${typeof spec.decorative}`);
   for (const id of ["x", "y", "y2"] as const) checkAxis(id, spec.axes?.[id]);
   const sides = sidesOf(spec.axes);

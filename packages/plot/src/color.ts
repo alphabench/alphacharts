@@ -97,6 +97,13 @@ export function textOn(bg: string): string {
   return lum > 0.4 ? "#000000" : "#ffffff";
 }
 
+/** `css` with its own alpha multiplied by `k` (0..1); unchanged for 1. */
+export function scaleAlpha(css: string, k: number): string {
+  if (k === 1) return css;
+  const c = parseColor(css);
+  return `rgba(${(c >>> 24) & 255},${(c >>> 16) & 255},${(c >>> 8) & 255},${+(((c & 255) / 255) * Math.max(0, Math.min(1, k))).toFixed(4)})`;
+}
+
 /** `css` at the given opacity, as an rgba() string. */
 export function withAlpha(css: string, alpha: number): string {
   const [r, g, b] = rgbOf(css);

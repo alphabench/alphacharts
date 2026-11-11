@@ -1,7 +1,7 @@
 // A chart theme from the page's own CSS variables, so a chart looks like the application around it.
 //
 // The names are shadcn/ui's: `--background`, `--foreground`, `--muted-foreground`, `--border`, `--primary`, `--chart-1` …
-// `--chart-5` (the data palette) and `--font-sans`, plus `--chart-up` and `--chart-down` for what shadcn has no token for. A host that already themes its app with shadcn gets
+// `--chart-5` (the data palette) and `--font-sans`, plus `--chart-up` and `--chart-down` for what shadcn has no token for. `--ring` colours the keyboard focus ring. A host that already themes its app with shadcn gets
 // a matching chart with no further work; two parts of one page (the application and a research panel) differ simply by
 // defining the variables differently under two selectors.
 //
@@ -27,6 +27,7 @@ const COLOUR_KEYS: ReadonlyArray<{ key: keyof Theme; ac: string; token?: string 
   { key: "textMuted", ac: "--ac-muted-foreground", token: "--muted-foreground" },
   { key: "border", ac: "--ac-border", token: "--border" },
   { key: "accent", ac: "--ac-primary", token: "--primary" },
+  { key: "focusRing", ac: "--ac-ring", token: "--ring" },
   { key: "up", ac: "--ac-chart-up", token: "--chart-up" },
   { key: "down", ac: "--ac-chart-down", token: "--chart-down" },
   { key: "grid", ac: "--ac-grid" },

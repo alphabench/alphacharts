@@ -69,6 +69,13 @@ describe("themeFromTokens", () => {
     for (const v of ["--background", "--foreground", "--muted-foreground", "--border", "--primary", "--chart-up", "--chart-down", "--font-sans", "--ac-chart-up", "--ac-background", "--ac-primary"]) expect(THEME_VARIABLES).toContain(v);
   });
 
+  it("reads the focus ring from --ac-ring, then --ring; unset leaves the theme without one", () => {
+    expect(themeFromTokens(tokens({ "--ring": "#222222" }), toRgb, false).focusRing).toBe("#222222");
+    expect(themeFromTokens(tokens({ "--ring": "#222222", "--ac-ring": "#333333" }), toRgb, false).focusRing).toBe("#333333");
+    expect(themeFromTokens(tokens({}), toRgb, false).focusRing).toBeUndefined();
+    for (const v of ["--ac-ring", "--ring"]) expect(THEME_VARIABLES).toContain(v);
+  });
+
   it("reads the data palette from --chart-1 … --chart-5, the Luma one filling any the page leaves out", () => {
     const t = themeFromTokens(tokens({ "--chart-1": "#111111", "--ac-chart-3": "#333333", "--chart-3": "#999999" }), toRgb, true);
     expect(t.palette).toEqual(["#111111", LUMA_DARK.palette![1], "#333333", LUMA_DARK.palette![3], LUMA_DARK.palette![4]]);

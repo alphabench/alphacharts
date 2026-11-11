@@ -33,7 +33,7 @@ It is for apps that show markets: candles, lines, areas, histograms, panes, a cr
 drawing tools, technical studies, alerts and order-flow charts. Next to the real-time engine there is a declarative
 plot layer (bars, heatmaps, treemaps, scatter, small multiples) for the analytical charts around a trading screen.
 
-Version 0.1.x (`@alphacharts/core`, `indicators` and `drawings` 0.1.1; the other packages 0.1.0). The API may still change before 1.0; breaking changes are listed in the [changelog](CHANGELOG.md).
+Version 0.1.x (`@alphacharts/core` 0.1.2, `indicators` and `drawings` 0.1.1, `plot` 0.1.1; the other packages 0.1.0). The API may still change before 1.0; breaking changes are listed in the [changelog](CHANGELOG.md).
 
 ## Highlights
 
@@ -267,7 +267,8 @@ Any CSS colour is read: `oklch()`, `hsl()`, `color-mix()`, hex, and shadcn v3's 
 **Precedence**, first one set wins: `--ac-<token>` (an override for the chart only: `--ac-background`,
 `--ac-chart-up`, `--ac-radius` …), then the shadcn token, then Luma for the page's light or dark mode. The chart-only
 keys shadcn has no token for are `--ac-grid`, `--ac-crosshair`, `--ac-label-background`, `--ac-label-text` and
-`--ac-extended-hours`. `THEME_VARIABLES` (core) lists every name the chart reads.
+`--ac-extended-hours`. The keyboard focus ring reads `--ac-ring`, then `--ring`; a plot's tooltip also reads
+`--ac-tooltip-radius` and `--ac-tooltip-shadow` (any CSS `border-radius` / `box-shadow`). `THEME_VARIABLES` (core) lists every name the chart reads.
 
 Under `"inherit"` the chart reads these names whatever the page means by them: a page that uses `--muted` or
 `--border` for something else should name its own variables differently, pass a fixed theme, or set the `--ac-*`

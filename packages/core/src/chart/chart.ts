@@ -26,7 +26,9 @@ import { axisText, scaleTicks, TimeFormatter, timeText, timeTicks, type TimeLabe
 import { DEFAULT_TIME_SCALE, TimeScale, type TimeScaleOptions } from "../scale/time-scale.js";
 import { Interaction } from "../interaction/input.js";
 import { Emitter } from "./emitter.js";
-import { crisp, PriceLine, type AxisLabel, type PanePrimitive, type PaneView, type PriceLineOptions, type RenderLayer } from "./primitives.js";
+import { checkCrosshairLine, crosshairStroke } from "./crosshair.js";
+import { installFocusRing } from "./focus.js";
+import { crisp, PriceLine, type AxisLabel, type LineDash, type PanePrimitive, type PaneView, type PriceLineOptions, type RenderLayer } from "./primitives.js";
 import { drawMarkers, markerLowerBound, placeMarkers, type PlacedMarker } from "./markers.js";
 import { cancelRender, LAYER_ALL, LAYER_BG, LAYER_GL, LAYER_OVERLAY, requestRender, type Renderable } from "./scheduler.js";
 import { Series } from "./series.js";
@@ -50,6 +52,10 @@ export interface CrosshairOptions {
   visible: boolean;
   /** The crosshair's label on the price axis. False hides only that label; the line, the time label and events stay. */
   priceLabel: boolean;
+  /** Dash pattern of the line (the names a price line takes). Default: a 4 px dash and 4 px gap. */
+  lineStyle?: LineDash;
+  /** CSS px: 1 or 2. Default: a hairline of one device pixel. */
+  lineWidth?: 1 | 2;
 }
 
 export interface GridOptions {
@@ -232,6 +238,8 @@ export class Chart implements Renderable {
   private resampler: Resampler | null = null;
   private countdownTimer = 0;
   private autoTheme = false;
+  /** Redraws the keyboard focus ring (after a theme change). */
+  private repaintFocus: () => void = () => {};
   private readonly mediaQueries: MediaQueryList[] = [];
   private table: HTMLTableElement | null = null;
   private tableTimer = 0;
@@ -311,6 +319,7 @@ export class Chart implements Renderable {
       checkPriceScaleOptions(this.opts.rightPriceScale);
       checkPriceScaleOptions(this.opts.leftPriceScale);
       checkWatermarkOptions(this.opts.watermark);
+      checkCrosshairLine(this.opts.crosshair);
       this.tz =new TimeZone(this.opts.timeZone);
       this.fmt = new TimeFormatter(this.opts.locale, this.tz, this.opts.timeFormat);
       this.time = new TimeScale(this.opts.timeScale);
@@ -318,6 +327,7 @@ export class Chart implements Renderable {
       const root = document.createElement("div");
       root.style.cssText = "position:relative;width:100%;height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;outline:none";
       root.tabIndex = 0;
+      this.repaintFocus = installFocusRing(root, () => this.opts.theme);
       root.setAttribute("role", "application");
       root.setAttribute("aria-roledescription", "chart");
       root.setAttribute("aria-label", this.opts.ariaLabel);
@@ -420,6 +430,7 @@ export class Chart implements Renderable {
     if (o.leftPriceScale) checkPriceScaleOptions(o.leftPriceScale);
     const watermark = { ...prev.watermark, ...o.watermark };
     checkWatermarkOptions(watermark);
+    checkCrosshairLine({ ...prev.crosshair, ...o.crosshair });
     const timeChanged = o.timeZone !== undefined || o.locale !== undefined || "timeFormat" in o;
     const fmt = timeChanged ? new TimeFormatter("locale" in o ? o.locale : prev.locale, tz, "timeFormat" in o ? o.timeFormat : prev.timeFormat) : this.fmt;
     this.opts = {
@@ -1521,11 +1532,12 @@ export class Chart implements Renderable {
       const inData = cIndex >= this.time.first && cIndex <= this.time.last;
       const cx = paneX + (inData ? this.time.x(cIndex) : ch!.x - paneX);
       ctx.setTransform(d, 0, 0, d, ox, oy);
+      const stroke = crosshairStroke(this.opts.crosshair, d);
       ctx.strokeStyle = th.crosshair;
-      ctx.lineWidth = 1 / d;
-      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = stroke.lineWidth;
+      ctx.setLineDash(stroke.dash);
       ctx.beginPath();
-      const vx = crisp(cx, d);
+      const vx = crisp(cx, d, stroke.snapWidth);
       if (vx >= paneX && vx <= paneX + paneW) {
         ctx.moveTo(vx, 0);
         ctx.lineTo(vx, this.cssH - this.timeH);
@@ -1534,7 +1546,7 @@ export class Chart implements Renderable {
       const p = ch ? this.panes[ch.pane] : undefined;
       if (ch && p) {
         hy = p.top + this.crosshairY(p, ch.y, inData ? cIndex : undefined);
-        const y = crisp(hy, d);
+        const y = crisp(hy, d, stroke.snapWidth);
         ctx.moveTo(paneX, y);
         ctx.lineTo(paneX + paneW, y);
       }
@@ -1821,6 +1833,7 @@ export class Chart implements Renderable {
 
   /** The theme in opts changed: series re-resolve their colours, listeners (studies, drawings) theirs. */
   private retheme(): void {
+    this.repaintFocus();
     for (const p of this.panes) for (const s of p.series) s.themeChanged(this.opts.theme);
     if (this.events.has("themeChange")) this.events.emit("themeChange", this.opts.theme);
   }

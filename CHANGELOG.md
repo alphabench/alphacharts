@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 (core) and 0.1.1 (plot); the other packages unreleased
+
+Options for hosts that restyle charts from outside:
+- `plot`: `BarMark.opacity` (fill only; multiplied with each colour's alpha). `TooltipSpec.title` (a function `({ index, x, label })`, or `"axis"` to title with the x axis' `tickFormat`; the default title is unchanged, a `tickFormat` does not alter it) `TooltipSpec.swatch` and `TooltipSpec.confine` (`"plot"` keeps the tooltip inside the plot area; default `"canvas"`, unchanged). Behaviour fix: the tooltip (and the keyboard crosshair) now also hide when the plot loses focus; they stayed after a blur. `AxisSpec.tickFormat(value, { step, values, index })` (the library always supplies the context; it is optional in the type, so one-argument formatters and direct one-argument calls still compile; type `TickFormatContext`). Built-in number tick labels now add decimals (up to 10) while two different ticks would read alike: ticks from `tickValues` that are not evenly spaced no longer repeat a label. `PlotTheme.tooltipRadius` and `tooltipShadow` (optional; defaults are the old 4 px and shadow; `--ac-tooltip-radius` and `--ac-tooltip-shadow` under `"inherit"`), the tooltip text is `PlotTheme.tooltipFontSize` px when set (`--ac-tooltip-font-size` under `"inherit"`), else `fontSize + 1` px (12 px by default, as before), and `focusRing` (from the core theme; default `accent`).
+- `core`: `Theme.focusRing` (under `"inherit"`: `--ac-ring`, then `--ring`) and `CrosshairOptions.lineStyle` / `lineWidth` (defaults unchanged).
+- `core`: **visible change, accessibility fix**: the chart now draws a 2 px focus ring on keyboard focus (`:focus-visible` only; the colour is `theme.focusRing`, default the crosshair colour). It drew nothing before, so a keyboard user could not see that the chart had focus. Under `theme: "inherit"` a plot's keyboard outline also follows `--ring` (it was always `accent`) when the page defines it.
 
 Theming (shadcn):
 - `core`: **colour slots**: a colour may name a role (`"chart-1"` … `"chart-5"`, `"chart-up"`, `"chart-down"`, `"muted"`, `"foreground"`, optionally `"/0.35"`) and draws with the chart's current theme, live. Series options, price lines, markers, drawing styles and study plots accept them; `resolveColor`, `resolveColors`, `slotAlpha`, `paletteOf`, `isColorSlot`. `Theme.palette` (shadcn's `--chart-1` … `--chart-5`, read by `themeFromCss`), a `themeChange` chart event, and `theme` on `PluginApi` and `PaneView`.

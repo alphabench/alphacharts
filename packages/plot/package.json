@@ -1,6 +1,6 @@
 {
   "name": "@alphacharts/plot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Declarative Canvas2D charts: bars, candles, lines, areas, scatter, heatmaps, treemaps, facets, tooltips and export.",
   "keywords": [
     "chart",

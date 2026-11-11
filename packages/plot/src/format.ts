@@ -4,6 +4,14 @@ import { createFormatter, PriceFormatter, TimeZone } from "@alphacharts/core";
 import { timeFormats, timeTickLabel, type TimeFormats } from "./scale.js";
 import type { AxisFormat } from "./spec.js";
 
+/** Most decimals a tick label gets while the labels of neighbouring ticks are made distinct. */
+const MAX_TICK_DECIMALS = 10;
+
+/** The distance between a tick axis' first two values (1 for fewer): what its labels' precision follows. */
+export function tickStep(values: readonly number[]): number {
+  return values.length > 1 ? Math.abs(values[1]! - values[0]!) : 1;
+}
+
 export class Fmt {
   readonly tz: TimeZone;
   readonly time: TimeFormats;
@@ -40,20 +48,26 @@ export class Fmt {
     return c.hour === 0 && c.minute === 0 && c.second === 0 ? this.time.date.format(t) : this.time.datetime.format(t);
   }
 
-  /** Axis tick text for numbers: as many decimals as the tick step needs. */
+  /**
+   * Axis tick text for numbers: as many decimals as the tick step needs, and more (up to 10) while two different ticks would
+   * read the same, as with ticks given by `tickValues` that are not evenly spaced. "compact" keeps its two decimals.
+   */
   numberTicks(values: readonly number[], format: AxisFormat | undefined): string[] {
-    const step = values.length > 1 ? Math.abs(values[1]! - values[0]!) : 1;
-    const decimals = step > 0 ? new PriceFormatter(Math.max(step, 1e-9)).decimals : 0;
-    const nf = this.fixedDigits(decimals);
-    switch (format) {
-      case "compact": case "compact-abs": {
-        const f = createFormatter({ type: "volume" }, 1, this.locale);
-        return values.map((v) => f.format(format === "compact-abs" ? Math.abs(v) : v));
-      }
-      case "percent": return values.map((v) => `${nf.format(v)}%`);
-      case "abs": return values.map((v) => nf.format(Math.abs(v)));
-      default: return values.map((v) => nf.format(v));
+    const step = tickStep(values);
+    const start = step > 0 ? new PriceFormatter(Math.max(step, 1e-9)).decimals : 0;
+    if (format === "compact" || format === "compact-abs") {
+      const f = createFormatter({ type: "volume" }, 1, this.locale);
+      return values.map((v) => f.format(format === "compact-abs" ? Math.abs(v) : v));
     }
+    const shown = (v: number) => (format === "abs" ? Math.abs(v) : v);
+    const render = (d: number): string[] => {
+      const nf = this.fixedDigits(d);
+      return values.map((v) => (format === "percent" ? `${nf.format(v)}%` : nf.format(shown(v))));
+    };
+    let d = start;
+    let out = render(d);
+    while (d < MAX_TICK_DECIMALS && repeats(values.map(shown), out)) out = render(++d);
+    return out;
   }
 
   timeTicks(values: readonly number[], format: AxisFormat | undefined): string[] {
@@ -61,4 +75,15 @@ export class Fmt {
     if (format === "datetime") return values.map((v) => this.time.datetime.format(v));
     return values.map((v) => timeTickLabel(v, this.tz, this.locale, this.time));
   }
+}
+
+/** Whether two different values carry the same label. */
+function repeats(values: readonly number[], labels: readonly string[]): boolean {
+  const seen = new Map<string, number>();
+  for (let i = 0; i < labels.length; i++) {
+    const prior = seen.get(labels[i]!);
+    if (prior !== undefined && prior !== values[i]) return true;
+    seen.set(labels[i]!, values[i]!);
+  }
+  return false;
 }

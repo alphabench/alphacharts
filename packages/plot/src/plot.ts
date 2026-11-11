@@ -11,7 +11,8 @@ import { mergeExtents, prepare, type Extents, type Prepared } from "./model.js";
 import { isBand, Panel, type Rect } from "./panel.js";
 import { plotted, toCsv, type Column } from "./rows.js";
 import type { Mark, PlotSpec, TooltipContent } from "./spec.js";
-import { plotThemeFromCss, resolveTheme, type PlotTheme } from "./theme.js";
+import { placeTooltip } from "./placement.js";
+import { plotThemeFromCss, resolveTheme, tooltipChrome, type PlotTheme } from "./theme.js";
 import { paddingOf, validateSpec } from "./validate.js";
 
 /** A stale screen-reader table is rebuilt within this many ms of the first update that staled it. */
@@ -125,7 +126,7 @@ export class Plot {
     this.over = layer();
     this.tip = document.createElement("div");
     this.tip.setAttribute("role", "tooltip");
-    this.tip.style.cssText = "position:absolute;left:0;top:0;display:none;pointer-events:none;z-index:2;box-sizing:border-box;max-width:260px;padding:6px 8px;border-radius:4px;font:12px/1.35 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.25);white-space:nowrap;";
+    this.tip.style.cssText = "position:absolute;left:0;top:0;display:none;pointer-events:none;z-index:2;box-sizing:border-box;max-width:260px;padding:6px 8px;line-height:1.35;white-space:nowrap;";
     this.live = document.createElement("div");
     this.live.setAttribute("aria-live", "polite");
     this.live.style.cssText = SR_ONLY;
@@ -332,7 +333,7 @@ export class Plot {
     const watermark = { ...DEFAULT_WATERMARK, ...spec.watermark };
     const mk = (marks: readonly Mark[], title: string | undefined, first: boolean): Cell => {
       const prepared = prepare({ marks, scales: spec.scales, theme, hidden, colors });
-      const panel = new Panel({ prepared, theme, fmt, scales: spec.scales, axes: spec.axes, msg, title, padding: paddingOf(spec), watermark: first ? watermark : undefined });
+      const panel = new Panel({ prepared, theme, fmt, scales: spec.scales, axes: spec.axes, msg, title, padding: paddingOf(spec), watermark: first ? watermark : undefined, tooltipTitle: typeof spec.tooltip === "object" ? spec.tooltip.title : undefined });
       return { title, prepared, panel, stops: null };
     };
     return { cells: spec.facets ? spec.facets.cells.map((c, i) => mk([...c.marks, ...spec.marks], c.title, i === 0)) : [mk(spec.marks, undefined, true)] };
@@ -373,6 +374,10 @@ export class Plot {
     this.tip.style.color = theme.tooltipText;
     this.tip.style.border = `1px solid ${theme.border}`;
     this.tip.style.fontFamily = theme.fontFamily;
+    const chrome = tooltipChrome(theme);
+    this.tip.style.fontSize = chrome.fontSize;
+    this.tip.style.borderRadius = chrome.borderRadius;
+    this.tip.style.boxShadow = chrome.boxShadow;
     if (first) {
       this.tableDirty = true;
       this.ensureTable();
@@ -459,6 +464,8 @@ export class Plot {
     });
     on<FocusEvent>(r, "blur", () => {
       this.focusRing = false;
+      // A keyboard crosshair is not left behind when the plot loses focus.
+      if (!this.brushing && !this.panning) this.setActive(null, false);
       this.scheduleOverlay();
     });
     on<PointerEvent>(r, "pointerdown", () => {
@@ -766,7 +773,7 @@ export class Plot {
       ctx.strokeRect(x0 + 0.5, area.y + 0.5, x1 - x0, area.h - 1);
     }
     if (this.focusRing) {
-      ctx.strokeStyle = th.accent;
+      ctx.strokeStyle = th.focusRing ?? th.accent;
       ctx.lineWidth = 2;
       ctx.strokeRect(1, 1, this.w - 2, this.h - 2);
     }
@@ -816,6 +823,7 @@ export class Plot {
     const fmt = typeof this.spec.tooltip === "object" ? this.spec.tooltip.format : undefined;
     if (fmt) content = fmt(content);
     tip.textContent = "";
+    const swatch = typeof this.spec.tooltip === "object" ? this.spec.tooltip.swatch !== false : true;
     if (content.title) {
       const t = document.createElement("div");
       t.style.cssText = "font-weight:600;margin-bottom:3px;";
@@ -825,25 +833,27 @@ export class Plot {
     for (const r of content.rows) {
       const row = document.createElement("div");
       row.style.cssText = "display:flex;align-items:center;gap:6px;";
-      const sw = document.createElement("span");
-      sw.style.cssText = "display:inline-block;width:8px;height:8px;border-radius:2px;flex:none;";
-      // Through the CSSOM, and only a colour the library can read: a spec string never becomes CSS text.
-      sw.style.backgroundColor = cssColor(parseColor(r.color));
       const nm = document.createElement("span");
       nm.style.cssText = `color:${this.theme.textMuted};`;
       nm.textContent = r.name;
       const val = document.createElement("span");
       val.style.cssText = "margin-left:auto;padding-left:12px;font-variant-numeric:tabular-nums;";
       val.textContent = r.value;
-      row.append(sw, nm, val);
+      if (swatch) {
+        const sw = document.createElement("span");
+        sw.style.cssText = "display:inline-block;width:8px;height:8px;border-radius:2px;flex:none;";
+        // Through the CSSOM, and only a colour the library can read: a spec string never becomes CSS text.
+        sw.style.backgroundColor = cssColor(parseColor(r.color));
+        row.append(sw);
+      }
+      row.append(nm, val);
       tip.appendChild(row);
     }
     tip.style.display = "block";
     const tw = tip.offsetWidth, th = tip.offsetHeight;
-    let x = a.hit.x + 14, y = a.hit.y + 14;
-    if (x + tw > this.w - 4) x = a.hit.x - tw - 14;
-    if (y + th > this.h - 4) y = this.h - th - 4;
-    tip.style.transform = `translate(${Math.max(4, Math.round(x))}px,${Math.max(4, Math.round(y))}px)`;
+    const plotOnly = typeof this.spec.tooltip === "object" && this.spec.tooltip.confine === "plot";
+    const at = plotOnly ? placeTooltip(a.hit.x, a.hit.y, tw, th, a.cell.panel.area, 0) : placeTooltip(a.hit.x, a.hit.y, tw, th, { x: 0, y: 0, w: this.w, h: this.h }, 4);
+    tip.style.transform = `translate(${at.x}px,${at.y}px)`;
     this.emit("hover", content);
   }
 

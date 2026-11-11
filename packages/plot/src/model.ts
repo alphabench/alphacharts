@@ -180,6 +180,10 @@ function positive(v: unknown, what: string): void {
   if (typeof v !== "number" || !(v > 0) || !Number.isFinite(v)) throw new RangeError(`alphacharts: ${what} must be a positive number, got ${String(v)}`);
 }
 
+function unit(v: unknown, what: string): void {
+  if (typeof v !== "number" || !(v >= 0 && v <= 1)) throw new RangeError(`alphacharts: ${what} must be a number from 0 to 1, got ${String(v)}`);
+}
+
 const SERIES = new Set(["bar", "line", "area", "errorBand", "scatter", "histogram"]);
 
 function barOrient(m: BarMark, scales: ScalesSpec | undefined): "v" | "h" {
@@ -451,6 +455,7 @@ export function prepare(input: PrepareInput): Prepared {
         });
         if (m.colors && m.colors.length !== n) throw new RangeError(`alphacharts: ${w}: colors has ${m.colors.length} entries for ${n} bars`);
         if (m.strokes && m.strokes.length !== n) throw new RangeError(`alphacharts: ${w}: strokes has ${m.strokes.length} entries for ${n} bars`);
+        if (m.opacity !== undefined) unit(m.opacity, `${w}.opacity`);
         if (m.strokeWidth !== undefined) {
           if (!m.strokes) throw new TypeError(`alphacharts: ${w}: strokeWidth needs strokes`);
           positive(m.strokeWidth, `${w}.strokeWidth`);

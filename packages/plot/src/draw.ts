@@ -3,7 +3,7 @@
 // pixels so neighbours share an edge and nothing blurs.
 
 import { crisp, drawWatermark } from "@alphacharts/core";
-import { textOn, withAlpha } from "./color.js";
+import { scaleAlpha, textOn, withAlpha } from "./color.js";
 import { visible, type PArea, type PBar, type PCandle, type PHeat, type PHist, type PLine, type PRule, type PScatter, type PTree, type PMark } from "./model.js";
 import { isBand, type Panel, type PosScale } from "./panel.js";
 import { placeLabels, type Box, type Circle } from "./labels.js";
@@ -65,7 +65,8 @@ function drawBars(p: Panel, ctx: CanvasRenderingContext2D, dpr: number, m: PBar)
     if (x1 - x0 < tick) x1 = x0 + tick;
     if (y1 - y0 < tick) y1 = y0 + tick;
     const colour = m.colors ? m.colors[i]! : m.sign ? (m.value[i]! >= 0 ? m.sign.positive : m.sign.negative) : m.color;
-    ctx.fillStyle = colour;
+    // Opacity multiplies the colour's own alpha; outlines and value labels stay opaque.
+    ctx.fillStyle = scaleAlpha(colour, m.mark.opacity ?? 1);
     ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
     const stroke = m.mark.strokes?.[i];
     if (stroke) {

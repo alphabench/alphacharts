@@ -3,12 +3,12 @@
 
 import { crisp, type WatermarkOptions } from "@alphacharts/core";
 import { makeColorScale, type ColorScale } from "./color.js";
-import { Fmt } from "./format.js";
+import { Fmt, tickStep } from "./format.js";
 import {
   defaultBarWidth, isBandKind, extents, visible, type AxisKind, type Extents, type PBar, type PCandle, type PHeat, type PMark, type PScatter, type PTree, type Prepared,
 } from "./model.js";
 import { BandScale, type BandOptions, LinearScale, LogScale, niceDomain, TimeScale, type ContinuousScale } from "./scale.js";
-import type { AxesSpec, AxisSpec, ColorScaleSpec, ScalesSpec, YAxisId } from "./spec.js";
+import type { AxesSpec, AxisSpec, ColorScaleSpec, ScalesSpec, TooltipSpec, YAxisId } from "./spec.js";
 import type { PlotTheme } from "./theme.js";
 import type { PlotMessages } from "./messages.js";
 import { sidesOf, type Padding } from "./validate.js";
@@ -40,6 +40,8 @@ export interface AxisModel {
   side: "left" | "right";
   /** Draw the tick labels (facets share them). */
   labels: boolean;
+  /** Distance between the first two tick values (see `tickStep`): the step a `tickFormat` is told. */
+  step: number;
 }
 
 export interface PanelOptions {
@@ -55,6 +57,8 @@ export interface PanelOptions {
   padding?: Padding | undefined;
   /** The mark to draw in this panel's plot area; absent on a panel that carries none. */
   watermark?: WatermarkOptions | undefined;
+  /** `spec.tooltip.title`. */
+  tooltipTitle?: TooltipSpec["title"] | undefined;
 }
 
 export interface LayoutFlags {
@@ -254,33 +258,41 @@ export class Panel {
     const spec = (this.o.axes?.[id] || undefined) as AxisSpec | undefined;
     const fmt = this.o.fmt;
     const ticks: AxisTick[] = [];
+    let step = 1;
     if (isBand(scale)) {
+      const pos = new Map(scale.domain.map((c, i) => [c, i] as const));
+      const ctxOf = (shown: readonly string[], i: number, step: number) => ({ step, values: shown.map((c) => pos.get(c)!), index: i });
       let cats = [...scale.domain];
+      let stride = 1;
       if (spec?.tickValues) {
         const want = new Set(spec.tickValues.map(String));
         cats = cats.filter((c) => want.has(c));
       } else if (ctx && id === "x") {
         // Thin crowded labels: every k-th band, k from the widest label.
-        const wmax = Math.max(1, ...cats.map((c) => this.textWidth(ctx, spec?.tickFormat ? spec.tickFormat(c) : c)));
-        const stride = Math.max(1, Math.ceil((wmax + 8) / Math.max(1, scale.step)));
+        const all = cats;
+        const wmax = Math.max(1, ...all.map((c, i) => this.textWidth(ctx, spec?.tickFormat ? spec.tickFormat(c, ctxOf(all, i, 1)) : c)));
+        stride = Math.max(1, Math.ceil((wmax + 8) / Math.max(1, scale.step)));
         cats = cats.filter((_, i) => i % stride === 0);
       } else if (id !== "x") {
-        const stride = Math.max(1, Math.ceil((this.theme.fontSize + 6) / Math.max(1, scale.step)));
+        stride = Math.max(1, Math.ceil((this.theme.fontSize + 6) / Math.max(1, scale.step)));
         cats = cats.filter((_, i) => i % stride === 0);
       }
-      for (const c of cats) ticks.push({ pos: scale.center(c), label: spec?.tickFormat ? spec.tickFormat(c) : c });
+      step = stride;
+      cats.forEach((c, i) => ticks.push({ pos: scale.center(c), label: spec?.tickFormat ? spec.tickFormat(c, ctxOf(cats, i, stride)) : c }));
     } else {
       let values: number[];
       if (spec?.tickValues) values = spec.tickValues.map(Number).filter((v) => Number.isFinite(v));
       else values = scale.ticks(spec?.ticks ?? count);
       const [d0, d1] = scale.domain;
       values = values.filter((v) => v >= Math.min(d0, d1) - 1e-9 * Math.abs(d1 - d0) && v <= Math.max(d0, d1) + 1e-9 * Math.abs(d1 - d0));
-      const text = spec?.tickFormat ? values.map((v) => spec.tickFormat!(v)) : scale.kind === "time" ? fmt.timeTicks(values, spec?.format) : fmt.numberTicks(values, spec?.format);
+      step = tickStep(values);
+      const ctxOf = (i: number) => ({ step, values, index: i });
+      const text = spec?.tickFormat ? values.map((v, i) => spec.tickFormat!(v, ctxOf(i))) : scale.kind === "time" ? fmt.timeTicks(values, spec?.format) : fmt.numberTicks(values, spec?.format);
       values.forEach((v, i) => ticks.push({ pos: scale.map(v), label: text[i]! }));
     }
     void lenPx;
     const bandAxis = isBand(scale);
-    return { id, scale, ticks, title: undefined, grid: spec?.grid ?? (id === "y2" ? false : !bandAxis), line: spec?.line ?? true, tickMarks: spec?.tickMarks ?? true, side, labels };
+    return { id, scale, ticks, title: undefined, grid: spec?.grid ?? (id === "y2" ? false : !bandAxis), line: spec?.line ?? true, tickMarks: spec?.tickMarks ?? true, side, labels, step };
   }
 
   private buildColorScales(e: Extents): void {

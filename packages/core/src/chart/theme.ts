@@ -18,6 +18,11 @@ export interface Theme {
   up: string;
   down: string;
   accent: string;
+  /**
+   * The keyboard focus ring (a 2 px outline on the chart, shown only for keyboard focus). Default: `crosshair`.
+   * Under `"inherit"`: `--ac-ring`, then shadcn's `--ring`.
+   */
+  focusRing?: string;
   /** Shade behind bars outside regular trading hours. */
   extendedHours: string;
   /**

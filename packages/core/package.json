@@ -1,6 +1,6 @@
 {
   "name": "@alphacharts/core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "WebGL2 financial charting engine: candles, lines, histograms, panes, scales, sync, datafeed. No runtime dependencies.",
   "keywords": [
     "chart",

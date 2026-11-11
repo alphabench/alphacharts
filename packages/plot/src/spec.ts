@@ -91,6 +91,12 @@ export interface ScalesSpec {
  */
 export type AxisFormat = "auto" | "compact" | "compact-abs" | "percent" | "abs" | "date" | "datetime";
 
+export interface TickFormatContext {
+  step: number;
+  values: readonly number[];
+  index: number;
+}
+
 export interface AxisSpec {
   /** Axis title. */
   label?: string;
@@ -99,8 +105,13 @@ export interface AxisSpec {
   /** Exact tick values (numbers, or categories on a band scale). */
   tickValues?: readonly (number | string)[];
   format?: AxisFormat;
-  /** Host formatter; wins over `format`. Not serialisable. */
-  tickFormat?: (value: number | string) => string;
+  /**
+   * Host formatter; wins over `format`. Not serialisable. The second argument describes the ticks being labelled, so
+   * a formatter can pick a precision that keeps neighbours distinct: `step` is the distance between the first two tick
+   * values (for a band axis, the stride in categories), `values` the tick values (for a band axis, the categories'
+   * positions in the domain) and `index` this tick's place in `values`. With `tooltip.title: "axis"` it also titles the tooltip (a continuous x axis), with `values: [value]` and `index: 0`. The library always passes the context; the parameter is optional in the type so that code calling `tickFormat(value)` directly keeps compiling, and a formatter that reads it should handle `undefined` (or be called only by the library).
+   */
+  tickFormat?: (value: number | string, ctx?: TickFormatContext) => string;
   /** Gridlines. Default: on for the primary axes, off for y2. */
   grid?: boolean;
   /** Axis line. Default true. */
@@ -164,6 +175,8 @@ export interface BarMark extends MarkBase {
   strokeWidth?: number;
   /** Bar thickness in x units, for bars on a continuous axis. Default: 80% of the smallest gap. */
   width?: number;
+  /** Fill opacity 0..1, multiplied with the colour's own alpha (per-bar `colors` still choose the colour). Default 1. Outlines and labels stay opaque. */
+  opacity?: number;
   /** Value labels at the end of each bar. */
   labels?: boolean;
 }
@@ -403,6 +416,20 @@ export interface TooltipSpec {
   mode?: "shared" | "nearest" | "none";
   /** Snap the crosshair to the datum. Default true. */
   snap?: boolean;
+  /**
+   * The tooltip's title. A function gets the datum under the pointer (`x` is its x value: a number, a time in ms, or a category; `index` its
+   * position in the mark's columns; `label` the title it replaces, absent when empty) and returns the title ("" for none); it is not
+   * called for cells without a datum (histogram bins, treemap tiles). `"axis"` titles a continuous x axis with `axes.x.tickFormat` (when it has one).
+   * Default: the category, or the number or time as the tooltip formats values; an axis `tickFormat` does not change it. Host-side only.
+   */
+  title?: ((ctx: { index: number; x: unknown; label?: string }) => string) | "axis";
+  /**
+   * Where the tooltip may go. "canvas" (default): anywhere in the chart, so it can cover the axis labels. "plot": inside the plot area
+   * (between the axes), flipping to the other side of the pointer at the right edge.
+   */
+  confine?: "canvas" | "plot";
+  /** The colour swatch before each row. Default true; false suits a single series. */
+  swatch?: boolean;
   /** Replace the tooltip text; rows carry `index`, `raw` and `mark` to format by. Host-side only. */
   format?: (content: TooltipContent) => TooltipContent;
 }

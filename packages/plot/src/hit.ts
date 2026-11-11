@@ -51,11 +51,22 @@ function sharedAxis(p: Panel): "x" | "y" {
   return ms.some((m) => m.type === "bar" && m.orient === "h") && !ms.some((m) => m.type === "line" || m.type === "area") ? "y" : "x";
 }
 
-function titleOf(p: Panel, axis: "x" | "y", px: number, cat: string | undefined): string {
+/** The tooltip title of one datum: the host's `tooltip.title` (told the title it replaces), else `fallback`. */
+function titled(p: Panel, fallback: string, x: unknown, index: number): string {
+  const fn = p.o.tooltipTitle;
+  return typeof fn === "function" ? fn({ index, x, ...(fallback ? { label: fallback } : {}) }) : fallback;
+}
+
+/** `xv`: the x of the datum under the pointer, when there is one (the pixel's inverse is only close to it). */
+function titleOf(p: Panel, axis: "x" | "y", px: number, cat: string | undefined, xv?: number): string {
   if (cat !== undefined) return cat;
   const s = axis === "x" ? p.sx : p.sy;
   if (isBand(s)) return "";
-  const v = s.invert(px);
+  const v = xv ?? s.invert(px);
+  // Only on request (`tooltip.title: "axis"`): a formatter written for ticks ("10:00") would otherwise replace the fuller title.
+  const spec = p.o.axes?.[axis];
+  const tf = spec && p.o.tooltipTitle === "axis" ? spec.tickFormat : undefined;
+  if (tf) return tf(v, { step: p.axes.find((a) => a.id === axis)?.step ?? 1, values: [v], index: 0 });
   return s.kind === "time" ? p.o.fmt.instant(v) : p.o.fmt.value(v);
 }
 
@@ -109,6 +120,7 @@ function sharedHit(p: Panel, px: number, py: number, snap: boolean): Hit | null 
   const rows: TooltipRow[] = [];
   const dots: Dot[] = [];
   let rangeTitle: string | undefined;
+  let datum: { m: Positioned; i: number } | undefined;
   for (const m of series) {
     if (m.type === "histogram") {
       if (isBand(scale)) continue;
@@ -122,11 +134,14 @@ function sharedHit(p: Panel, px: number, py: number, snap: boolean): Hit | null 
     const i = indexAt(p, m, axis, key, keyPx, scale);
     if (i < 0) continue;
     rows.push(...rowsOf(p, m, i));
+    if (!datum && hasPos(m)) datum = { m, i };
     const dot = dotOf(p, m, i);
     if (dot) dots.push(dot);
   }
   if (rows.length === 0) return null;
-  const title = rangeTitle ?? titleOf(p, axis, keyPx, key);
+  const xv = datum ? datum.m.pos.num?.[datum.i] : undefined;
+  const base = rangeTitle ?? titleOf(p, axis, keyPx, key, xv);
+  const title = rangeTitle === undefined && datum ? titled(p, base, key ?? xv ?? NaN, datum.i) : base;
   const hit: Hit = { title, rows, x: axis === "x" ? keyPx : px, y: axis === "x" ? py : keyPx, dots };
   if (axis === "x") {
     hit.snapX = snap ? keyPx : px;
@@ -242,7 +257,7 @@ function pointRows(p: Panel, m: PScatter | Extract<PMark, { type: "line" }>, i: 
     }
     if (m.mark.states && !(m.mark.shapes || m.mark.hollow || m.mark.opacities || m.mark.colors)) rows.push(row(m, i, "State", m.mark.states[i]!, color, NaN));
   }
-  return { title, rows };
+  return { title: titled(p, title, m.pos.cat ? m.pos.cat[i]! : m.pos.num![i]!, i), rows };
 }
 
 function nearestHit(p: Panel, px: number, py: number): Hit | null {
@@ -293,7 +308,7 @@ function heatHitAt(p: Panel, m: PHeat, i: number): Hit {
   const c = heatCell(p, m, i);
   const v = m.value[i]!;
   return {
-    title: `${m.xc[i]!} · ${m.yc[i]!}`,
+    title: titled(p, `${m.xc[i]!} · ${m.yc[i]!}`, m.xc[i]!, i),
     rows: [row(m, i, m.name ?? p.o.msg("plot.tooltip.value"), v === v ? p.o.fmt.value(v) : "", cs && v === v ? cs.map(v) : m.color, v)],
     x: c.x + c.w / 2, y: c.y + c.h / 2, dots: [], rect: c,
     key: { cat: m.xc[i]! },
