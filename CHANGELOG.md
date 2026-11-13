@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 (core)
+
+- `core`: the watermark mark is the lowercase alpha glyph, drawn at the same place and size.
+
 ## 0.1.2 (core) and 0.1.1 (plot); the other packages unreleased
 
 Options for hosts that restyle charts from outside:

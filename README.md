@@ -33,7 +33,7 @@ It is for apps that show markets: candles, lines, areas, histograms, panes, a cr
 drawing tools, technical studies, alerts and order-flow charts. Next to the real-time engine there is a declarative
 plot layer (bars, heatmaps, treemaps, scatter, small multiples) for the analytical charts around a trading screen.
 
-Version 0.1.x (`@alphacharts/core` 0.1.2, `indicators` and `drawings` 0.1.1, `plot` 0.1.1; the other packages 0.1.0). The API may still change before 1.0; breaking changes are listed in the [changelog](CHANGELOG.md).
+Version 0.1.x (`@alphacharts/core` 0.1.3, `indicators` and `drawings` 0.1.1, `plot` 0.1.1; the other packages 0.1.0). The API may still change before 1.0; breaking changes are listed in the [changelog](CHANGELOG.md).
 
 ## Highlights
 
