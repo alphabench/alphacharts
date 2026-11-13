@@ -9,6 +9,7 @@
 import type { DataChange, SeriesData } from "../data/model.js";
 import type { PriceScale } from "../scale/price-scale.js";
 import type { TimeScale } from "../scale/time-scale.js";
+import { dashPattern, type LineDash } from "../chart/primitives.js";
 import { parseColor, rgba } from "./color.js";
 import { GLContext, GLSL_COMMON, type Program } from "./gl.js";
 import { chooseLevel, HOLE_TEST, InstanceWindow, RECORD_BYTES } from "./window.js";
@@ -304,6 +305,19 @@ export interface LineStyle {
   color: string;
   /** CSS px. */
   lineWidth: number;
+  /** Dash pattern, the names a price line takes; default "solid". */
+  lineStyle?: LineDash;
+}
+
+/**
+ * The on and off lengths of a line style for a line `width` px wide, in the same px; [] for solid. An unknown style
+ * throws rather than drawing solid.
+ */
+export function linePattern(style: LineDash | undefined, width: number): number[] {
+  if (style === undefined || style === "solid") return [];
+  const pattern = dashPattern(style, width) as number[] | undefined;
+  if (!pattern) throw new RangeError(`alphacharts: unknown lineStyle "${String(style)}"`);
+  return pattern;
 }
 
 // Instance i joins record i to record i+1 with an anti-aliased capsule. Above
@@ -345,10 +359,17 @@ flat in vec2 v_b;
 flat in vec4 v_seg;
 uniform float u_half;
 uniform vec4 u_color;
+// Dash on and off length and phase origin, device px; off 0 is a solid line.
+uniform vec3 u_dash;
 out vec4 o_color;
 void main() {
   vec2 pa = v_pos - v_a, ba = v_b - v_a;
   float t = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
+  if (u_dash.y > 0.0) {
+    // The pattern runs along x from the first bar, so it is continuous across segments and moves with the data.
+    float phase = mod(v_a.x + ba.x * t - u_dash.z, u_dash.x + u_dash.y);
+    if (phase > u_dash.x) discard;
+  }
   float dist = length(pa - ba * t);
   float cov = clamp(u_half + 0.5 - dist, 0.0, 1.0);
   if (cov <= 0.0) discard;
@@ -360,19 +381,24 @@ void main() {
 export class LineRenderer extends WindowRenderer<LineStyle> {
   private readonly colors = new Colors();
   constructor(gl: WebGL2RenderingContext, ctx: GLContext, data: SeriesData) {
-    super(gl, ctx, data, false, ctx.program("line", LINE_VS, LINE_FS, ["u_half", "u_env", "u_color"], ["a_r", "a_c", "a_r1", "a_color1"]), true);
+    super(gl, ctx, data, false, ctx.program("line", LINE_VS, LINE_FS, ["u_half", "u_env", "u_color", "u_dash"], ["a_r", "a_c", "a_r1", "a_color1"]), true);
   }
   draw(v: DrawView, o: LineStyle): void {
     const n = this.prepare(v);
     if (n < 2) return;
-    this.drawLine(v, o.color, o.lineWidth, n);
+    this.drawLine(v, o.color, o.lineWidth, n, o.lineStyle);
   }
   /** Draw with the program already prepared (shared with AreaRenderer). */
-  drawLine(v: DrawView, color: string, width: number, n: number): void {
+  drawLine(v: DrawView, color: string, width: number, n: number, style?: LineDash): void {
     const gl = this.gl, u = this.prog.uniforms;
     gl.uniform1f(u.u_half!, Math.max(0.5, (width * v.dpr) / 2));
     gl.uniform1i(u.u_env!, this.level > 0 ? 1 : 0);
     gl.uniform4fv(u.u_color!, this.colors.get(0, color));
+    const [on = 0, off = 0] = linePattern(style, Math.max(1, width * v.dpr));
+    // The first bar's x, folded into one period so the uniform stays small at any scroll.
+    const origin = off > 0 ? v.time.x(0) * v.dpr : 0;
+    const period = on + off;
+    gl.uniform3f(u.u_dash!, on, off, period > 0 ? origin - Math.floor(origin / period) * period : 0);
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 12, n - 1);
   }
 }
@@ -384,6 +410,8 @@ export interface AreaStyle {
   topColor: string;
   bottomColor: string;
   lineWidth: number;
+  /** Dash pattern of the outline; default "solid". */
+  lineStyle?: LineDash;
 }
 
 const AREA_VS = GLSL_COMMON + /* glsl */ `
@@ -418,7 +446,7 @@ export class AreaRenderer implements SeriesRenderer<AreaStyle> {
   }
   draw(v: DrawView, o: AreaStyle): void {
     this.fill.draw(v, o);
-    this.line.draw(v, { color: o.lineColor, lineWidth: o.lineWidth });
+    this.line.draw(v, { color: o.lineColor, lineWidth: o.lineWidth, ...(o.lineStyle ? { lineStyle: o.lineStyle } : {}) });
   }
   dataChanged(c: DataChange): void {
     this.fill.dataChanged(c);

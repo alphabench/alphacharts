@@ -7,8 +7,9 @@ import { LOD_C, LOD_COLOR, LOD_H, LOD_L, LOD_O } from "../data/lod.js";
 import { COL_BAR_COLOR, COL_C, COL_COLOR, COL_H, COL_L, COL_O, COL_V, type DataChange, type SeriesData } from "../data/model.js";
 import type { PriceScale } from "../scale/price-scale.js";
 import type { TimeScale } from "../scale/time-scale.js";
+import type { LineDash } from "../chart/primitives.js";
 import { cssColor } from "./color.js";
-import { barWidths, type AreaStyle, type BarStyle, type CandleStyle, type HistogramStyle, type LineStyle } from "./renderers.js";
+import { barWidths, linePattern, type AreaStyle, type BarStyle, type CandleStyle, type HistogramStyle, type LineStyle } from "./renderers.js";
 import { chooseLevel } from "./window.js";
 
 export interface DrawView2D {
@@ -186,20 +187,25 @@ function linePath(v: DrawView2D, level: number, valueOf: "c" | "h"): { path: Pat
   return { path, first, last };
 }
 
-function stroke(v: DrawView2D, path: Path2D, color: string, width: number): void {
+function stroke(v: DrawView2D, path: Path2D, color: string, width: number, style?: LineDash): void {
   const ctx = v.ctx;
+  const w = Math.max(1, width * v.dpr);
+  const dash = linePattern(style, w);
   ctx.strokeStyle = color;
-  ctx.lineWidth = Math.max(1, width * v.dpr);
+  ctx.lineWidth = w;
   ctx.lineJoin = "round";
-  ctx.lineCap = "round";
+  // Round caps would lengthen every dash by the line's width.
+  ctx.lineCap = dash.length ? "butt" : "round";
+  if (dash.length) ctx.setLineDash(dash);
   ctx.stroke(path);
+  if (dash.length) ctx.setLineDash([]);
 }
 
 /**
  * A line whose points carry their own colours: each segment, drawn from the previous unit to this one, takes this
  * unit's colour (0 = the series colour), one path per colour. Used only when the series may hold coloured points.
  */
-function colouredLine(v: DrawView2D, level: number, color: string, width: number): void {
+function colouredLine(v: DrawView2D, level: number, color: string, width: number, style?: LineDash): void {
   const byColor = new Map<number, Path2D>();
   let px = 0, py = 0, have = false;
   eachUnit(v, level, (x, o, h, l, c, col) => {
@@ -216,14 +222,14 @@ function colouredLine(v: DrawView2D, level: number, color: string, width: number
     py = ys[ys.length - 1]!;
     have = true;
   });
-  for (const [col, p] of byColor) stroke(v, p, col === 0 ? color : cssColor(col), width);
+  for (const [col, p] of byColor) stroke(v, p, col === 0 ? color : cssColor(col), width, style);
 }
 
 export class Line2D extends Base<LineStyle> {
   draw(v: DrawView2D, o: LineStyle): void {
     const level = levelOf(v);
-    if (v.data.pointColors) colouredLine(v, level, o.color, o.lineWidth);
-    else stroke(v, linePath(v, level, "c").path, o.color, o.lineWidth);
+    if (v.data.pointColors) colouredLine(v, level, o.color, o.lineWidth, o.lineStyle);
+    else stroke(v, linePath(v, level, "c").path, o.color, o.lineWidth, o.lineStyle);
   }
 }
 
@@ -240,7 +246,7 @@ export class Area2D extends Base<AreaStyle> {
     g.addColorStop(1, o.bottomColor);
     v.ctx.fillStyle = g;
     v.ctx.fill(area);
-    if (v.data.pointColors) colouredLine(v, level, o.lineColor, o.lineWidth);
-    else stroke(v, linePath(v, level, "c").path, o.lineColor, o.lineWidth);
+    if (v.data.pointColors) colouredLine(v, level, o.lineColor, o.lineWidth, o.lineStyle);
+    else stroke(v, linePath(v, level, "c").path, o.lineColor, o.lineWidth, o.lineStyle);
   }
 }

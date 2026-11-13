@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 (core)
+
+- `core`: `line` series and `area` outlines take `lineStyle` (`"solid"`, `"dashed"`, `"dotted"`, `"large-dashed"`,
+  `"sparse-dotted"`, the names a price line takes), on WebGL2 and Canvas2D. On WebGL2 the pattern is measured along
+  the time axis from the first bar, so it stays put as the chart scrolls; an unknown style throws.
+
 ## 0.1.3 (core)
 
 - `core`: the watermark mark is the lowercase alpha glyph, drawn at the same place and size.

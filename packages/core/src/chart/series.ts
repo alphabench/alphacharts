@@ -3,12 +3,12 @@
 import type { ColumnarColors, ColumnarOhlc, ColumnarValue, OhlcBar, SeriesData, ValuePoint } from "../data/model.js";
 import { COL_C, COL_H, COL_L, COL_O, COL_V } from "../data/model.js";
 import type { SeriesRenderer2D } from "../render/canvas2d.js";
-import type { SeriesRenderer } from "../render/renderers.js";
+import { linePattern, type SeriesRenderer } from "../render/renderers.js";
 import { parseColor } from "../render/color.js";
 import { isColorSlot, resolveColors } from "./slots.js";
 import { createFormatter, decimalsOf, type Formatter } from "../scale/format.js";
 import { checkMarkers, type SeriesMarker } from "./markers.js";
-import type { PanePrimitive } from "./primitives.js";
+import type { LineDash, PanePrimitive } from "./primitives.js";
 import { seriesType, type CommonSeriesOptions, type SeriesOptions, type SeriesOptionsMap, type SeriesShapes, type SeriesType, type SeriesTypeDef } from "./series-types.js";
 import type { Theme } from "./theme.js";
 
@@ -24,6 +24,9 @@ function validateColors(options: object): void {
   const a = (options as { autoscale?: unknown }).autoscale;
   if (a !== undefined && typeof a !== "function") throw new TypeError(`alphacharts: series option autoscale must be a function, got ${typeof a}`);
   for (const [k, v] of Object.entries(options)) if (/color$/i.test(k) && v !== undefined && !isColorSlot(v as string)) parseColor(v as string);
+  // A line or area outline style: an unknown name throws here, not on the next frame.
+  const style = (options as { lineStyle?: unknown }).lineStyle;
+  if (style !== undefined) linePattern(style as LineDash, 1);
 }
 
 
